@@ -207,4 +207,4 @@ python -m spacy download en_core_web_sm
 
 ---
 
-# This is work in progress, I am still to figure out how to deal with intent map and intent label.
+# This is work in progress, still figuring out how to intergrate actual user  in place of simulated  customer agent
