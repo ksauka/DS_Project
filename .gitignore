@@ -60,6 +60,17 @@ data/*.json
 data/*.txt
 !data/README.md
 
+# Notebook outputs
+notebooks/*.csv
+notebooks/*.json
+!notebooks/README.md
+
+# Experiment outputs (generated runs)
+experiments/*/*/
+experiments/*/*.json
+experiments/*/*.csv
+!experiments/README.md
+
 # Outputs and logs
 outputs/
 logs/

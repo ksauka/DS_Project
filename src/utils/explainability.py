@@ -44,6 +44,16 @@ class BeliefTracker:
         """
         return self.belief_history.copy()
     
+    def get_latest_belief(self) -> Optional[Dict[str, float]]:
+        """Get the most recent belief state.
+        
+        Returns:
+            Latest belief dictionary, or None if no history
+        """
+        if not self.belief_history:
+            return None
+        return self.belief_history[-1][0]
+    
     def save_to_json(self, filepath: str):
         """
         Save belief history to a JSON file.

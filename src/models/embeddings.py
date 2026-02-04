@@ -36,12 +36,17 @@ class SentenceEmbedder:
         """
         return SentenceTransformer(self.model_name, device=self.device)
 
-    def get_embedding(self, text: str, prepend_query: bool = True) -> np.ndarray:
+    def get_embedding(self, text: str, prepend_query: bool = False) -> np.ndarray:
         """Generate embedding for a given text.
 
         Args:
             text: Input text string
             prepend_query: Whether to prepend 'query: ' to text (for e5 models)
+                          Default is False for consistency across training/inference.
+                          
+                          NOTE: Old notebook had a bug - trained WITHOUT prefix but
+                          used WITH prefix in DS inference, causing train/test mismatch.
+                          This implementation is consistent (no prefix everywhere).
 
         Returns:
             Embedding vector as numpy array
@@ -51,14 +56,14 @@ class SentenceEmbedder:
         else:
             formatted_text = text.strip()
 
-        return self.model.encode(formatted_text)
+        return self.model.encode(formatted_text, show_progress_bar=False)
 
     def get_embeddings_batch(
         self,
         texts: list,
         batch_size: int = 64,
         show_progress: bool = True,
-        prepend_query: bool = True
+        prepend_query: bool = False  # Default False to match old notebook
     ) -> np.ndarray:
         """Generate embeddings for a batch of texts.
 
@@ -80,6 +85,51 @@ class SentenceEmbedder:
             formatted_texts,
             batch_size=batch_size,
             show_progress_bar=show_progress
+        )
+
+    def save(self, path: str):
+        """Save embedder configuration.
+        
+        Note: SentenceTransformer models are cached, so we only save the model name.
+        
+        Args:
+            path: Path to save configuration
+        """
+        import json
+        from pathlib import Path
+        
+        config = {
+            'model_name': self.model_name,
+            'device': self.device
+        }
+        
+        path = Path(path)
+        with open(path, 'w') as f:
+            json.dump(config, f, indent=2)
+        
+        logger.info(f"Saved embedder config to {path}")
+
+    @classmethod
+    def load(cls, path: str):
+        """Load embedder from configuration.
+        
+        Args:
+            path: Path to configuration file
+            
+        Returns:
+            Loaded SentenceEmbedder instance
+        """
+        import json
+        from pathlib import Path
+        
+        path = Path(path)
+        with open(path, 'r') as f:
+            config = json.load(f)
+        
+        logger.info(f"Loaded embedder config from {path}")
+        return cls(
+            model_name=config['model_name'],
+            device=config.get('device')
         )
 
 

@@ -1,9 +1,11 @@
 """Script to compute optimal thresholds from belief values."""
 
 import argparse
+import json
 import logging
 import sys
 from pathlib import Path
+from typing import Optional, Dict, Set
 import pandas as pd
 import numpy as np
 from sklearn.metrics import f1_score
@@ -58,6 +60,52 @@ def parse_args():
     return parser.parse_args()
 
 
+def get_ancestors(intent: str, hierarchy: Dict[str, list]) -> Set[str]:
+    """Get all ancestors of an intent in the hierarchy.
+    
+    Args:
+        intent: Intent to find ancestors for
+        hierarchy: Hierarchy dictionary
+        
+    Returns:
+        Set of ancestor intents including the intent itself
+    """
+    ancestors = {intent}
+    for parent, children in hierarchy.items():
+        if intent in children:
+            ancestors.add(parent)
+            ancestors.update(get_ancestors(parent, hierarchy))
+    return ancestors
+
+
+def add_ancestor_labels(df: pd.DataFrame, hierarchy: Dict[str, list]) -> pd.DataFrame:
+    """Add is_correct_{intent} columns based on ancestor relationships.
+    
+    Args:
+        df: DataFrame with belief values
+        hierarchy: Hierarchy dictionary
+        
+    Returns:
+        DataFrame with added is_correct columns
+    """
+    # Get all unique intents from hierarchy
+    all_intents = set(hierarchy.keys())
+    for children in hierarchy.values():
+        all_intents.update(children)
+    
+    # For each intent, create is_correct column
+    for intent in all_intents:
+        if intent not in df.columns:
+            continue
+        
+        # Check if true_intent is intent or any of its descendants
+        df[f'is_correct_{intent}'] = df['true_intent'].apply(
+            lambda true_intent: int(intent in get_ancestors(true_intent, hierarchy))
+        )
+    
+    return df
+
+
 def compute_optimal_thresholds(
     df: pd.DataFrame,
     intent_columns: list,
@@ -91,7 +139,8 @@ def compute_optimal_thresholds(
         ground_truth_col = f"is_correct_{intent}"
 
         if ground_truth_col not in df.columns:
-            logger.warning(f"Ground truth column '{ground_truth_col}' not found")
+            # If hierarchy wasn't loaded, skip this intent
+            logger.debug(f"Ground truth column '{ground_truth_col}' not found, skipping")
             continue
 
         belief_values = df[belief_col].values
@@ -124,13 +173,31 @@ def main():
 
     logger.info(f"Loading belief values from {args.belief_file}")
     df = load_csv(args.belief_file)
+    
+    # Load hierarchy if available
+    hierarchy = None
+    belief_file_path = Path(args.belief_file)
+    hierarchy_file = belief_file_path.parent.parent.parent / 'config' / 'hierarchies' / f"{belief_file_path.stem.split('_')[0]}_hierarchy.json"
+    
+    if hierarchy_file.exists():
+        logger.info(f"Loading hierarchy from {hierarchy_file}")
+        import json
+        with open(hierarchy_file) as f:
+            hierarchy = json.load(f)
+        
+        # Add ancestor-aware ground truth labels
+        logger.info("Adding ancestor-aware ground truth labels...")
+        df = add_ancestor_labels(df, hierarchy)
+    else:
+        logger.warning(f"Hierarchy file not found: {hierarchy_file}")
+        logger.warning("Computing thresholds without ancestor relationships")
 
     # Identify intent columns (those without 'is_correct_' prefix)
     all_columns = df.columns.tolist()
     intent_columns = [
         col for col in all_columns
         if not col.startswith('is_correct_') and
-        col not in ['user_question', 'correct_intent', 'belief_values']
+        col not in ['query', 'true_intent', 'belief_values']
     ]
 
     logger.info(f"Found {len(intent_columns)} intent columns")

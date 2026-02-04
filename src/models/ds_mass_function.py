@@ -81,9 +81,17 @@ class DSMassFunction:
         Returns:
             Confidence threshold
         """
-        if intent in self.custom_thresholds:
+        # If custom thresholds are provided, use them
+        if self.custom_thresholds and intent in self.custom_thresholds:
             return self.custom_thresholds[intent]
-        elif self.is_leaf(intent):
+        
+        # If NO custom thresholds at all (None or empty dict), 
+        # return 0.0 to skip clarifications (baseline evaluation)
+        if not self.custom_thresholds:
+            return 0.0
+            
+        # Otherwise use defaults
+        if self.is_leaf(intent):
             return 0.3
         elif intent in self.hierarchy:
             return 0.5
@@ -125,9 +133,7 @@ class DSMassFunction:
             while True:
                 node_ancestors.add(current)
                 parent = next(
-                    (parent for parent, children in self.hierarchy.items()
-                     if current in children),
-                    None
+                    (parent for parent, children in self.hierarchy.items() if current in children), None
                 )
                 if parent is None:
                     break
@@ -153,6 +159,9 @@ class DSMassFunction:
             Dictionary mapping intents to mass values
         """
         self.conversation_history.append(f"User: {user_query}")
+        # NOTE: No prefix used here for consistency with training.
+        # Old notebook had bug: trained WITHOUT prefix, inferred WITH prefix.
+        # This implementation is consistent: no prefix in both training and inference.
         query_embedding = self.embedder.get_embedding(user_query)
         probs = self.classifier.predict_proba(
             query_embedding.reshape(1, -1)
@@ -166,16 +175,10 @@ class DSMassFunction:
 
         total_mass = sum(mass_function.values())
         if total_mass > 0:
-            mass_function = {
-                intent: mass / total_mass
-                for intent, mass in mass_function.items()
-            }
+            mass_function = {intent: mass / total_mass for intent, mass in mass_function.items()}
         else:
-            mass_function = {
-                intent: 0.0 for intent in self.intent_embeddings.keys()
-            }
+            mass_function = {intent: 0.0 for intent in self.intent_embeddings.keys()}
             mass_function["Uncertainty"] = 1.0
-
         return mass_function
 
     def compute_belief(self, mass_function: Dict[str, float]) -> Dict[str, float]:
@@ -233,10 +236,7 @@ class DSMassFunction:
                 if intersection == "Uncertainty":
                     conflict += contribution
                 else:
-                    combined_mass[intersection] = (
-                        combined_mass.get(intersection, 0) + contribution
-                    )
-
+                    combined_mass[intersection] = (combined_mass.get(intersection, 0) + contribution)
         if conflict < 1:
             for key in combined_mass:
                 combined_mass[key] /= (1 - conflict)
@@ -294,11 +294,7 @@ class DSMassFunction:
 
         return descendants
 
-    def evaluate_hierarchy(
-        self,
-        nodes: List[str],
-        mass_function: Dict[str, float]
-    ) -> Tuple[List[Tuple[str, float]], Dict[str, float]]:
+    def evaluate_hierarchy(self,nodes: List[str],mass_function: Dict[str, float]) -> Tuple[List[Tuple[str, float]], Dict[str, float]]:
         """Return confident nodes and belief values.
 
         Args:
@@ -349,207 +345,161 @@ class DSMassFunction:
 
         return clarification_queries
 
-    def evaluate_with_clarifications(
-        self,
-        initial_mass: Dict[str, float],
-        depth: int = 0,
-        maximum_depth: int = 5
-    ) -> Optional[Tuple[str, float]]:
-        """Evaluate recursively with clarifications until confident leaf found.
-
-        Args:
-            initial_mass: Initial mass function
-            depth: Current recursion depth
-            maximum_depth: Maximum recursion depth
-
-        Returns:
-            Tuple of (intent, confidence) or None
-        """
-        if depth >= maximum_depth:
-            logger.warning("Maximum clarification depth reached")
-            return None
-
-        return self._evaluate_from_leaves(initial_mass, depth, maximum_depth)
-
-    def _evaluate_from_leaves(
-        self,
-        current_mass: Dict[str, float],
-        depth: int,
-        maximum_depth: int
-    ) -> Optional[Tuple[str, float]]:
-        """Internal recursive evaluation starting from leaf nodes.
-
-        Args:
-            current_mass: Current mass function
-            depth: Current recursion depth
-            maximum_depth: Maximum recursion depth
-
-        Returns:
-            Tuple of (intent, confidence) or None
-        """
-        if depth >= maximum_depth:
-            return None
-
-        # Find all leaf nodes
-        leaf_nodes = [
-            intent for intent in self.hierarchy if self.is_leaf(intent)
-        ]
-        confident_nodes, belief = self.evaluate_hierarchy(leaf_nodes, current_mass)
+    def evaluate_with_clarifications(self, initial_mass: Dict[str, float], depth: int = 0, maximum_depth: int = 5) -> Optional[Tuple[str, float]]:
+        """Evaluate recursively with clarification queries until a confident leaf is found.
         
-        # Track belief at this turn for explainability
-        if self.enable_belief_tracking and self.belief_tracker is not None:
-            turn_label = f"Turn {depth + 1}"
-            if depth == 0:
-                turn_label = "Initial Query"
-            self.belief_tracker.record_belief(belief, turn_label)
-
-        if confident_nodes:
-            # CASE 1: Confident leaf nodes
-            confident_leaf_nodes = [
-                n for n in confident_nodes if self.is_leaf(n[0])
-            ]
-
-            if len(confident_leaf_nodes) == 1:
-                logger.info(f"Found confident leaf: {confident_leaf_nodes[0][0]}")
-                return confident_leaf_nodes[0]
-
-            if len(confident_leaf_nodes) > 1:
-                lca = self.find_lowest_common_ancestor(
-                    [i for i, _ in confident_leaf_nodes]
-                )
-                if lca:
-                    logger.info(f"Multiple confident leaves. LCA: {lca}")
-                    current_mass = self._handle_clarification(
-                        lca, belief, current_mass
-                    )
-                    return self._evaluate_from_leaves(
-                        current_mass, depth + 1, maximum_depth
-                    )
-
-            # CASE 2: Handle non-leaf nodes
-            confident_non_leaf = [
-                (i, v) for i, v in confident_nodes if not self.is_leaf(i)
-            ]
-            if confident_non_leaf:
-                current_mass = self._handle_non_leaf_nodes(
-                    confident_non_leaf, belief, current_mass
-                )
-                return self._evaluate_from_leaves(
-                    current_mass, depth + 1, maximum_depth
-                )
-        else:
-            # CASE 3: No confident nodes - ask for clarification
-            current_mass = self._handle_no_confidence(current_mass)
-
-        return self._evaluate_from_leaves(current_mass, depth + 1, maximum_depth)
-
-    def _handle_clarification(
-        self,
-        parent: str,
-        belief: Dict[str, float],
-        current_mass: Dict[str, float]
-    ) -> Dict[str, float]:
-        """Handle clarification for a parent node.
-
-        Args:
-            parent: Parent node name
-            belief: Current belief values
-            current_mass: Current mass function
-
-        Returns:
-            Updated mass function
+        IMPORTANT: Stops immediately when ONE confident leaf node is found.
+        Does NOT continue asking clarifications after finding a single confident answer.
         """
-        clarification_queries = self.ask_clarification(
-            [(parent, belief.get(parent, 0))], belief
-        )
+        if depth >= maximum_depth:
+            return None
 
-        for parent_node, children in clarification_queries:
-            chatbot_question = (
-                f"It seems like you're looking for something related to "
-                f"{parent_node}. Could you clarify which specific thing "
-                f"you're interested in? Here are a few suggestions: {children}"
-            )
-            self.conversation_history.append(f"Chatbot: {chatbot_question}")
+        def evaluate_from_leaves(current_mass: Dict[str, float], depth: int = 0, maximum_depth: int = 5) -> Optional[Tuple[str, float]]:
+            if depth >= maximum_depth:
+                return None
 
-            if self.customer_agent_callback:
-                self.user_response = self.customer_agent_callback(
-                    "\n".join(self.conversation_history),
-                    chatbot_question
-                )
+            # Find all leaf nodes
+            leaf_nodes = [intent for intent in self.hierarchy if self.is_leaf(intent)]
+            confident_nodes, belief = self.evaluate_hierarchy(leaf_nodes, current_mass)
+
+            if confident_nodes:
+                # --- CASE 1: Confident leaf nodes ---
+                confident_leaf_nodes = [n for n in confident_nodes if self.is_leaf(n[0])]
+                if len(confident_leaf_nodes) == 1:
+                    logger.info(f"Single confident leaf node found: {confident_leaf_nodes[0][0]}")
+                    # CRITICAL: Return immediately - do NOT ask clarifications for a single confident answer
+                    return confident_leaf_nodes[0]
+
+                if len(confident_leaf_nodes) > 1:
+                    lca = self.find_lowest_common_ancestor([i for i, _ in confident_leaf_nodes])
+                    if lca:
+                        logger.info(f"Multiple confident leaf nodes found. LCA: {lca}")
+                        clarification_queries = self.ask_clarification([(lca, belief.get(lca, 0))], belief)
+                        for parent, children in clarification_queries:
+                            chatbot_question = (
+                                f"It seems like you're looking for something related to {parent}. "
+                                f"Could you clarify which specific thing you're interested in? "
+                                f"Here are a few suggestions: ({children})"
+                            )
+                            self.conversation_history.append(f"Chatbot: {chatbot_question}")
+                            if self.customer_agent_callback:
+                                self.user_response = self.customer_agent_callback(
+                                    "\n".join(self.conversation_history), chatbot_question
+                                )
+                            else:
+                                self.user_response = input("User: ")
+                            user_mass = self.compute_mass_function(self.user_response)
+                            current_mass = self.combine_mass_functions(current_mass, user_mass)
+                        return evaluate_from_leaves(current_mass, depth + 1, maximum_depth)
+                    else:
+                        top_nodes = sorted(confident_leaf_nodes, key=lambda x: x[1], reverse=True)[:3]
+                        options = [i for i, _ in top_nodes]
+                        chatbot_question = (
+                            f"There are a few things that might match: ({options}). "
+                            f"Could you clarify a bit more?"
+                        )
+                        self.conversation_history.append(f"Chatbot: {chatbot_question}")
+                        if self.customer_agent_callback:
+                            self.user_response = self.customer_agent_callback(
+                                "\n".join(self.conversation_history), chatbot_question
+                            )
+                        else:
+                            self.user_response = input("User: ")
+                        user_mass = self.compute_mass_function(self.user_response)
+                        current_mass = self.combine_mass_functions(current_mass, user_mass)
+
+                # --- CASE 2: No confident leaf nodes, handle non-leaf nodes ---
+                else:
+                    confident_non_leaf_nodes = [(i, v) for i, v in confident_nodes if not self.is_leaf(i)]
+                    if confident_non_leaf_nodes:
+                        logger.info("confident non-leaf")
+                        def height_from_leaves(node: str) -> int:
+                            if self.is_leaf(node) or node not in self.hierarchy:
+                                return 0
+                            return 1 + max(height_from_leaves(c) for c in self.hierarchy[node])
+
+                        heights = {i: height_from_leaves(i) for i, _ in confident_non_leaf_nodes}
+                        min_height = min(heights.values())
+                        lowest_nodes = [(i, v) for i, v in confident_non_leaf_nodes if heights[i] == min_height]
+
+                        lca_non_leaf = self.find_lowest_common_ancestor([i for i, _ in lowest_nodes])
+                        if lca_non_leaf:
+                            logger.info(f"LCA among lowest non-leaf nodes: {lca_non_leaf}")
+                            clarification_queries = self.ask_clarification([(lca_non_leaf, belief.get(lca_non_leaf, 0))], belief)
+                            for parent, children in clarification_queries:
+                                chatbot_question = (
+                                    f"It seems like you're looking for something related to {parent}. "
+                                    f"Could you clarify which specific thing you're interested in? "
+                                    f"Here are a few suggestions: ({children})"
+                                )
+                                self.conversation_history.append(f"Chatbot: {chatbot_question}")
+                                if self.customer_agent_callback:
+                                    self.user_response = self.customer_agent_callback(
+                                        "\n".join(self.conversation_history), chatbot_question
+                                    )
+                                else:
+                                    self.user_response = input("User: ")
+                                user_mass = self.compute_mass_function(self.user_response)
+                                current_mass = self.combine_mass_functions(current_mass, user_mass)
+                            return evaluate_from_leaves(current_mass, depth + 1, maximum_depth)
+                        else:
+                            options = [i for i, _ in lowest_nodes]
+                            chatbot_question = (
+                                f"There are several possibilities at this level: ({options}). "
+                                f"Could you clarify which one fits best?"
+                            )
+                            self.conversation_history.append(f"Chatbot: {chatbot_question}")
+                            if self.customer_agent_callback:
+                                self.user_response = self.customer_agent_callback(
+                                    "\n".join(self.conversation_history), chatbot_question
+                                )
+                            else:
+                                self.user_response = input("User: ")
+                            user_mass = self.compute_mass_function(self.user_response)
+                            current_mass = self.combine_mass_functions(current_mass, user_mass)
+
             else:
-                self.user_response = input("User: ")
+                # --- CASE 3: No confident nodes ---
+                # Before asking for clarification, check if there's a dominant leaf node
+                # that just barely missed the threshold
+                if depth == 0:  # Only on initial query
+                    leaf_beliefs = [(leaf, belief.get(leaf, 0)) for leaf in leaf_nodes]
+                    leaf_beliefs.sort(key=lambda x: x[1], reverse=True)
+                    
+                    if len(leaf_beliefs) >= 2:
+                        top_leaf, top_score = leaf_beliefs[0]
+                        second_leaf, second_score = leaf_beliefs[1]
+                        
+                        # If top leaf is clearly dominant (2x higher than second)
+                        # and has reasonable belief (>0.3), return it without clarification
+                        if top_score > 0.3 and top_score >= 2 * second_score:
+                            logger.info(f"Dominant leaf node found at depth 0: {top_leaf} (belief={top_score:.3f}, 2nd={second_score:.3f})")
+                            return (top_leaf, top_score)
+                
+                if depth >= maximum_depth - 1:
+                    # Max depth reached - return None to signal no confident answer found
+                    logger.info(f"Max depth ({maximum_depth}) reached without finding confident answer")
+                    return None
+                    
+                chatbot_question = (
+                    "I'm not entirely sure what you're asking. "
+                    "Could you rephrase your question a bit?"
+                )
+                self.conversation_history.append(f"Chatbot: {chatbot_question}")
+                if self.customer_agent_callback:
+                    self.user_response = self.customer_agent_callback(
+                        "\n".join(self.conversation_history), chatbot_question
+                    )
+                else:
+                    self.user_response = input("User: ")
+                user_mass = self.compute_mass_function(self.user_response)
+                current_mass = self.combine_mass_functions(current_mass, user_mass)
 
-            user_mass = self.compute_mass_function(self.user_response)
-            current_mass = self.combine_mass_functions(current_mass, user_mass)
+            # Recurse with incremented depth
+            return evaluate_from_leaves(current_mass, depth + 1, maximum_depth)
 
-        return current_mass
-
-    def _handle_non_leaf_nodes(
-        self,
-        confident_non_leaf: List[Tuple[str, float]],
-        belief: Dict[str, float],
-        current_mass: Dict[str, float]
-    ) -> Dict[str, float]:
-        """Handle confident non-leaf nodes.
-
-        Args:
-            confident_non_leaf: List of confident non-leaf nodes
-            belief: Current belief values
-            current_mass: Current mass function
-
-        Returns:
-            Updated mass function
-        """
-        def height_from_leaves(node: str) -> int:
-            if self.is_leaf(node) or node not in self.hierarchy:
-                return 0
-            return 1 + max(
-                height_from_leaves(c) for c in self.hierarchy[node]
-            )
-
-        heights = {i: height_from_leaves(i) for i, _ in confident_non_leaf}
-        min_height = min(heights.values())
-        lowest_nodes = [
-            (i, v) for i, v in confident_non_leaf if heights[i] == min_height
-        ]
-
-        lca_non_leaf = self.find_lowest_common_ancestor(
-            [i for i, _ in lowest_nodes]
-        )
-
-        if lca_non_leaf:
-            return self._handle_clarification(lca_non_leaf, belief, current_mass)
-
-        return current_mass
-
-    def _handle_no_confidence(
-        self,
-        current_mass: Dict[str, float]
-    ) -> Dict[str, float]:
-        """Handle case with no confident nodes.
-
-        Args:
-            current_mass: Current mass function
-
-        Returns:
-            Updated mass function
-        """
-        chatbot_question = (
-            "I'm not entirely sure what you're asking. "
-            "Could you rephrase your question a bit?"
-        )
-        self.conversation_history.append(f"Chatbot: {chatbot_question}")
-
-        if self.customer_agent_callback:
-            self.user_response = self.customer_agent_callback(
-                "\n".join(self.conversation_history),
-                chatbot_question
-            )
-        else:
-            self.user_response = input("User: ")
-
-        user_mass = self.compute_mass_function(self.user_response)
-        return self.combine_mass_functions(current_mass, user_mass)
+        # Start evaluation
+        return evaluate_from_leaves(initial_mass, depth=depth)
     
     def clear_belief_history(self):
         """Clear the belief tracking history."""
@@ -564,6 +514,16 @@ class DSMassFunction:
             BeliefTracker instance if tracking is enabled, None otherwise
         """
         return self.belief_tracker
+    
+    def get_current_belief(self) -> Optional[Dict[str, float]]:
+        """Get the current/final belief state.
+        
+        Returns:
+            Current belief dictionary, or None if not available
+        """
+        if self.belief_tracker is not None:
+            return self.belief_tracker.get_latest_belief()
+        return None
     
     def save_belief_log(self, filepath: str):
         """

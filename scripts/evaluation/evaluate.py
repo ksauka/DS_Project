@@ -93,6 +93,12 @@ def parse_args():
         help='Number of samples to evaluate (default: all)'
     )
     parser.add_argument(
+        '--n-chunks',
+        type=int,
+        default=4,
+        help='Number of chunks to split data into for incremental saving (default: 4)'
+    )
+    parser.add_argument(
         '--use-customer-agent',
         action='store_true',
         help='Use customer agent for clarifications'
@@ -123,8 +129,10 @@ def parse_args():
 def evaluate_with_ds(
     data_loader: DataLoader,
     ds_calculator: DSMassFunction,
+    dataset_name: str,
     split: str = 'test',
     num_samples: int = None,
+    n_chunks: int = 4,
     save_belief_plots: bool = False,
     save_belief_logs: bool = False,
     output_dir: Path = None
@@ -134,8 +142,10 @@ def evaluate_with_ds(
     Args:
         data_loader: Loaded dataset
         ds_calculator: DS Mass Function calculator
+        dataset_name: Name of the dataset (for saving chunk files)
         split: Dataset split to evaluate
         num_samples: Number of samples to evaluate
+        n_chunks: Number of chunks to split data into
         save_belief_plots: Whether to save belief progression plots
         save_belief_logs: Whether to save belief progression logs
         output_dir: Output directory for belief visualizations
@@ -151,7 +161,7 @@ def evaluate_with_ds(
         true_intents = true_intents[:num_samples]
 
     results = []
-    logger.info(f"Evaluating {len(texts)} samples...")
+    logger.info(f"Evaluating {len(texts)} samples in {n_chunks} chunks...")
     
     # Create subdirectories for belief tracking
     if save_belief_plots or save_belief_logs:
@@ -160,46 +170,124 @@ def evaluate_with_ds(
             plots_dir = ensure_dir(belief_dir / 'plots')
         if save_belief_logs:
             logs_dir = ensure_dir(belief_dir / 'logs')
-
-    for idx, (text, true_intent) in enumerate(tqdm(zip(texts, true_intents), total=len(texts))):
-        # Reset conversation history and belief tracking
-        ds_calculator.conversation_history = []
-        ds_calculator.clear_belief_history()
-
-        # Compute initial mass and evaluate
-        initial_mass = ds_calculator.compute_mass_function(text)
-        prediction = ds_calculator.evaluate_with_clarifications(initial_mass)
-
-        # Store result
-        if prediction:
-            pred_intent, confidence = prediction
-        else:
-            pred_intent, confidence = "unknown", 0.0
-
-        results.append({
-            'query': text,
-            'true_intent': true_intent,
-            'predicted_intent': pred_intent,
-            'confidence': confidence,
-            'interaction': '\n'.join(ds_calculator.conversation_history)
-        })
+    
+    # Split data into chunks
+    def chunk_data(data1, data2, n):
+        """Split two lists into n equal chunks."""
+        chunk_size = len(data1) // n
+        chunks = []
+        for i in range(n):
+            start = i * chunk_size
+            end = start + chunk_size if i < n - 1 else len(data1)
+            chunks.append((data1[start:end], data2[start:end]))
+        return chunks
+    
+    chunks = chunk_data(texts, true_intents, n_chunks)
+    
+    # Process each chunk
+    for chunk_idx, (chunk_texts, chunk_labels) in enumerate(chunks):
+        logger.info(f"\nProcessing chunk {chunk_idx + 1}/{n_chunks} ({len(chunk_texts)} samples)...")
         
-        # Save belief progression visualizations
-        belief_tracker = ds_calculator.get_belief_tracker()
-        if belief_tracker and belief_tracker.get_history():
-            belief_history = belief_tracker.get_history()
+        chunk_results = []
+        pbar = tqdm(zip(chunk_texts, chunk_labels), 
+                    desc=f"Chunk {chunk_idx + 1}/{n_chunks}", 
+                    total=len(chunk_texts),
+                    unit="query")
+        
+        for idx, (text, true_intent) in enumerate(pbar):
+            global_idx = sum(len(c[0]) for c in chunks[:chunk_idx]) + idx
             
-            if save_belief_plots:
-                plot_path = plots_dir / f"query_{idx+1}_belief_progression.png"
-                BeliefVisualizer.plot_belief_progression(
-                    belief_history,
-                    title=f"Query {idx+1}: {text[:50]}...",
-                    save_path=str(plot_path)
-                )
+            # Update progress bar with current query info
+            pbar.set_postfix({'intent': true_intent[:20], 'processing': '...'}, refresh=True)
             
-            if save_belief_logs:
-                log_path = logs_dir / f"query_{idx+1}_belief_log.json"
-                belief_tracker.save_to_json(str(log_path))
+            # Reset conversation history and belief tracking
+            ds_calculator.conversation_history = []
+            ds_calculator.clear_belief_history()
+
+            # Compute initial mass function (classifier probabilities)
+            initial_mass = ds_calculator.compute_mass_function(text)
+            
+            # IMPORTANT: Extract INITIAL beliefs (before clarifications) for threshold optimization
+            # This matches the old notebook behavior where beliefs are extracted from classifier output only
+            initial_belief = ds_calculator.compute_belief(initial_mass)
+            
+            # Now evaluate with clarifications using thresholds (if provided)
+            prediction = ds_calculator.evaluate_with_clarifications(initial_mass)
+
+            # Store result
+            if prediction:
+                pred_intent, confidence = prediction
+            else:
+                pred_intent, confidence = "unknown", 0.0
+
+            # DEBUG: Check conversation history
+            conv_history = ds_calculator.conversation_history
+            conv_text = '\n'.join(conv_history) if conv_history else ""
+            
+            result = {
+                'query': text,
+                'true_intent': true_intent,
+                'predicted_intent': pred_intent,
+                'confidence': confidence,
+                'interaction': conv_text
+            }
+            
+            # Store INITIAL belief values for threshold computation (not final belief after clarifications)
+            if initial_belief:
+                result['belief_values'] = initial_belief
+            
+            # Print conversation history with more visibility
+            if conv_history:
+                import sys
+                print(f"\n{'='*70}")
+                print(f"Query: {text[:80]}...")
+                print(f"True intent: {true_intent}")
+                print(f"Predicted: {pred_intent}")
+                print(f"Conversation ({len(conv_history)} turns):")
+                for i, turn in enumerate(conv_history):
+                    print(f"  [{i}] {turn}")
+                print(f"{'='*70}\n")
+                sys.stdout.flush()
+                logger.info(f"Conversation logged for query with {len(conv_history)} turns")
+            
+            chunk_results.append(result)
+            
+            # Update progress bar with result
+            pbar.set_postfix({
+                'pred': pred_intent[:15] if pred_intent else 'N/A',
+                'conf': f'{confidence:.2f}'
+            }, refresh=False)
+            
+            # Save belief progression visualizations
+            belief_tracker = ds_calculator.get_belief_tracker()
+            if belief_tracker and belief_tracker.get_history():
+                belief_history = belief_tracker.get_history()
+                
+                if save_belief_plots:
+                    plot_path = plots_dir / f"query_{global_idx+1}_belief_progression.png"
+                    BeliefVisualizer.plot_belief_progression(
+                        belief_history,
+                        title=f"Query {global_idx+1}: {text[:50]}...",
+                        save_path=str(plot_path)
+                    )
+                
+                if save_belief_logs:
+                    log_path = logs_dir / f"query_{global_idx+1}_belief_log.json"
+                    belief_tracker.save_to_json(str(log_path))
+        
+        # Save chunk results to disk
+        results.extend(chunk_results)
+        chunk_df = pd.DataFrame(chunk_results)
+        chunk_file = output_dir / f"{dataset_name}_chunk_{chunk_idx+1}_predictions.csv"
+        chunk_df.to_csv(chunk_file, index=False)
+        logger.info(f"Saved chunk {chunk_idx + 1} results to {chunk_file}")
+
+    # Save combined predictions file for all chunks
+    if output_dir:
+        all_results_df = pd.DataFrame(results)
+        combined_file = output_dir / f"{dataset_name}_predictions.csv"
+        all_results_df.to_csv(combined_file, index=False)
+        logger.info(f"Saved combined results to {combined_file}")
 
     return results
 
@@ -258,8 +346,10 @@ def main():
     results = evaluate_with_ds(
         data_loader=data_loader,
         ds_calculator=ds_calculator,
+        dataset_name=args.dataset,
         split='test',
         num_samples=args.num_samples,
+        n_chunks=args.n_chunks,
         save_belief_plots=args.save_belief_plots,
         save_belief_logs=args.save_belief_logs,
         output_dir=output_dir
@@ -272,6 +362,26 @@ def main():
     predictions_path = output_dir / f'{args.dataset}_predictions.csv'
     save_csv(results_df, predictions_path, index=False)
     logger.info(f"Saved predictions to {predictions_path}")
+    
+    # Save per-intent belief values for threshold computation
+    if 'belief_values' in results_df.columns:
+        logger.info("Extracting per-intent belief values...")
+        # Expand belief_values dict into separate columns
+        belief_records = []
+        for idx, row in results_df.iterrows():
+            record = {
+                'query': row['query'],
+                'true_intent': row['true_intent']
+            }
+            # Add belief values
+            if isinstance(row['belief_values'], dict):
+                record.update(row['belief_values'])
+            belief_records.append(record)
+        
+        beliefs_df = pd.DataFrame(belief_records)
+        beliefs_path = output_dir / f'{args.dataset}_beliefs.csv'
+        save_csv(beliefs_df, beliefs_path, index=False)
+        logger.info(f"Saved belief values to {beliefs_path}")
 
     # Compute metrics
     logger.info("\nComputing metrics...")
@@ -338,7 +448,10 @@ def main():
         
         analyzer = AccuracyCoverageBurdenAnalyzer()
         
-        # Extract interaction counts
+        # Extract data from results
+        pred_labels = [r['predicted_intent'] for r in results]
+        true_labels = [r['true_intent'] for r in results]
+        confidences = [r['confidence'] for r in results]
         interactions = [r['interaction'].count("Chatbot:") for r in results]
         
         # Generate curves

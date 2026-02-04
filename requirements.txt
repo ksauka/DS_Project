@@ -1,5 +1,5 @@
 # Core dependencies
-python>=3.8
+# python>=3.8  # Python version constraint (not a pip package)
 
 # Deep Learning and NLP
 torch>=2.0.0
