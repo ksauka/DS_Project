@@ -5,9 +5,23 @@ from typing import Dict, List, Optional, Tuple, Callable
 import numpy as np
 from .embeddings import SentenceEmbedder
 from .classifier import IntentClassifier
-from ..utils.explainability import BeliefTracker
 
 logger = logging.getLogger(__name__)
+
+# Import BeliefTracker at runtime to avoid circular import issues
+def _get_belief_tracker():
+    """Import BeliefTracker at runtime."""
+    try:
+        from src.utils.explainability import BeliefTracker
+        return BeliefTracker
+    except ImportError:
+        # Fallback - return a mock class if import fails
+        logger.warning("BeliefTracker import failed, using mock")
+        class MockBeliefTracker:
+            def record_belief(self, *args, **kwargs): pass
+            def get_history(self): return []
+            def get_final_belief(self): return {}
+        return MockBeliefTracker
 
 
 class DSMassFunction:
@@ -43,7 +57,11 @@ class DSMassFunction:
         
         # Belief tracking for explainability
         self.enable_belief_tracking = enable_belief_tracking
-        self.belief_tracker = BeliefTracker() if enable_belief_tracking else None
+        if enable_belief_tracking:
+            BeliefTrackerClass = _get_belief_tracker()
+            self.belief_tracker = BeliefTrackerClass()
+        else:
+            self.belief_tracker = None
 
     def is_leaf(self, intent: str) -> bool:
         """Check if a node is a leaf in the hierarchy.
@@ -506,7 +524,7 @@ class DSMassFunction:
         if self.belief_tracker is not None:
             self.belief_tracker.clear_history()
     
-    def get_belief_tracker(self) -> Optional[BeliefTracker]:
+    def get_belief_tracker(self) -> Optional[object]:
         """
         Get the belief tracker instance.
         
@@ -536,3 +554,115 @@ class DSMassFunction:
             self.belief_tracker.save_to_json(filepath)
         else:
             logger.warning("Belief tracking is not enabled")
+    
+    def should_ask_clarification(self, mass_function: Dict[str, float]) -> bool:
+        """
+        Determine if clarification is needed based on current mass function.
+        
+        Args:
+            mass_function: Current mass function
+            
+        Returns:
+            True if clarification is needed, False otherwise
+        """
+        # Compute belief values
+        belief = self.compute_belief(mass_function)
+        
+        # Check if any intent meets confidence threshold
+        leaf_nodes = [intent for intent in self.hierarchy if self.is_leaf(intent)]
+        for intent in leaf_nodes:
+            intent_belief = belief.get(intent, 0)
+            threshold = self.get_confidence_threshold(intent)
+            if intent_belief >= threshold:
+                return False  # Confident enough, no clarification needed
+        
+        return True  # Need clarification
+    
+    def generate_clarification_question(self, mass_function: Dict[str, float]) -> str:
+        """
+        Generate a clarification question based on current mass function.
+        
+        Args:
+            mass_function: Current mass function
+            
+        Returns:
+            Clarification question string
+        """
+        belief = self.compute_belief(mass_function)
+        
+        # Find top uncertain intents
+        leaf_beliefs = [(leaf, belief.get(leaf, 0)) for leaf in self.hierarchy if self.is_leaf(leaf)]
+        leaf_beliefs.sort(key=lambda x: x[1], reverse=True)
+        
+        if len(leaf_beliefs) >= 2:
+            top_intents = [intent for intent, _ in leaf_beliefs[:3]]
+            
+            # Find common parent for grouping
+            parents = []
+            for intent in top_intents:
+                for parent, children in self.hierarchy.items():
+                    if intent in children:
+                        parents.append(parent)
+                        break
+            
+            if parents:
+                most_common_parent = max(set(parents), key=parents.count)
+                children_options = [child for child in self.hierarchy.get(most_common_parent, []) 
+                                 if child in top_intents]
+                
+                if len(children_options) > 1:
+                    return (f"It seems like you're looking for something related to {most_common_parent}. "
+                           f"Could you clarify which specific area: {', '.join(children_options)}?")
+        
+        # Fallback generic question
+        return "I need more information to help you better. Could you provide more details about what you're looking for?"
+    
+    def update_mass_with_clarification(self, current_mass: Dict[str, float], user_response: str) -> Dict[str, float]:
+        """
+        Update mass function with user clarification response.
+        
+        Args:
+            current_mass: Current mass function
+            user_response: User's clarification response
+            
+        Returns:
+            Updated mass function
+        """
+        # Record conversation
+        self.conversation_history.append(f"User: {user_response}")
+        
+        # Compute new mass from user response
+        user_mass = self.compute_mass_function(user_response)
+        
+        # Combine using Dempster's rule
+        combined_mass = self.combine_mass_functions(current_mass, user_mass)
+        
+        # Record updated belief for tracking
+        if self.belief_tracker:
+            belief = self.compute_belief(combined_mass)
+            turn_label = f"Turn {len(self.conversation_history)//2 + 1}"
+            self.belief_tracker.record_belief(belief, turn_label)
+        
+        return combined_mass
+    
+    def get_prediction_from_mass(self, mass_function: Dict[str, float]) -> Tuple[str, float]:
+        """
+        Get final prediction and confidence from mass function.
+        
+        Args:
+            mass_function: Current mass function
+            
+        Returns:
+            Tuple of (predicted_intent, confidence_score)
+        """
+        belief = self.compute_belief(mass_function)
+        
+        # Find highest belief leaf node
+        leaf_beliefs = [(leaf, belief.get(leaf, 0)) for leaf in self.hierarchy if self.is_leaf(leaf)]
+        leaf_beliefs.sort(key=lambda x: x[1], reverse=True)
+        
+        if leaf_beliefs:
+            predicted_intent, confidence = leaf_beliefs[0]
+            return predicted_intent, confidence
+        else:
+            return "unknown", 0.0

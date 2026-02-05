@@ -1,0 +1,473 @@
+query,true_intent,predicted_intent,confidence,interaction,num_interactions,is_correct,selection_category
+How do I accept exchanges to EU?,fiat_currency_support,unknown,0.0,"User: How do I accept exchanges to EU?
+Chatbot: I'm not entirely sure what you're asking. Could you rephrase your question a bit?
+User: I think there was a misunderstanding. I was asking how I can accept exchanges for products or services in the EU. Can you help me with that?
+Chatbot: It seems like you're looking for something related to General Inquiries. Could you clarify which specific thing you're interested in? Here are a few suggestions: (['fiat_currency_support', 'exchange_via_app', 'country_support'])
+User: I appreciate the suggestions, but none of those really hit the mark for what I'm asking. I'm trying to figure out how to handle product or service exchanges specifically within the EU. Like, what are the rules or processes I need to follow? Can you help me with that?
+Chatbot: It seems like you're looking for something related to General Inquiries. Could you clarify which specific thing you're interested in? Here are a few suggestions: (['fiat_currency_support', 'country_support', 'exchange_via_app'])
+User: I appreciate the options, but none of those really relate to what I'm asking. I'm trying to understand the rules and processes for accepting exchanges for products or services in the EU. Like, are there specific regulations I need to follow or any best practices? Can you help me with that?
+Chatbot: It seems like you're looking for something related to General Inquiries. Could you clarify which specific thing you're interested in? Here are a few suggestions: (['fiat_currency_support', 'country_support', 'exchange_via_app'])
+User: I think there's still a misunderstanding here. None of those options really relate to what I'm asking about. I'm looking for information on the rules and processes for accepting exchanges for products or services specifically in the EU. Are there any regulations I should be aware of, or best practices for handling these exchanges? Can you provide some guidance on that?
+Chatbot: It seems like you're looking for something related to General Inquiries. Could you clarify which specific thing you're interested in? Here are a few suggestions: (['fiat_currency_support', 'country_support', 'exchange_via_app'])
+User: I really don't think those options are what I'm looking for. I'm trying to get specific information about the rules and processes for accepting exchanges for products or services in the EU. It feels like we're going in circles here. Can you please help me with that? Are there any regulations or best practices I should know about?",5,False,high_interaction
+how long til my cash out goes through?,pending_cash_withdrawal,pending_cash_withdrawal,0.5164479637378484,"User: how long til my cash out goes through?
+Chatbot: I'm not entirely sure what you're asking. Could you rephrase your question a bit?
+User: I think there might be a misunderstanding. I was asking about how long it takes for my cash out request to be processed. Can you help me with that?
+Chatbot: It seems like you're looking for something related to Payments and Transfers. Could you clarify which specific thing you're interested in? Here are a few suggestions: (['Transfers', 'Cash Withdrawals'])
+User: I'm specifically asking about cash withdrawals. Can you tell me how long it usually takes for those to go through?",2,True,high_interaction
+Can I use app to freeze my card and dispute fraud?,compromised_card,unknown,0.0,"User: Can I use app to freeze my card and dispute fraud?
+Chatbot: I'm not entirely sure what you're asking. Could you rephrase your question a bit?
+User: I was just wondering if I can use the app to temporarily freeze my card if I think there's been some fraud, and also if I can dispute any unauthorized charges through the app. Can you help me with that?
+Chatbot: I'm not entirely sure what you're asking. Could you rephrase your question a bit?
+User: I think there might be a misunderstanding. I just want to know if I can use the app to freeze my card temporarily if I suspect fraud, and also if I can dispute any unauthorized charges through the app. Can you help me with that?
+Chatbot: There are a few things that might match: (['compromised_card', 'direct_debit_payment_not_recognised']). Could you clarify a bit more?
+User: Sure! I think I might be dealing with a compromised card situation since I suspect some unauthorized transactions. I want to know if I can freeze my card through the app to prevent any further charges, and also if I can dispute those unauthorized charges directly in the app. Can you help me with that?
+Chatbot: There are a few things that might match: (['compromised_card', 'direct_debit_payment_not_recognised']). Could you clarify a bit more?
+User: I think I already mentioned that I suspect my card might be compromised because of some unauthorized transactions. I want to know if I can freeze my card through the app to stop any more charges, and if I can also dispute those unauthorized charges directly in the app. Can you help me with that?
+Chatbot: There are a few things that might match: (['compromised_card', 'direct_debit_payment_not_recognised']). Could you clarify a bit more?
+User: I feel like I've already explained my situation pretty clearly. I just want to know if I can freeze my card in the app because I think it might be compromised, and if I can also dispute any unauthorized charges through the app. Can you just confirm if those features are available?",5,False,high_interaction
+Help!  The atm won't give me my card back.,card_swallowed,unknown,0.0,"User: Help!  The atm won't give me my card back.
+Chatbot: There are a few things that might match: (['declined_cash_withdrawal', 'card_swallowed']). Could you clarify a bit more?
+User: Um, I think my card was swallowed by the ATM. I tried to take out cash, but it just didn’t work, and now my card is stuck in there. What should I do?
+Chatbot: There are a few things that might match: (['declined_cash_withdrawal', 'card_swallowed']). Could you clarify a bit more?
+User: I already told you my card is stuck in the ATM! It swallowed my card when I tried to take out cash. Can you please help me figure out what to do next?
+Chatbot: There are a few things that might match: (['declined_cash_withdrawal', 'card_swallowed']). Could you clarify a bit more?
+User: I already told you my card is stuck in the ATM! It swallowed my card when I tried to take out cash. I really need help figuring out what to do next. Can you please give me some steps or advice on how to get my card back?
+Chatbot: There are a few things that might match: (['declined_cash_withdrawal', 'card_swallowed']). Could you clarify a bit more?
+User: I already told you my card is stuck in the ATM! It swallowed my card when I tried to take out cash. I really need to know what to do next to get it back. Can you please help me with that?
+Chatbot: There are a few things that might match: (['declined_cash_withdrawal', 'card_swallowed']). Could you clarify a bit more?
+User: I already told you my card is stuck in the ATM! It swallowed my card when I tried to take out cash. I really need to know what to do next to get it back. Can you please help me with that? This is really frustrating!",5,False,high_interaction
+Where can I pay with my debit or credit card?,card_acceptance,unknown,0.0,"User: Where can I pay with my debit or credit card?
+Chatbot: I'm not entirely sure what you're asking. Could you rephrase your question a bit?
+User: I think there was a misunderstanding. I was asking where I can use my debit or credit card to make a payment. Like, are there specific stores or websites that accept them?
+Chatbot: There are a few things that might match: (['direct_debit_payment_not_recognised', 'supported_cards_and_currencies']). Could you clarify a bit more?
+User: Um, I'm not really sure what those options mean. I just want to know where I can use my debit or credit card to make payments. Like, are there specific stores or online sites that accept them? Can you help me with that?
+Chatbot: There are a few things that might match: (['supported_cards_and_currencies', 'direct_debit_payment_not_recognised']). Could you clarify a bit more?
+User: Honestly, I'm not sure what those options mean. I'm just looking for a straightforward answer about where I can use my debit or credit card. Like, can you tell me if there are specific stores or websites that accept them? That would really help!
+Chatbot: There are a few things that might match: (['supported_cards_and_currencies', 'direct_debit_payment_not_recognised']). Could you clarify a bit more?
+User: Honestly, I'm not sure what those options mean. I'm just looking for a simple answer about where I can use my debit or credit card. Can you give me examples of stores or websites that accept them? That would really help me out!
+Chatbot: There are a few things that might match: (['supported_cards_and_currencies', 'direct_debit_payment_not_recognised']). Could you clarify a bit more?
+User: I’m not sure what those options mean, but I just want to know where I can actually use my debit or credit card. Can you give me some examples of stores or websites that accept them? That would really help!",5,False,high_interaction
+How can I create many temporary cards daily?,disposable_card_limits,disposable_card_limits,0.8537663601348031,"User: How can I create many temporary cards daily?
+Chatbot: I'm not entirely sure what you're asking. Could you rephrase your question a bit?
+User: I think there might be a misunderstanding. I was asking how I can create multiple temporary cards every day. Like, are there specific apps or services that let me do that?
+Chatbot: There are a few things that might match: (['getting_spare_card', 'disposable_card_limits']). Could you clarify a bit more?
+User: Sure! I’m mainly interested in how to get multiple temporary or disposable cards. Like, are there specific services or apps that allow you to create them easily? And also, are there any limits on how many I can create in a day?
+Chatbot: There are a few things that might match: (['disposable_card_limits', 'getting_spare_card']). Could you clarify a bit more?
+User: Okay, I see what you're getting at. I'm really just looking for services or apps that let me create multiple temporary or disposable cards easily. Like, are there any popular ones that people use? And also, do these services have any limits on how many cards I can create in a day? That would be super helpful!",3,True,high_interaction
+How do I deposit my paycheck to this account?,receiving_money,balance_not_updated_after_cheque_or_cash_deposit,0.8448806078914585,"User: How do I deposit my paycheck to this account?
+Chatbot: I'm not entirely sure what you're asking. Could you rephrase your question a bit?
+User: I think there might be a misunderstanding. I was asking how I can deposit my paycheck into my account. Can you help me with that?
+Chatbot: There are a few things that might match: (['balance_not_updated_after_cheque_or_cash_deposit', 'receiving_money']). Could you clarify a bit more?
+User: Sure! I'm just trying to figure out how to deposit my paycheck into my account. I don't really need info about balance updates or receiving money. Can you tell me the steps to actually make the deposit? Thanks!",2,False,high_interaction
+I don't understand the money transfer process.,transfer_into_account,unknown,0.0,"User: I don't understand the money transfer process.
+Chatbot: I'm not entirely sure what you're asking. Could you rephrase your question a bit?
+User: I think there was a misunderstanding. I was trying to ask about how money transfers work. Like, what steps do I need to follow to send money to someone? Can you help me with that?
+Chatbot: It seems like you're looking for something related to Transfers. Could you clarify which specific thing you're interested in? Here are a few suggestions: (['transfer_fee_charged', 'transfer_not_received_by_recipient', 'failed_transfer'])
+User: I appreciate the options, but I'm really just trying to understand the overall process of sending money. Like, what steps do I need to take to actually make a transfer? Can you break it down for me?
+Chatbot: It seems like you're looking for something related to Transfers. Could you clarify which specific thing you're interested in? Here are a few suggestions: (['transfer_fee_charged', 'transfer_into_account', 'transfer_not_received_by_recipient'])
+User: I get that you're trying to help, but none of those options really answer my question about the overall process of sending money. I just want to know the steps I need to follow to make a transfer. Can you give me a simple breakdown of that?
+Chatbot: It seems like you're looking for something related to Transfers. Could you clarify which specific thing you're interested in? Here are a few suggestions: (['transfer_fee_charged', 'failed_transfer', 'transfer_not_received_by_recipient'])
+User: I appreciate the suggestions, but none of those really address my question about the overall process of sending money. I just want a simple breakdown of the steps I need to take to make a transfer. Can you help me with that?
+Chatbot: It seems like you're looking for something related to Transfers. Could you clarify which specific thing you're interested in? Here are a few suggestions: (['transfer_fee_charged', 'failed_transfer', 'transfer_not_received_by_recipient'])
+User: I appreciate the suggestions, but none of those really help me understand the overall process of sending money. I'm looking for a simple step-by-step guide on how to make a transfer. Can you just give me that?",5,False,high_interaction
+Why did I receive an error message saying that my transfer was not possible?,beneficiary_not_allowed,failed_transfer,0.9382511905606404,"User: Why did I receive an error message saying that my transfer was not possible?
+Chatbot: It seems like you're looking for something related to Transfers. Could you clarify which specific thing you're interested in? Here are a few suggestions: (['beneficiary_not_allowed', 'failed_transfer', 'declined_transfer'])
+User: I think it might be a ""failed_transfer."" I tried to send money, but it didn't go through. Can you help me figure out why?
+Chatbot: It seems like you're looking for something related to Transfers. Could you clarify which specific thing you're interested in? Here are a few suggestions: (['failed_transfer', 'beneficiary_not_allowed', 'declined_transfer'])
+User: I already mentioned that I think it's a ""failed_transfer."" Can you just help me understand why it failed? I really need to get this sorted out.",2,False,high_interaction
+I took out a foreign currency and the exchange rate is wrong.,wrong_exchange_rate_for_cash_withdrawal,wrong_exchange_rate_for_cash_withdrawal,0.9427906419147548,"User: I took out a foreign currency and the exchange rate is wrong.
+Chatbot: There are a few things that might match: (['card_payment_wrong_exchange_rate', 'wrong_exchange_rate_for_cash_withdrawal']). Could you clarify a bit more?
+User: Sure! I think it’s the second option, ""wrong_exchange_rate_for_cash_withdrawal."" I took out some cash in a foreign currency, and the rate I got was way off from what I expected. Can you help me figure out what went wrong?
+Chatbot: There are a few things that might match: (['wrong_exchange_rate_for_cash_withdrawal', 'card_payment_wrong_exchange_rate']). Could you clarify a bit more?
+User: I already mentioned that it's about the ""wrong_exchange_rate_for_cash_withdrawal."" I took out cash in a foreign currency, and the rate I got was really different from what I expected. Can you help me understand why that happened?",2,True,high_interaction
+I made an out of country transfer and it hasn't went through yet.,balance_not_updated_after_bank_transfer,balance_not_updated_after_bank_transfer,0.8230465579652751,"User: I made an out of country transfer and it hasn't went through yet.
+Chatbot: There are a few things that might match: (['balance_not_updated_after_bank_transfer', 'transfer_not_received_by_recipient']). Could you clarify a bit more?
+User: Sure! I think my balance hasn't updated after the transfer. I sent money to someone overseas, and it still shows the same amount in my account. Can you help me figure out what's going on?
+Chatbot: There are a few things that might match: (['balance_not_updated_after_bank_transfer', 'transfer_not_received_by_recipient']). Could you clarify a bit more?
+User: I already told you that my balance hasn't updated after I made the transfer. It's been a while, and I'm starting to get worried. Can you check if the transfer is still processing or if there's something wrong?",2,True,high_interaction
+How can I fund my top-up account using my bank account?,transfer_into_account,transfer_into_account,0.9095565257189256,"User: How can I fund my top-up account using my bank account?
+Chatbot: I'm not entirely sure what you're asking. Could you rephrase your question a bit?
+User: I was just trying to ask how I can add money to my top-up account using my bank account. Can you help me with that?
+Chatbot: There are a few things that might match: (['transfer_into_account', 'top_up_by_cash_or_cheque', 'topping_up_by_card']). Could you clarify a bit more?
+User: Sure! I think I want to go with the ""transfer_into_account"" option. Can you tell me how to do that?",2,True,high_interaction
+Can I get a copy of the card by email?,getting_virtual_card,unknown,0.0,"User: Can I get a copy of the card by email?
+Chatbot: I'm not entirely sure what you're asking. Could you rephrase your question a bit?
+User: I think there might be a misunderstanding. I was asking if I could get a copy of my card sent to me via email. Is that possible?
+Chatbot: It seems like you're looking for something related to Physical Cards. Could you clarify which specific thing you're interested in? Here are a few suggestions: (['card_arrival', 'order_physical_card', 'getting_spare_card'])
+User: I think I might be looking for ""order_physical_card."" I just want to know if I can get a copy of my card sent to my email instead of waiting for a physical one. Is that possible?
+Chatbot: It seems like you're looking for something related to Physical Cards. Could you clarify which specific thing you're interested in? Here are a few suggestions: (['card_arrival', 'order_physical_card', 'getting_spare_card'])
+User: I already mentioned that I'm interested in ""order_physical_card."" I just want to know if I can get a digital copy of my card sent to my email instead of waiting for the physical one. Can you help me with that?
+Chatbot: It seems like you're looking for something related to Physical Cards. Could you clarify which specific thing you're interested in? Here are a few suggestions: (['card_arrival', 'order_physical_card', 'getting_spare_card'])
+User: I feel like we're going in circles here. I'm just trying to find out if I can get a digital copy of my card sent to my email instead of waiting for the physical one. Can you help me with that? If not, can you let me know what my options are?
+Chatbot: It seems like you're looking for something related to Physical Cards. Could you clarify which specific thing you're interested in? Here are a few suggestions: (['card_arrival', 'order_physical_card', 'getting_spare_card'])
+User: Okay, I get that you're trying to help, but I'm really just looking for a way to get a digital copy of my card sent to my email. I don't want to keep going in circles here. Can you just let me know if that's possible or what my options are? Thanks!",5,False,high_interaction
+My virtual card isn't working. What do I do?,virtual_card_not_working,unknown,0.0,"User: My virtual card isn't working. What do I do?
+Chatbot: It seems like you're looking for something related to Card Issues. Could you clarify which specific thing you're interested in? Here are a few suggestions: (['Physical Cards', 'Virtual Cards'])
+User: I'm specifically having trouble with my virtual card. It just won't work for some reason. Can you help me figure out what's going on?
+Chatbot: It seems like you're looking for something related to Card Issues. Could you clarify which specific thing you're interested in? Here are a few suggestions: (['Physical Cards', 'Virtual Cards'])
+User: I already told you I'm having trouble with my virtual card! It's really frustrating because I need to use it. Can you help me figure out why it's not working?
+Chatbot: It seems like you're looking for something related to Card Issues. Could you clarify which specific thing you're interested in? Here are a few suggestions: (['Physical Cards', 'Virtual Cards'])
+User: I already told you I'm having issues with my virtual card! It's really frustrating that I can't use it. Can you please help me troubleshoot what's going on?
+Chatbot: It seems like you're looking for something related to Card Issues. Could you clarify which specific thing you're interested in? Here are a few suggestions: (['Physical Cards', 'Virtual Cards'])
+User: I already told you I'm having issues with my virtual card! It's really frustrating that I can't use it. Can you please help me troubleshoot what's going on? I need to figure this out ASAP!
+Chatbot: It seems like you're looking for something related to Card Issues. Could you clarify which specific thing you're interested in? Here are a few suggestions: (['Physical Cards', 'Virtual Cards'])
+User: I already told you I'm having issues with my virtual card! It's really frustrating that I can't use it. Can you please help me troubleshoot what's going on? I need to figure this out ASAP!",5,False,high_interaction
+"Hi, i don't know what's going on i've just paid for my top up twice by accident can you help me get a refund please.",top_up_reverted,request_refund,0.6906909019456495,"User: Hi, i don't know what's going on i've just paid for my top up twice by accident can you help me get a refund please.
+Chatbot: I'm not entirely sure what you're asking. Could you rephrase your question a bit?
+User: I think there’s been a misunderstanding. I just want to know how I can get a refund for the accidental double payment I made for my top-up. Can you help me with that?
+Chatbot: There are a few things that might match: (['top_up_reverted', 'request_refund']). Could you clarify a bit more?
+User: Sure! I think I need to go with ""request_refund"" since I want to get my money back for the accidental double payment. Can you guide me through the process for that?",2,False,high_interaction
+"Why did I get charged for something I bought online? Even though it was international, I thought it would be covered.",transfer_fee_charged,unknown,0.0,"User: Why did I get charged for something I bought online? Even though it was international, I thought it would be covered.
+Chatbot: I'm not entirely sure what you're asking. Could you rephrase your question a bit?
+User: I think there’s been a misunderstanding. I was asking why I got charged for an international purchase. I thought it would be covered or maybe there wouldn’t be extra fees. Can you help me figure this out?
+Chatbot: There are a few things that might match: (['card_payment_fee_charged', 'transfer_fee_charged', 'extra_charge_on_statement']). Could you clarify a bit more?
+User: Sure! I think it might be the ""extra_charge_on_statement."" I noticed a fee that I wasn't expecting, and it seems like it might be related to the international purchase. Can you help me understand what that charge is for?
+Chatbot: There are a few things that might match: (['card_payment_fee_charged', 'transfer_fee_charged', 'extra_charge_on_statement']). Could you clarify a bit more?
+User: I already mentioned that I think it’s the ""extra_charge_on_statement."" I just want to know what that charge is for, especially since it was unexpected. Can you give me more details about that?
+Chatbot: There are a few things that might match: (['extra_charge_on_statement', 'card_payment_fee_charged']). Could you clarify a bit more?
+User: I feel like I'm going in circles here. I already told you I think it's the ""extra_charge_on_statement."" Can you just explain what that charge is for? Like, what does it usually cover? I'm really just trying to understand why I got hit with this fee.
+Chatbot: There are a few things that might match: (['extra_charge_on_statement', 'card_payment_fee_charged']). Could you clarify a bit more?
+User: I feel like I'm just repeating myself here. I already told you I think it's the ""extra_charge_on_statement."" Can you just explain what that charge usually covers? Like, what kind of fees or costs might be included in that? I'm really just trying to get to the bottom of this unexpected charge.",5,False,high_interaction
+where is theft-top option?,automatic_top_up,top_up_reverted,0.2771865803034468,"User: where is theft-top option?
+Chatbot: I'm not entirely sure what you're asking. Could you rephrase your question a bit?
+User: I think there might be some confusion here. I was asking about the ""theft-top option."" I'm not sure what that is, but I need help finding it. Can you help me out?
+Chatbot: I'm not entirely sure what you're asking. Could you rephrase your question a bit?
+User: It seems like we're going in circles here! I was asking about the ""theft-top option."" I don't really know what it is, but I need help finding it. Can you help me figure this out?",2,False,high_interaction
+what do i do if my verification failed,unable_to_verify_identity,failed_transfer,0.2870065984786791,"User: what do i do if my verification failed
+Chatbot: I'm not entirely sure what you're asking. Could you rephrase your question a bit?
+User: I think there’s been a mix-up. I was asking about what to do if my verification failed. Like, I tried to verify my account or something, and it didn’t work. Can you help me with that?
+Chatbot: I'm not entirely sure what you're asking. Could you rephrase your question a bit?
+User: Uh, I think you might be confused. I’m trying to ask about what to do if my account verification failed. Like, I tried to verify my account, but it didn’t go through. Can you help me with that?
+Chatbot: I'm not entirely sure what you're asking. Could you rephrase your question a bit?
+User: Okay, this is getting a bit frustrating. I’m just trying to find out what to do if my account verification didn’t work. Can you help me with that? Like, is there a way to retry it or contact support?",3,False,high_interaction
+I received my card but not my PIN.,get_physical_card,get_physical_card,0.7087791932897394,"User: I received my card but not my PIN.
+Chatbot: I'm not entirely sure what you're asking. Could you rephrase your question a bit?
+User: I think there’s been a misunderstanding. I was saying that I got my card, but I haven’t received my PIN yet. Can you help me with that?
+Chatbot: It seems like you're looking for something related to Physical Cards. Could you clarify which specific thing you're interested in? Here are a few suggestions: (['get_physical_card', 'card_arrival', 'order_physical_card'])
+User: I appreciate the options, but none of those really address my issue. I just want to know how I can get my PIN since I already have the card. Can you help me with that?",2,True,high_interaction
+"Hi, I would like to file a claim for an inquiry. I am a frequent customer of the company in question and have never had any issue with my purchases, payments, or otherwise. However, the price deducted for an item I purchased a couple of weeks ago has been returned to my checking account. Was there an issue with my payment? The item has already been delivered to me.",reverted_card_payment?,reverted_card_payment?,0.7770074944323313,"User: Hi, I would like to file a claim for an inquiry. I am a frequent customer of the company in question and have never had any issue with my purchases, payments, or otherwise. However, the price deducted for an item I purchased a couple of weeks ago has been returned to my checking account. Was there an issue with my payment? The item has already been delivered to me.
+Chatbot: I'm not entirely sure what you're asking. Could you rephrase your question a bit?
+User: I think there might be a misunderstanding. I was trying to say that I noticed a payment for an item I bought a couple of weeks ago was refunded back to my checking account, even though I received the item. I just want to know if there was a problem with my payment or if this is a normal process. Can you help me figure this out?
+Chatbot: There are a few things that might match: (['reverted_card_payment?', 'request_refund']). Could you clarify a bit more?
+User: Sure! I think it might be a case of a reverted card payment since the payment was refunded back to my account. But I’m not sure why that happened since I received the item without any issues. Can you help me understand if this is a common occurrence or if there’s something I need to do?",2,True,high_interaction
+How do I change GBP to AUD?,exchange_via_app,exchange_via_app,0.4296184965528867,User: How do I change GBP to AUD?,0,True,low_confidence
+I would like to exchange some currency.,exchange_via_app,exchange_via_app,0.2320968034493462,User: I would like to exchange some currency.,0,True,low_confidence
+How do I set-up my PIN for the new card?,get_physical_card,card_linking,0.2247585984764922,"User: How do I set-up my PIN for the new card?
+Chatbot: I'm not entirely sure what you're asking. Could you rephrase your question a bit?
+User: I think there’s been a mix-up. I was asking how to set up my PIN for my new card. Can you help me with that?",1,False,low_confidence
+Weird charges are appearing in my debit account.,direct_debit_payment_not_recognised,direct_debit_payment_not_recognised,0.2943032344035591,User: Weird charges are appearing in my debit account.,0,True,low_confidence
+I don't understand why it says I have to verify the top-up.,verify_top_up,verify_top_up,0.5954472857453188,User: I don't understand why it says I have to verify the top-up.,0,True,low_confidence
+"Hi, As suggested by you, i have asked the seller to initiate the refund, it has been a week and i haven't received my money. Please advise.",Refund_not_showing_up,Refund_not_showing_up,0.2801949230443751,"User: Hi, As suggested by you, i have asked the seller to initiate the refund, it has been a week and i haven't received my money. Please advise.",0,True,low_confidence
+Why did my top up not work?,top_up_failed,top_up_failed,0.4143856933800831,User: Why did my top up not work?,0,True,low_confidence
+Someone stopped my payment,reverted_card_payment?,reverted_card_payment?,0.413344678738931,User: Someone stopped my payment,0,True,low_confidence
+I need help cancelling a transaction.,cancel_transfer,cancel_transfer,0.6182084586279473,User: I need help cancelling a transaction.,0,True,low_confidence
+Can it automatically top-up money if there isn't much left?,automatic_top_up,automatic_top_up,0.3411377654926293,User: Can it automatically top-up money if there isn't much left?,0,True,low_confidence
+Why is my card payment showing as pending?,pending_card_payment,pending_card_payment,0.5877526396329407,User: Why is my card payment showing as pending?,0,True,low_confidence
+Can I be topped up once I hit a certain balance?,automatic_top_up,automatic_top_up,0.1415500203032835,"User: Can I be topped up once I hit a certain balance?
+Chatbot: I'm not entirely sure what you're asking. Could you rephrase your question a bit?
+User: I think there might be a misunderstanding. I was asking if I can add more funds to my account once it reaches a certain low balance. Like, is there a minimum amount where I can automatically get topped up?",1,True,low_confidence
+A wrong exchange rate was applied to a transaction made abroad.,wrong_exchange_rate_for_cash_withdrawal,unknown,0.0,"User: A wrong exchange rate was applied to a transaction made abroad.
+Chatbot: There are a few things that might match: (['card_payment_wrong_exchange_rate', 'wrong_exchange_rate_for_cash_withdrawal']). Could you clarify a bit more?
+User: Sure! I made a card payment while I was abroad, and it seems like the exchange rate they used was way off. It definitely wasn't what I expected. Can you help me figure out what to do about it?
+Chatbot: There are a few things that might match: (['card_payment_wrong_exchange_rate', 'wrong_exchange_rate_for_cash_withdrawal']). Could you clarify a bit more?
+User: I already mentioned that I made a card payment abroad and the exchange rate was off. I think it’s related to the card payment, not cash withdrawal. Can you help me with that specific issue? What steps do I need to take to address the wrong exchange rate?
+Chatbot: There are a few things that might match: (['wrong_exchange_rate_for_cash_withdrawal', 'card_payment_wrong_exchange_rate']). Could you clarify a bit more?
+User: I already told you that my issue is with a card payment I made while abroad. The exchange rate they used was not what I expected, and I want to know what steps I can take to resolve this. Can you please help me with that?
+Chatbot: There are a few things that might match: (['wrong_exchange_rate_for_cash_withdrawal', 'card_payment_wrong_exchange_rate']). Could you clarify a bit more?
+User: I feel like I've already explained my situation pretty clearly. I'm dealing with a card payment I made while I was abroad, and the exchange rate they used was way off from what I expected. I just want to know what steps I can take to resolve this issue. Can you help me with that instead of asking me to clarify again?
+Chatbot: There are a few things that might match: (['card_payment_wrong_exchange_rate', 'wrong_exchange_rate_for_cash_withdrawal']). Could you clarify a bit more?
+User: I feel like I've already explained my situation pretty clearly. I'm dealing with a card payment I made while I was abroad, and the exchange rate they used was way off from what I expected. I just want to know what steps I can take to resolve this issue. Can you please help me with that instead of asking me to clarify again?",5,False,low_confidence
+Is Apple Pay a possible top up option?,apple_pay_or_google_pay,apple_pay_or_google_pay,0.6861735645297398,User: Is Apple Pay a possible top up option?,0,True,low_confidence
+My transfer is pending.,balance_not_updated_after_bank_transfer,pending_transfer,0.5497443818149849,User: My transfer is pending.,0,False,low_confidence
+"My beneficiary is not allowed, please may I have answer as to why this is?",beneficiary_not_allowed,beneficiary_not_allowed,0.6706794633302724,"User: My beneficiary is not allowed, please may I have answer as to why this is?",0,True,low_confidence
+"I have a cheque here, can I use it to top off my account?",top_up_by_cash_or_cheque,top_up_by_cash_or_cheque,0.3934560660177879,"User: I have a cheque here, can I use it to top off my account?",0,True,low_confidence
+how long dies it take for transfers to reflect on my balance,transfer_timing,balance_not_updated_after_bank_transfer,0.3169307357222883,User: how long dies it take for transfers to reflect on my balance,0,False,low_confidence
+Where do I find the exchange rate?,exchange_charge,exchange_rate,0.5428592817462544,User: Where do I find the exchange rate?,0,False,low_confidence
+My card got stolen!,lost_or_stolen_card,lost_or_stolen_card,0.5155343210352026,User: My card got stolen!,0,True,low_confidence
+Why am I being charged more ?,card_payment_wrong_exchange_rate,extra_charge_on_statement,0.2102452563452414,User: Why am I being charged more ?,0,False,incorrect
+How long does an item I bought show as pending?,pending_card_payment,unknown,0.0,"User: How long does an item I bought show as pending?
+Chatbot: There are a few things that might match: (['pending_card_payment', 'pending_transfer']). Could you clarify a bit more?
+User: Sure! I'm just trying to figure out how long a purchase I made will show as pending. Is it usually for a card payment or a transfer? Like, how long should I expect it to stay in that pending status?
+Chatbot: There are a few things that might match: (['pending_card_payment', 'pending_transfer']). Could you clarify a bit more?
+User: I already mentioned that I'm trying to figure out how long a purchase will show as pending. Can you just tell me if it's usually for card payments or transfers? Like, what's the typical time frame for each?
+Chatbot: There are a few things that might match: (['pending_card_payment', 'pending_transfer']). Could you clarify a bit more?
+User: I feel like I've already explained what I'm looking for. I'm just trying to understand how long a purchase will stay in pending status. Can you give me a typical time frame for card payments versus transfers? It would really help!
+Chatbot: There are a few things that might match: (['pending_transfer', 'pending_card_payment']). Could you clarify a bit more?
+User: I feel like I've already clarified my question a few times! I'm just trying to find out how long a purchase typically stays in pending status, specifically for card payments versus transfers. Can you give me a general idea of the time frames for each? That would really help!
+Chatbot: There are a few things that might match: (['pending_transfer', 'pending_card_payment']). Could you clarify a bit more?
+User: I feel like I've already explained my question pretty clearly! I'm just trying to find out how long a purchase usually stays in pending status. Can you give me a general idea of the time frames for card payments versus transfers? It would really help if you could just provide that info instead of asking me to clarify again. Thanks!",5,False,incorrect
+Cannot access my top up.,topping_up_by_card,top_up_failed,0.2788367718972386,User: Cannot access my top up.,0,False,incorrect
+"My card's frozen, what can I do?",pin_blocked,card_not_working,0.8617334199111616,"User: My card's frozen, what can I do?
+Chatbot: I'm not entirely sure what you're asking. Could you rephrase your question a bit?
+User: I think there’s been a misunderstanding. My card is frozen, and I need help figuring out how to unfreeze it or what steps to take next. Can you help me with that?
+Chatbot: It seems like you're looking for something related to Physical Cards. Could you clarify which specific thing you're interested in? Here are a few suggestions: (['card_not_working', 'lost_or_stolen_card', 'card_about_to_expire'])
+User: I appreciate the options, but none of those really fit my situation. My card is frozen, and I just want to know how to unfreeze it or what steps I need to take. Can you help me with that?
+Chatbot: It seems like you're looking for something related to Physical Cards. Could you clarify which specific thing you're interested in? Here are a few suggestions: (['card_not_working', 'lost_or_stolen_card', 'card_about_to_expire'])
+User: I get that you're trying to help, but none of those options really apply to my situation. My card is frozen, and I just want to know how to unfreeze it. Can you give me some specific steps or guidance on that?",3,False,incorrect
+"I am traveling to Germany, Will I be able to use my card there?",card_acceptance,country_support,0.5787778999255987,"User: I am traveling to Germany, Will I be able to use my card there?
+Chatbot: I'm not entirely sure what you're asking. Could you rephrase your question a bit?
+User: I was just asking if I can use my credit card in Germany when I travel there. Like, will it work for purchases or do I need to get some local currency?",1,False,incorrect
+The app wouldn't accept my top up.,top_up_reverted,top_up_failed,0.3978462734355111,User: The app wouldn't accept my top up.,0,False,incorrect
+I have 1 other US card.  Can you take that?,supported_cards_and_currencies,getting_spare_card,0.1773225610268498,User: I have 1 other US card.  Can you take that?,0,False,incorrect
+How do I cancel my card? There are charges on my account that I didn't make.,cash_withdrawal_not_recognised,direct_debit_payment_not_recognised,0.1802745060936348,"User: How do I cancel my card? There are charges on my account that I didn't make.
+Chatbot: I'm not entirely sure what you're asking. Could you rephrase your question a bit?
+User: I just want to know how to cancel my card because there are some charges on my account that I didn't authorize. Can you help me with that?",1,False,incorrect
+When will money be available in my account?,transfer_timing,balance_not_updated_after_cheque_or_cash_deposit,0.5097117211383155,"User: When will money be available in my account?
+Chatbot: I'm not entirely sure what you're asking. Could you rephrase your question a bit?
+User: I think there’s been a mix-up. I was asking when the money I deposited will show up in my account. Can you help me with that?",1,False,incorrect
+Why was I unable to do a transfer?,declined_transfer,failed_transfer,0.7651078447338538,"User: Why was I unable to do a transfer?
+Chatbot: It seems like you're looking for something related to Transfers. Could you clarify which specific thing you're interested in? Here are a few suggestions: (['beneficiary_not_allowed', 'failed_transfer', 'declined_transfer'])
+User: I think it might be a failed transfer. I tried to send money, but it didn’t go through. Can you help me figure out what went wrong?",1,False,incorrect
+"When I travel, what will it cost to switch for my currency?",exchange_charge,wrong_exchange_rate_for_cash_withdrawal,0.8011977699940133,"User: When I travel, what will it cost to switch for my currency?
+Chatbot: I'm not entirely sure what you're asking. Could you rephrase your question a bit?
+User: I think there was a misunderstanding. I was asking about the costs associated with exchanging my currency when I travel. Like, how much will I lose in fees or what the exchange rates might be? Can you help me with that?
+Chatbot: There are a few things that might match: (['exchange_charge', 'wrong_exchange_rate_for_cash_withdrawal']). Could you clarify a bit more?
+User: Sure! I guess I'm trying to understand both the fees I might face when exchanging my currency and how the exchange rates work, especially if I withdraw cash from an ATM abroad. Like, will I get a bad rate or pay extra fees? Can you give me some details on both of those?
+Chatbot: There are a few things that might match: (['wrong_exchange_rate_for_cash_withdrawal', 'exchange_charge']). Could you clarify a bit more?
+User: Okay, I see what you're getting at. So, I want to know about two things: 
+
+1. **Wrong exchange rate for cash withdrawal** - Like, if I use an ATM abroad, will I get a worse exchange rate than what I see online? 
+2. **Exchange charges** - What kind of fees should I expect when I exchange my currency, either at a bank or an exchange service? 
+
+Can you give me some details on both? Thanks!",3,False,incorrect
+There is an unauthorized fee.,card_payment_fee_charged,unknown,0.0,"User: There is an unauthorized fee.
+Chatbot: I'm not entirely sure what you're asking. Could you rephrase your question a bit?
+User: I think there’s been a mistake with a charge on my account. I noticed an unauthorized fee, and I’d like to know how to dispute it or get it resolved. Can you help me with that?
+Chatbot: There are a few things that might match: (['direct_debit_payment_not_recognised', 'extra_charge_on_statement']). Could you clarify a bit more?
+User: Sure! I think it’s the ""extra charge on statement"" that I’m referring to. I just saw a charge that I don’t recognize, and I want to dispute it. What do I need to do to get this sorted out?
+Chatbot: There are a few things that might match: (['direct_debit_payment_not_recognised', 'extra_charge_on_statement']). Could you clarify a bit more?
+User: I already mentioned that I'm dealing with an ""extra charge on statement."" I just want to know how to dispute this charge. Can you give me some steps or guidance on what to do next?
+Chatbot: There are a few things that might match: (['extra_charge_on_statement', 'direct_debit_payment_not_recognised']). Could you clarify a bit more?
+User: I feel like I've already been pretty clear about the extra charge on my statement. I just want to know how to dispute it. Can you please give me some specific steps or guidance on what I need to do? It’s frustrating to keep going in circles here.
+Chatbot: There are a few things that might match: (['extra_charge_on_statement', 'direct_debit_payment_not_recognised']). Could you clarify a bit more?
+User: I feel like I've already explained my issue pretty clearly. I'm dealing with an extra charge on my statement that I don't recognize, and I want to dispute it. Can you just give me some specific steps on how to do that? I really need to get this sorted out.",5,False,incorrect
+Please tell me about SWIFT transfers at this bank.,top_up_by_bank_transfer_charge,unknown,0.0,"User: Please tell me about SWIFT transfers at this bank.
+Chatbot: I'm not entirely sure what you're asking. Could you rephrase your question a bit?
+User: I think there might be a misunderstanding. I was asking about SWIFT transfers at this bank. Like, how they work, any fees involved, and how long they usually take. Can you help me with that?
+Chatbot: It seems like you're looking for something related to Account Services. Could you clarify which specific thing you're interested in? Here are a few suggestions: (['Account Management', 'Top-Ups'])
+User: I appreciate the suggestions, but I'm really just trying to get information about SWIFT transfers specifically. Like, how they work, any fees, and how long they take. Can you help me with that?
+Chatbot: There are a few things that might match: (['balance_not_updated_after_bank_transfer', 'top_up_by_bank_transfer_charge', 'pending_transfer']). Could you clarify a bit more?
+User: I appreciate you trying to help, but none of those options really address my question about SWIFT transfers. I'm looking for details on how SWIFT transfers work, any fees that might apply, and the typical time it takes for them to process. Can you provide that info?
+Chatbot: There are a few things that might match: (['balance_not_updated_after_bank_transfer', 'top_up_by_bank_transfer_charge', 'pending_transfer']). Could you clarify a bit more?
+User: I appreciate you trying to help, but none of those options really relate to what I'm asking about SWIFT transfers. I'm looking for a clear explanation of how SWIFT transfers work, any fees that might apply, and how long they usually take to process. Can you provide that info?
+Chatbot: There are a few things that might match: (['balance_not_updated_after_bank_transfer', 'pending_transfer', 'top_up_by_bank_transfer_charge']). Could you clarify a bit more?
+User: I really appreciate your effort, but none of those options are what I'm looking for. I'm just trying to get some straightforward information about SWIFT transfers—how they work, any fees involved, and how long they typically take to process. Can you help me with that?",5,False,incorrect
+What methods can I use to top up my account?,top_up_by_cash_or_cheque,topping_up_by_card,0.1179611454344828,User: What methods can I use to top up my account?,0,False,incorrect
+Is it possible to use my credit card to transfer money?,topping_up_by_card,supported_cards_and_currencies,0.1641781018083948,"User: Is it possible to use my credit card to transfer money?
+Chatbot: I'm not entirely sure what you're asking. Could you rephrase your question a bit?
+User: I think there was a misunderstanding. I was asking if I can use my credit card to send money to someone, like through a money transfer service or something. Can you help me with that?",1,False,incorrect
+What major card payments are accepted?,visa_or_mastercard,supported_cards_and_currencies,0.2184991110073943,User: What major card payments are accepted?,0,False,incorrect
+do the details of my profile have to match my documents,verify_my_identity,why_verify_identity,0.4894438701289272,"User: do the details of my profile have to match my documents
+Chatbot: I'm not entirely sure what you're asking. Could you rephrase your question a bit?
+User: I think there might be a misunderstanding. I was asking if the information in my profile needs to match the documents I have, like my ID or other official papers. Can you help me with that?",1,False,incorrect
+I am still awaiting the completion of the transaction.,transfer_not_received_by_recipient,pending_transfer,0.9327458346667288,"User: I am still awaiting the completion of the transaction.
+Chatbot: It seems like you're looking for something related to Transfers. Could you clarify which specific thing you're interested in? Here are a few suggestions: (['pending_transfer', 'transfer_not_received_by_recipient', 'transfer_timing'])
+User: I'm just trying to figure out what's going on with my pending transfer. It's been a while, and I'm not sure if there's a delay or if something went wrong. Can you help me with that?
+Chatbot: It seems like you're looking for something related to Transfers. Could you clarify which specific thing you're interested in? Here are a few suggestions: (['pending_transfer', 'transfer_not_received_by_recipient', 'failed_transfer'])
+User: I already mentioned that I'm trying to figure out what's going on with my pending transfer. It's been a while, and I just want to know if there's a delay or if something went wrong. Can you give me any updates on that?",2,False,incorrect
+When I try and to buy something using my card it keeps getting declined.,declined_transfer,declined_card_payment,0.287654038079404,User: When I try and to buy something using my card it keeps getting declined.,0,False,incorrect
+I transferred some money but I think it has gotten lost somewhere.,balance_not_updated_after_bank_transfer,transfer_not_received_by_recipient,0.7453263606078715,"User: I transferred some money but I think it has gotten lost somewhere.
+Chatbot: I'm not entirely sure what you're asking. Could you rephrase your question a bit?
+User: I think there might be a misunderstanding. I was saying that I transferred some money, but it seems like it hasn't gone through or something. Can you help me figure out where it might be?
+Chatbot: There are a few things that might match: (['balance_not_updated_after_bank_transfer', 'transfer_not_received_by_recipient']). Could you clarify a bit more?
+User: Sure! I think it might be the second option, ""transfer_not_received_by_recipient."" I sent the money a little while ago, and the person I sent it to hasn't received it yet. Can you help me figure out what might be going on?",2,False,problematic
+What all currencies can be exchanged?,exchange_via_app,unknown,0.0,"User: What all currencies can be exchanged?
+Chatbot: It seems like you're looking for something related to General Inquiries. Could you clarify which specific thing you're interested in? Here are a few suggestions: (['fiat_currency_support', 'exchange_via_app', 'supported_cards_and_currencies'])
+User: I just want to know what currencies can be exchanged. Can you give me a list or something? I'm not really looking for anything else right now.
+Chatbot: It seems like you're looking for something related to General Inquiries. Could you clarify which specific thing you're interested in? Here are a few suggestions: (['fiat_currency_support', 'exchange_via_app', 'supported_cards_and_currencies'])
+User: Okay, I get that you're trying to help, but I'm really just looking for a straightforward list of currencies that can be exchanged. Can you just give me that info? I don't need to go through options or anything. Thanks!
+Chatbot: It seems like you're looking for something related to General Inquiries. Could you clarify which specific thing you're interested in? Here are a few suggestions: (['fiat_currency_support', 'exchange_via_app', 'supported_cards_and_currencies'])
+User: Okay, I think there's been a misunderstanding. I'm just trying to get a simple list of the currencies that can be exchanged. I don't need to choose from options or anything like that. Can you just tell me what currencies are available for exchange? Thanks!
+Chatbot: It seems like you're looking for something related to General Inquiries. Could you clarify which specific thing you're interested in? Here are a few suggestions: (['fiat_currency_support', 'exchange_via_app', 'exchange_rate'])
+User: I appreciate the suggestions, but I'm really just looking for a straightforward list of currencies that can be exchanged. None of those options seem to directly answer my question. Can you just provide me with the list of currencies? Thanks!
+Chatbot: It seems like you're looking for something related to General Inquiries. Could you clarify which specific thing you're interested in? Here are a few suggestions: (['fiat_currency_support', 'exchange_via_app', 'exchange_rate'])
+User: I think there's still a misunderstanding here. I'm not looking for suggestions or options. I just want a simple list of the currencies that can be exchanged. Can you please provide that information? Thanks!",5,False,problematic
+The ATM didn't give me the card back!,card_swallowed,unknown,0.0,"User: The ATM didn't give me the card back!
+Chatbot: There are a few things that might match: (['declined_cash_withdrawal', 'card_swallowed']). Could you clarify a bit more?
+User: Sure! My card was swallowed by the ATM. I tried to take out some cash, but it just kept my card and didn’t give it back. What should I do now?
+Chatbot: There are a few things that might match: (['declined_cash_withdrawal', 'card_swallowed']). Could you clarify a bit more?
+User: I already told you that my card was swallowed by the ATM! I just want to know what I should do next. Should I contact my bank or is there a way to get my card back?
+Chatbot: There are a few things that might match: (['declined_cash_withdrawal', 'card_swallowed']). Could you clarify a bit more?
+User: I already told you my card was swallowed by the ATM! I just want to know what I should do next. Should I contact my bank to report it, or is there a way to get my card back from the ATM? This is really frustrating!
+Chatbot: There are a few things that might match: (['declined_cash_withdrawal', 'card_swallowed']). Could you clarify a bit more?
+User: I already told you that my card was swallowed by the ATM! I just want to know what I should do next. Should I contact my bank to report it, or is there a way to get my card back from the ATM? This is really frustrating! Can you please help me with that?
+Chatbot: There are a few things that might match: (['card_swallowed', 'declined_cash_withdrawal']). Could you clarify a bit more?
+User: I feel like I've already explained my situation pretty clearly. My card was swallowed by the ATM when I tried to withdraw cash. I'm just looking for guidance on what to do next. Should I contact my bank to report it, or is there a way to retrieve my card from the ATM? This is really frustrating, and I just want some help!",5,False,problematic
+"There must be an issue, why has my card been cancelled?",reverted_card_payment?,declined_card_payment,0.7131573810074171,"User: There must be an issue, why has my card been cancelled?
+Chatbot: I'm not entirely sure what you're asking. Could you rephrase your question a bit?
+User: I think you might be misunderstanding me. I want to know why my card was cancelled. Can you help me figure that out?
+Chatbot: It seems like you're looking for something related to Payment Problems. Could you clarify which specific thing you're interested in? Here are a few suggestions: (['reverted_card_payment?', 'declined_card_payment', 'card_payment_fee_charged'])
+User: I appreciate the options, but none of those really address my issue. I'm just trying to understand why my card was cancelled in the first place. Can you help me with that?
+Chatbot: It seems like you're looking for something related to Payment Problems. Could you clarify which specific thing you're interested in? Here are a few suggestions: (['declined_card_payment', 'reverted_card_payment?', 'card_payment_fee_charged'])
+User: I really just want to know why my card was cancelled. None of those options seem to relate to that. Can you help me find out what happened?
+Chatbot: It seems like you're looking for something related to Payment Problems. Could you clarify which specific thing you're interested in? Here are a few suggestions: (['declined_card_payment', 'reverted_card_payment?', 'card_payment_fee_charged'])
+User: I appreciate the suggestions, but none of those really help me understand why my card was cancelled. I'm just trying to get some clarity on that specific issue. Can you look into that for me?",4,False,problematic
+Why isn't my transfer not going through? I keep getting an error message.,beneficiary_not_allowed,failed_transfer,0.8633302750112144,"User: Why isn't my transfer not going through? I keep getting an error message.
+Chatbot: It seems like you're looking for something related to Transfers. Could you clarify which specific thing you're interested in? Here are a few suggestions: (['failed_transfer', 'beneficiary_not_allowed', 'declined_transfer'])
+User: I'm not really sure what those options mean. I just know that my transfer isn't going through and I keep getting an error. Can you help me figure out what's going on?
+Chatbot: It seems like you're looking for something related to Transfers. Could you clarify which specific thing you're interested in? Here are a few suggestions: (['failed_transfer', 'beneficiary_not_allowed', 'declined_transfer'])
+User: I already mentioned that my transfer isn't going through, and I keep getting an error. I don't really understand those options you keep giving me. Can you just help me figure out why my transfer is failing?",2,False,problematic
+How can someone add money to my account?,topping_up_by_card,transfer_into_account,0.7352399676446968,"User: How can someone add money to my account?
+Chatbot: I'm not entirely sure what you're asking. Could you rephrase your question a bit?
+User: I think there was a misunderstanding. I was asking how someone can add money to my account, like if they can do it online or if they need to go somewhere in person. Can you help me with that?
+Chatbot: There are a few things that might match: (['transfer_into_account', 'receiving_money']). Could you clarify a bit more?
+User: Sure! I guess I'm trying to figure out how someone can send money to my account. Like, can they do it online through a bank transfer, or do they need to physically go to a bank or something? Just trying to understand the options here.",2,False,problematic
+Can I freeze my card right now?,compromised_card,card_not_working,0.3312186649247022,"User: Can I freeze my card right now?
+Chatbot: I'm not entirely sure what you're asking. Could you rephrase your question a bit?
+User: I think there might be some confusion here. I was asking if I can freeze my card right now. Can you help me with that?
+Chatbot: I'm not entirely sure what you're asking. Could you rephrase your question a bit?
+User: I think there's a misunderstanding here. I'm trying to ask if I can freeze my card right now. Can you help me with that?",2,False,problematic
+How can I get my physical card to work?,card_not_working,activate_my_card,0.9382970177019948,"User: How can I get my physical card to work?
+Chatbot: I'm not entirely sure what you're asking. Could you rephrase your question a bit?
+User: I think there might be a misunderstanding. I was asking how to get my physical card to work. Like, is there something I need to activate or set up?
+Chatbot: It seems like you're looking for something related to Physical Cards. Could you clarify which specific thing you're interested in? Here are a few suggestions: (['activate_my_card', 'card_not_working', 'order_physical_card'])
+User: I think I need help with activating my card. Can you guide me through that process?",2,False,problematic
+areas card is accpeted,card_acceptance,unknown,0.0,"User: areas card is accpeted
+Chatbot: I'm not entirely sure what you're asking. Could you rephrase your question a bit?
+User: I think there was a misunderstanding. I was asking if you could tell me where the card is accepted, like specific stores or locations. Can you help with that?
+Chatbot: There are a few things that might match: (['country_support', 'card_acceptance']). Could you clarify a bit more?
+User: Sure! I'm mainly interested in knowing where I can use my card, like specific stores or types of businesses. Can you give me a list of places or maybe some examples? Thanks!
+Chatbot: There are a few things that might match: (['country_support', 'card_acceptance']). Could you clarify a bit more?
+User: I’m not sure what you mean by that. I just want to know where I can use my card, like specific stores or types of businesses. Can you give me some examples? It’s a bit frustrating that I keep getting the same response.
+Chatbot: There are a few things that might match: (['country_support', 'card_acceptance']). Could you clarify a bit more?
+User: I’m not sure what you mean by that. I just want to know where I can use my card, like specific stores or types of businesses. Can you give me some examples? It feels like we’re going in circles here.
+Chatbot: There are a few things that might match: (['country_support', 'card_acceptance']). Could you clarify a bit more?
+User: I really just want to know where I can use my card, like specific stores or types of businesses. It feels like I'm not getting the info I need. Can you just give me some examples of places that accept the card? That would really help!",5,False,problematic
+"I am waiting patiently for a week now for the seller to get back to me and there has been no response, could you please help me further with getting my money back.  Thank you.",Refund_not_showing_up,unknown,0.0,"User: I am waiting patiently for a week now for the seller to get back to me and there has been no response, could you please help me further with getting my money back.  Thank you.
+Chatbot: I'm not entirely sure what you're asking. Could you rephrase your question a bit?
+User: I was just saying that I've been waiting for a week for the seller to respond to me, but I haven't heard anything back. I really need help getting my money back. Can you assist with that?
+Chatbot: There are a few things that might match: (['Refund_not_showing_up', 'request_refund', 'transfer_not_received_by_recipient']). Could you clarify a bit more?
+User: Sure! I think ""request_refund"" is the most relevant option for me. I just want to know how I can officially request a refund since the seller hasn't responded to me at all. Can you guide me through that process? Thanks!
+Chatbot: It seems like you're looking for something related to Refunds. Could you clarify which specific thing you're interested in? Here are a few suggestions: (['Refund_not_showing_up', 'request_refund'])
+User: I already mentioned that I'm trying to ""request_refund."" I just need to know the steps to officially request my money back since the seller isn't responding. Can you help me with that?
+Chatbot: It seems like you're looking for something related to Refunds. Could you clarify which specific thing you're interested in? Here are a few suggestions: (['Refund_not_showing_up', 'request_refund'])
+User: I already told you I'm trying to ""request_refund."" I just want to know the steps to officially request my money back since the seller isn't responding. Can you please just give me the process or any forms I need to fill out? I'm really frustrated with this situation.
+Chatbot: It seems like you're looking for something related to Refunds. Could you clarify which specific thing you're interested in? Here are a few suggestions: (['Refund_not_showing_up', 'request_refund'])
+User: I feel like I'm going in circles here. I already told you I'm trying to ""request_refund."" I just need to know the steps to officially request my money back since the seller isn't responding. Can you please just give me the process or any forms I need to fill out? I'm really frustrated with this situation.",5,False,problematic
+How long does a funds transfer take from one back to another?,transfer_timing,unknown,0.0,"User: How long does a funds transfer take from one back to another?
+Chatbot: I'm not entirely sure what you're asking. Could you rephrase your question a bit?
+User: I was just asking how long it usually takes for money to transfer from one bank to another. Like, if I send money from my bank account to a friend's account at a different bank, how long should I expect it to take?
+Chatbot: There are a few things that might match: (['balance_not_updated_after_bank_transfer', 'transfer_timing', 'transfer_not_received_by_recipient']). Could you clarify a bit more?
+User: I think ""transfer timing"" is what I'm looking for. I just want to know how long it usually takes for a bank transfer to go through when sending money to someone at a different bank. Like, is it instant, or does it take a few days?
+Chatbot: There are a few things that might match: (['balance_not_updated_after_bank_transfer', 'transfer_not_received_by_recipient']). Could you clarify a bit more?
+User: I think there’s been a misunderstanding. I’m just trying to find out how long it usually takes for a bank transfer to go through when sending money to someone at a different bank. Like, is it typically instant, or does it take a couple of days? Can you help me with that?
+Chatbot: There are a few things that might match: (['balance_not_updated_after_bank_transfer', 'transfer_not_received_by_recipient']). Could you clarify a bit more?
+User: I think there's still some confusion here. I'm just trying to find out how long it usually takes for a bank transfer to go through when sending money to someone at a different bank. Like, does it happen instantly, or does it take a few days? Can you give me a straightforward answer about that?
+Chatbot: There are a few things that might match: (['balance_not_updated_after_bank_transfer', 'transfer_not_received_by_recipient']). Could you clarify a bit more?
+User: I think there's still a misunderstanding here. I'm just looking for a simple answer about how long it usually takes for a bank transfer to go through when sending money to someone at a different bank. Like, is it instant, or does it take a couple of days? Can you just give me a straightforward answer about that?",5,False,problematic
+How do I deposit cash into my account?,top_up_by_cash_or_cheque,balance_not_updated_after_cheque_or_cash_deposit,0.7793920745112223,"User: How do I deposit cash into my account?
+Chatbot: I'm not entirely sure what you're asking. Could you rephrase your question a bit?
+User: I think there might be a misunderstanding. I was asking how I can deposit cash into my account. Can you help me with that?
+Chatbot: There are a few things that might match: (['balance_not_updated_after_cheque_or_cash_deposit', 'transfer_into_account']). Could you clarify a bit more?
+User: Sure! I'm just trying to figure out how to deposit cash into my account. I don't really care about balance updates or transfers right now. I just want to know the steps to actually put cash in. Can you help me with that?",2,False,problematic
+"I really need money from my card today, but my card is getting declined. Please help!!",top_up_failed,declined_cash_withdrawal,0.9199258491923716,"User: I really need money from my card today, but my card is getting declined. Please help!!
+Chatbot: I'm not entirely sure what you're asking. Could you rephrase your question a bit?
+User: I just need help figuring out why my card keeps getting declined. I really need to access some money today. Can you help me with that?
+Chatbot: There are a few things that might match: (['declined_cash_withdrawal', 'declined_card_payment']). Could you clarify a bit more?
+User: Sure! I’m trying to withdraw cash from an ATM, but it keeps saying my card is declined. I really need to get some money out today. What could be causing that?",2,False,problematic
+Help me transfer money to my credit card.,topping_up_by_card,transfer_into_account,0.7792832699341885,"User: Help me transfer money to my credit card.
+Chatbot: I'm not entirely sure what you're asking. Could you rephrase your question a bit?
+User: I think there was a misunderstanding. I want to know how to transfer money from my bank account to my credit card. Can you help me with that?
+Chatbot: There are a few things that might match: (['transfer_into_account', 'topping_up_by_card']). Could you clarify a bit more?
+User: Sure! I think ""transfer_into_account"" sounds like what I'm looking for. I want to move money from my bank account to my credit card. Can you guide me through that process?",2,False,problematic
+The NFC payment wouldn't work on the bus today. Help?,contactless_not_working,declined_card_payment,0.7118445349237458,"User: The NFC payment wouldn't work on the bus today. Help?
+Chatbot: I'm not entirely sure what you're asking. Could you rephrase your question a bit?
+User: I think there might be a misunderstanding. I was saying that my NFC payment didn't work on the bus today. Can you help me figure out why that might be?
+Chatbot: I'm not entirely sure what you're asking. Could you rephrase your question a bit?
+User: It seems like we're going in circles here. I just want to know why my NFC payment didn't work on the bus today. Can you help me with that? Maybe check if there are any known issues or something?
+Chatbot: There are a few things that might match: (['declined_card_payment', 'card_not_working']). Could you clarify a bit more?
+User: Sure! I think it might be a declined card payment. I checked my balance, and I have enough funds, but it just wouldn't go through. Do you know if there are any issues with the payment system on the bus or if my card could be the problem?",3,False,problematic
+How can I withdraw money?,atm_support,unknown,0.0,"User: How can I withdraw money?
+Chatbot: I'm not entirely sure what you're asking. Could you rephrase your question a bit?
+User: I was just trying to figure out how to withdraw money from my account. Can you help me with that? Like, what steps do I need to follow?
+Chatbot: I'm not entirely sure what you're asking. Could you rephrase your question a bit?
+User: Uh, okay, I guess I just want to know how to take money out of my account. Like, do I need to go to an ATM or can I do it online? What are the steps?
+Chatbot: It seems like you're looking for something related to Payments and Transfers. Could you clarify which specific thing you're interested in? Here are a few suggestions: (['Transfers', 'Cash Withdrawals'])
+User: I guess I'm more interested in Cash Withdrawals. I just want to know how I can take money out of my account, whether it's at an ATM or online. Can you help me with that?
+Chatbot: It seems like you're looking for something related to Cash Withdrawals. Could you clarify which specific thing you're interested in? Here are a few suggestions: (['cash_withdrawal_charge', 'declined_cash_withdrawal', 'cash_withdrawal_not_recognised'])
+User: Okay, I see what you're doing, but none of those options really help me with my original question about how to withdraw money from my account. I just want to know the steps to take money out, whether it's at an ATM or online. Can you give me a straightforward answer on that?
+Chatbot: It seems like you're looking for something related to Cash Withdrawals. Could you clarify which specific thing you're interested in? Here are a few suggestions: (['cash_withdrawal_charge', 'declined_cash_withdrawal', 'cash_withdrawal_not_recognised'])
+User: Okay, I get that you're trying to help, but none of those options really answer my question about how to actually withdraw money from my account. I just want to know the steps I need to take, whether it's at an ATM or online. Can you please just give me a clear answer on that?",5,False,problematic
+I need help getting the virtual card to work.,virtual_card_not_working,unknown,0.0,"User: I need help getting the virtual card to work.
+Chatbot: It seems like you're looking for something related to Virtual Cards. Could you clarify which specific thing you're interested in? Here are a few suggestions: (['get_disposable_virtual_card', 'getting_virtual_card', 'virtual_card_not_working'])
+User: I'm trying to figure out why my virtual card isn't working. I thought I set everything up correctly, but it's just not going through. Can you help me with that?
+Chatbot: It seems like you're looking for something related to Virtual Cards. Could you clarify which specific thing you're interested in? Here are a few suggestions: (['get_disposable_virtual_card', 'getting_virtual_card', 'virtual_card_not_working'])
+User: I already mentioned that my virtual card isn't working. I thought I set everything up right, but it's just not going through. Can you help me figure out what's wrong with it?
+Chatbot: It seems like you're looking for something related to Card Issues. Could you clarify which specific thing you're interested in? Here are a few suggestions: (['Physical Cards', 'Virtual Cards'])
+User: I'm specifically having issues with my Virtual Card. It's just not working, and I really need to figure out why. Can you help me troubleshoot this?
+Chatbot: It seems like you're looking for something related to Card Issues. Could you clarify which specific thing you're interested in? Here are a few suggestions: (['Physical Cards', 'Virtual Cards'])
+User: I already told you, I'm having issues with my Virtual Card! It's not working at all, and I really need to get this sorted out. Can you help me troubleshoot it?
+Chatbot: It seems like you're looking for something related to Card Issues. Could you clarify which specific thing you're interested in? Here are a few suggestions: (['Physical Cards', 'Virtual Cards'])
+User: I already told you I'm having issues with my Virtual Card! It's not working at all, and I really need to get this sorted out. Can you please help me troubleshoot it? I don't understand why it keeps getting declined.",5,False,problematic
+Someone stole my cards!,lost_or_stolen_phone,lost_or_stolen_card,0.8941994178849457,"User: Someone stole my cards!
+Chatbot: There are a few things that might match: (['lost_or_stolen_card', 'compromised_card']). Could you clarify a bit more?
+User: Yeah, I think my cards were stolen. I noticed some weird charges on my account, and I can't find my card anywhere. What should I do?
+Chatbot: There are a few things that might match: (['lost_or_stolen_card', 'compromised_card']). Could you clarify a bit more?
+User: I already told you my cards were stolen! I noticed some strange charges on my account, and I can't find my card anywhere. Can you help me with what to do next?
+Chatbot: There are a few things that might match: (['lost_or_stolen_card', 'compromised_card']). Could you clarify a bit more?
+User: I already told you my cards were stolen! I can't find them anywhere, and there are weird charges on my account. I need help figuring out what to do next. Can you please assist me with that?",3,False,problematic
+How would I use my money in a different country?,exchange_via_app,wrong_exchange_rate_for_cash_withdrawal,0.4232029746014504,"User: How would I use my money in a different country?
+Chatbot: I'm not entirely sure what you're asking. Could you rephrase your question a bit?
+User: I think there was a misunderstanding. I was asking how I can use my money when I travel to a different country. Like, should I exchange cash, use my debit card, or what?
+Chatbot: I'm not entirely sure what you're asking. Could you rephrase your question a bit?
+User: I think there’s still some confusion here. I’m just trying to figure out the best way to access my money when I’m traveling abroad. Should I exchange cash before I go, use my debit card, or maybe something else? Can you help me with that?",2,False,uncertain
+"I think my identity has been stolen, can you check on unauthorized charges?",compromised_card,unknown,0.0,"User: I think my identity has been stolen, can you check on unauthorized charges?
+Chatbot: I'm not entirely sure what you're asking. Could you rephrase your question a bit?
+User: I think I might have unauthorized charges on my account because I noticed some transactions that I don't recognize. Can you help me check if there are any suspicious charges?
+Chatbot: There are a few things that might match: (['compromised_card', 'direct_debit_payment_not_recognised']). Could you clarify a bit more?
+User: Sure! I think it might be a compromised card situation. I've noticed a couple of charges that I definitely didn't make, and they seem really suspicious. Can you help me figure out what to do next?
+Chatbot: There are a few things that might match: (['compromised_card', 'card_payment_not_recognised', 'direct_debit_payment_not_recognised']). Could you clarify a bit more?
+User: I think it's definitely a compromised card situation. I’ve seen a couple of charges that I didn’t make, and they look really sketchy. What should I do next to report this and get it sorted out?
+Chatbot: There are a few things that might match: (['compromised_card', 'card_payment_not_recognised']). Could you clarify a bit more?
+User: I already told you it's a compromised card situation! I’ve seen charges that I didn’t make, and I really need to know what steps I should take to report this and get my money back. Can you help me with that?
+Chatbot: There are a few things that might match: (['compromised_card', 'card_payment_not_recognised']). Could you clarify a bit more?
+User: I already told you it's a compromised card situation! I’ve seen charges that I didn’t make, and I really need to know what steps I should take to report this and get my money back. Can you just give me some clear instructions on what to do next? This is really frustrating!",5,False,uncertain
+"Hi,  Please help me, as i have transferred some amount but receiver did not get the same amount. He received a bit less. Due to this again i need to transfer the difference.   I have transferred money but beneficiary's account is credited with less amount. Now i have transfer the difference of the amount. I think there is some issue, could you please look into this.",transfer_fee_charged,unknown,0.0,"User: Hi,  Please help me, as i have transferred some amount but receiver did not get the same amount. He received a bit less. Due to this again i need to transfer the difference.   I have transferred money but beneficiary's account is credited with less amount. Now i have transfer the difference of the amount. I think there is some issue, could you please look into this.
+Chatbot: I'm not entirely sure what you're asking. Could you rephrase your question a bit?
+User: Sure! I transferred some money to someone, but they received less than what I sent. Now I need to send the difference again. Can you help me figure out why this happened and what I should do next?
+Chatbot: It seems like you're looking for something related to Transfers. Could you clarify which specific thing you're interested in? Here are a few suggestions: (['transfer_fee_charged', 'transfer_not_received_by_recipient', 'failed_transfer'])
+User: I think the issue is more about the ""transfer_not_received_by_recipient."" The recipient got less than what I sent, so I want to understand why that happened. Can you help me with that?
+Chatbot: It seems like you're looking for something related to Transfers. Could you clarify which specific thing you're interested in? Here are a few suggestions: (['transfer_fee_charged', 'transfer_not_received_by_recipient', 'failed_transfer'])
+User: I already mentioned that the issue is about ""transfer_not_received_by_recipient."" The recipient got less money than I sent, and I really need to understand why that happened. Can you help me with that?
+Chatbot: It seems like you're looking for something related to Transfers. Could you clarify which specific thing you're interested in? Here are a few suggestions: (['transfer_fee_charged', 'transfer_not_received_by_recipient', 'failed_transfer'])
+User: I already told you that the issue is about ""transfer_not_received_by_recipient."" The recipient got less money than I sent, and I really need to understand why that happened. Can you please help me with that? It feels like we're going in circles here.
+Chatbot: It seems like you're looking for something related to Transfers. Could you clarify which specific thing you're interested in? Here are a few suggestions: (['transfer_fee_charged', 'transfer_not_received_by_recipient', 'failed_transfer'])
+User: I feel like I'm just going in circles here. I've already told you that the issue is about the recipient not receiving the full amount I sent. It's frustrating that I keep getting the same options. Can you please just help me understand why the recipient got less money? Is there a fee or something that I wasn't aware of?",5,False,uncertain
+Someone has taken my money and I don't know who,direct_debit_payment_not_recognised,cash_withdrawal_not_recognised,0.1638363383165454,User: Someone has taken my money and I don't know who,0,False,uncertain
+How do I top up my card?,transfer_into_account,topping_up_by_card,0.1856649300747207,User: How do I top up my card?,0,False,uncertain
+How long can an EU transfer take?,pending_transfer,transfer_timing,0.4442849299509003,User: How long can an EU transfer take?,0,False,uncertain
+My funding to my card didn't go through.,top_up_failed,declined_card_payment,0.5073811255515838,"User: My funding to my card didn't go through.
+Chatbot: I'm not entirely sure what you're asking. Could you rephrase your question a bit?
+User: I think there’s been a misunderstanding. I was saying that my funding to my card didn’t go through. Can you help me figure out what went wrong?",1,False,uncertain
+when will i receive a US transfer,transfer_timing,unknown,0.0,"User: when will i receive a US transfer
+Chatbot: I'm not entirely sure what you're asking. Could you rephrase your question a bit?
+User: I think there might be some confusion here. I was asking about when I would receive a transfer from the US. Can you help me with that?
+Chatbot: It seems like you're looking for something related to Transfers. Could you clarify which specific thing you're interested in? Here are a few suggestions: (['transfer_timing', 'pending_transfer', 'transfer_fee_charged'])
+User: Sure! I'm mainly interested in the transfer timing. Can you tell me when I can expect to receive the transfer from the US?
+Chatbot: It seems like you're looking for something related to Transfers. Could you clarify which specific thing you're interested in? Here are a few suggestions: (['transfer_timing', 'pending_transfer', 'transfer_fee_charged'])
+User: I already mentioned that I'm interested in transfer timing. Can you just give me an estimate of when I might receive the transfer from the US? It feels like we're going in circles here.
+Chatbot: It seems like you're looking for something related to Transfers. Could you clarify which specific thing you're interested in? Here are a few suggestions: (['transfer_timing', 'pending_transfer', 'transfer_fee_charged'])
+User: I already told you I'm interested in transfer timing! Can you just give me an estimate of when I might receive the transfer from the US? This is getting a bit frustrating.
+Chatbot: It seems like you're looking for something related to Transfers. Could you clarify which specific thing you're interested in? Here are a few suggestions: (['pending_transfer', 'transfer_timing', 'transfer_fee_charged'])
+User: I feel like I'm just repeating myself here. I'm asking about transfer timing, specifically when I can expect to receive a transfer from the US. Can you please provide me with an estimate or some information on that?",5,False,uncertain
+My disposable card seems not to be working am I doing something wrong?,virtual_card_not_working,card_not_working,0.2155718403741338,User: My disposable card seems not to be working am I doing something wrong?,0,False,uncertain
+Can you help with a transfer to an account,beneficiary_not_allowed,transfer_into_account,0.1931044948094432,User: Can you help with a transfer to an account,0,False,uncertain
+My card is just not working at this time.,virtual_card_not_working,card_not_working,0.4247523816009411,User: My card is just not working at this time.,0,False,uncertain
+Good morning. I tried to make a purchase with my credit card last night and again this morning. Both times it was declined. Can you investigate?,declined_transfer,declined_card_payment,0.4392251729309508,"User: Good morning. I tried to make a purchase with my credit card last night and again this morning. Both times it was declined. Can you investigate?
+Chatbot: I'm not entirely sure what you're asking. Could you rephrase your question a bit?
+User: I think there’s been a misunderstanding. I’m trying to find out why my credit card was declined when I tried to make a purchase. Can you help me figure that out?",1,False,uncertain
+Am I allowed to use any card to make a payment?,visa_or_mastercard,supported_cards_and_currencies,0.2696634146716166,"User: Am I allowed to use any card to make a payment?
+Chatbot: I'm not entirely sure what you're asking. Could you rephrase your question a bit?
+User: I think there might be a misunderstanding. I was asking if I can use any type of card, like a credit or debit card, to make a payment. Can you help me with that?",1,False,uncertain
+Will declined funds I tried to withdraw be returned to me?,wrong_amount_of_cash_received,unknown,0.0,"User: Will declined funds I tried to withdraw be returned to me?
+Chatbot: I'm not entirely sure what you're asking. Could you rephrase your question a bit?
+User: I was just wondering if the funds I tried to withdraw, which got declined, will be sent back to my account. Can you help me with that?
+Chatbot: It seems like you're looking for something related to Payments and Transfers. Could you clarify which specific thing you're interested in? Here are a few suggestions: (['Transfers', 'Cash Withdrawals'])
+User: I guess I'm more interested in Cash Withdrawals since that's what my issue is about. Can you tell me if the declined funds will be returned to my account?
+Chatbot: It seems like you're looking for something related to Payments and Transfers. Could you clarify which specific thing you're interested in? Here are a few suggestions: (['Transfers', 'Cash Withdrawals'])
+User: I already mentioned that I'm asking about Cash Withdrawals. Can you just tell me if the funds that were declined will be returned to my account? I'm really looking for a straightforward answer here.
+Chatbot: It seems like you're looking for something related to Payments and Transfers. Could you clarify which specific thing you're interested in? Here are a few suggestions: (['Transfers', 'Cash Withdrawals'])
+User: I already told you I'm asking about Cash Withdrawals! Can you please just answer my question about whether the declined funds will be returned to my account? This is getting really frustrating.
+Chatbot: It seems like you're looking for something related to Payments and Transfers. Could you clarify which specific thing you're interested in? Here are a few suggestions: (['Transfers', 'Cash Withdrawals'])
+User: Okay, I think there's a misunderstanding here. I'm asking about Cash Withdrawals specifically. I just want to know if the funds that were declined during my withdrawal attempt will be returned to my account. Can you please help me with that?",5,False,uncertain

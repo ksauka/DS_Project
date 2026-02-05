@@ -37,6 +37,7 @@ venv.bak/
 # IDEs
 .vscode/
 .idea/
+.streamlit/
 *.swp
 *.swo
 *~
@@ -46,13 +47,13 @@ venv.bak/
 .ipynb_checkpoints
 *.ipynb_checkpoints/
 
-# Model files and checkpoints
-*.pkl
+# Model files and checkpoints (but keep trained models for Streamlit)
 *.pth
 *.h5
 *.ckpt
-models/*.pkl
-models/*.pth
+*.pkl
+# Allow specific trained models for deployment
+!experiments/banking77/banking77_logistic_model.pkl
 
 # Data files (adjust based on your needs)
 data/*.csv
@@ -63,6 +64,7 @@ data/*.txt
 # Notebook outputs
 notebooks/*.csv
 notebooks/*.json
+notebooks/*.pkl
 !notebooks/README.md
 
 # Experiment outputs (generated runs)
@@ -71,11 +73,18 @@ experiments/*/*.json
 experiments/*/*.csv
 !experiments/README.md
 
-# Outputs and logs
+# Outputs and logs (but keep selected queries for Streamlit)
 outputs/
+!outputs/user_study/
+!outputs/user_study/workflow_demo/
+!outputs/user_study/workflow_demo/selected_queries_for_user_study.csv
 logs/
 *.log
+# Results (but keep optimal thresholds for Streamlit)
 results/
+!results/banking77/
+!results/banking77/workflow_demo/
+!results/banking77/workflow_demo/banking77_optimal_thresholds.json
 experiments/*/outputs/
 experiments/*/results/
 
@@ -117,13 +126,13 @@ dmypy.json
 *.pem
 *.secret
 
-# document files
+# document files (but keep documentation)
 *.docx
 *.pdf
 *.pptx
 *.xlsx
-*.md
-!README.md
+# Allow all markdown documentation
+!*.md
 
 # Ignore this gitignore file itself (if you want additional privacy)
 # .gitignore

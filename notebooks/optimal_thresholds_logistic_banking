@@ -1,0 +1,386 @@
+{
+    "Account Management": {
+        "threshold": 0.19,
+        "f1_score": 0.9891918235005184
+    },
+    "Account Services": {
+        "threshold": 0.27,
+        "f1_score": 0.9703771338330783
+    },
+    "Card Issues": {
+        "threshold": 0.35000000000000003,
+        "f1_score": 0.9724241502897629
+    },
+    "Card Payments": {
+        "threshold": 0.27,
+        "f1_score": 0.9535502836752004
+    },
+    "Cash Withdrawals": {
+        "threshold": 0.24,
+        "f1_score": 0.9858922317733206
+    },
+    "Charges and Fees": {
+        "threshold": 0.2,
+        "f1_score": 0.9946719479973389
+    },
+    "Fees and Refunds": {
+        "threshold": 0.19,
+        "f1_score": 0.9931717150249639
+    },
+    "General": {
+        "threshold": 0.26,
+        "f1_score": 0.9851738134566417
+    },
+    "General Inquiries": {
+        "threshold": 0.26,
+        "f1_score": 0.9851738134566417
+    },
+    "Payment Problems": {
+        "threshold": 0.27,
+        "f1_score": 0.9535502836752004
+    },
+    "Payments and Transfers": {
+        "threshold": 0.36,
+        "f1_score": 0.9659189036379336
+    },
+    "Physical Cards": {
+        "threshold": 0.35000000000000003,
+        "f1_score": 0.977715488614688
+    },
+    "Refund_not_showing_up": {
+        "threshold": 0.24,
+        "f1_score": 0.9976835592485767
+    },
+    "Refunds": {
+        "threshold": 0.17,
+        "f1_score": 0.9990229922065181
+    },
+    "Security Issues": {
+        "threshold": 0.13,
+        "f1_score": 0.9924151323415377
+    },
+    "Security and Verification": {
+        "threshold": 0.18,
+        "f1_score": 0.9928016332757805
+    },
+    "Top-Ups": {
+        "threshold": 0.3,
+        "f1_score": 0.9798293426222915
+    },
+    "Transfers": {
+        "threshold": 0.33,
+        "f1_score": 0.9778767053323483
+    },
+    "Verification": {
+        "threshold": 0.16,
+        "f1_score": 0.9987051094786025
+    },
+    "Virtual Cards": {
+        "threshold": 0.14,
+        "f1_score": 0.9929132761075036
+    },
+    "activate_my_card": {
+        "threshold": 0.11,
+        "f1_score": 0.9986848622165951
+    },
+    "age_limit": {
+        "threshold": 0.17,
+        "f1_score": 1.0
+    },
+    "apple_pay_or_google_pay": {
+        "threshold": 0.08,
+        "f1_score": 1.0
+    },
+    "atm_support": {
+        "threshold": 0.12,
+        "f1_score": 0.9990072396779613
+    },
+    "automatic_top_up": {
+        "threshold": 0.09,
+        "f1_score": 0.998345399463269
+    },
+    "balance_not_updated_after_bank_transfer": {
+        "threshold": 0.19,
+        "f1_score": 0.9942601977390295
+    },
+    "balance_not_updated_after_cheque_or_cash_deposit": {
+        "threshold": 0.11,
+        "f1_score": 0.9993506493506493
+    },
+    "beneficiary_not_allowed": {
+        "threshold": 0.15,
+        "f1_score": 0.9948051948051948
+    },
+    "cancel_transfer": {
+        "threshold": 0.16,
+        "f1_score": 0.9980519480519481
+    },
+    "card_about_to_expire": {
+        "threshold": 0.07,
+        "f1_score": 0.9990433364839332
+    },
+    "card_acceptance": {
+        "threshold": 0.06,
+        "f1_score": 0.9961953780255295
+    },
+    "card_arrival": {
+        "threshold": 0.19,
+        "f1_score": 0.9973697244331905
+    },
+    "card_delivery_estimate": {
+        "threshold": 0.15,
+        "f1_score": 0.9960545866497855
+    },
+    "card_linking": {
+        "threshold": 0.12,
+        "f1_score": 0.9987012987012988
+    },
+    "card_not_working": {
+        "threshold": 0.16,
+        "f1_score": 0.9957528540331586
+    },
+    "card_payment_fee_charged": {
+        "threshold": 0.17,
+        "f1_score": 0.995947866470377
+    },
+    "card_payment_not_recognised": {
+        "threshold": 0.21,
+        "f1_score": 0.9928252471737868
+    },
+    "card_payment_wrong_exchange_rate": {
+        "threshold": 0.18,
+        "f1_score": 0.9977411149753092
+    },
+    "card_swallowed": {
+        "threshold": 0.05,
+        "f1_score": 0.9983231777808607
+    },
+    "cash_withdrawal_charge": {
+        "threshold": 0.21,
+        "f1_score": 0.998345399463269
+    },
+    "cash_withdrawal_not_recognised": {
+        "threshold": 0.12,
+        "f1_score": 0.9958049278112885
+    },
+    "change_pin": {
+        "threshold": 0.2,
+        "f1_score": 0.99935846142477
+    },
+    "compromised_card": {
+        "threshold": 0.08,
+        "f1_score": 0.99394113106491
+    },
+    "contactless_not_working": {
+        "threshold": 0.02,
+        "f1_score": 0.9986675492748368
+    },
+    "country_support": {
+        "threshold": 0.16,
+        "f1_score": 0.9984055608065552
+    },
+    "declined_card_payment": {
+        "threshold": 0.21,
+        "f1_score": 0.9955148259178385
+    },
+    "declined_cash_withdrawal": {
+        "threshold": 0.2,
+        "f1_score": 0.9958049278112885
+    },
+    "declined_transfer": {
+        "threshold": 0.17,
+        "f1_score": 0.9949776730216507
+    },
+    "direct_debit_payment_not_recognised": {
+        "threshold": 0.15,
+        "f1_score": 0.9965240014501098
+    },
+    "disposable_card_limits": {
+        "threshold": 0.25,
+        "f1_score": 0.9969817200055491
+    },
+    "edit_personal_details": {
+        "threshold": 0.1,
+        "f1_score": 0.9996773021393298
+    },
+    "exchange_charge": {
+        "threshold": 0.2,
+        "f1_score": 0.998001323912255
+    },
+    "exchange_rate": {
+        "threshold": 0.16,
+        "f1_score": 0.9980753842743104
+    },
+    "exchange_via_app": {
+        "threshold": 0.17,
+        "f1_score": 0.9974025974025974
+    },
+    "extra_charge_on_statement": {
+        "threshold": 0.2,
+        "f1_score": 0.996939502634325
+    },
+    "failed_transfer": {
+        "threshold": 0.17,
+        "f1_score": 0.9961953780255295
+    },
+    "fiat_currency_support": {
+        "threshold": 0.19,
+        "f1_score": 0.9969817200055491
+    },
+    "get_disposable_virtual_card": {
+        "threshold": 0.3,
+        "f1_score": 0.9966688731870919
+    },
+    "get_physical_card": {
+        "threshold": 0.26,
+        "f1_score": 0.9990198893922674
+    },
+    "getting_spare_card": {
+        "threshold": 0.15,
+        "f1_score": 0.9980272933248929
+    },
+    "getting_virtual_card": {
+        "threshold": 0.32,
+        "f1_score": 0.9976835592485767
+    },
+    "lost_or_stolen_card": {
+        "threshold": 0.14,
+        "f1_score": 0.9972985776469181
+    },
+    "lost_or_stolen_phone": {
+        "threshold": 0.13,
+        "f1_score": 0.9993506493506493
+    },
+    "order_physical_card": {
+        "threshold": 0.17,
+        "f1_score": 0.9979739332351886
+    },
+    "passcode_forgotten": {
+        "threshold": 0.11,
+        "f1_score": 1.0
+    },
+    "pending_card_payment": {
+        "threshold": 0.12,
+        "f1_score": 0.9974025974025974
+    },
+    "pending_cash_withdrawal": {
+        "threshold": 0.09,
+        "f1_score": 0.9960026478245102
+    },
+    "pending_top_up": {
+        "threshold": 0.21,
+        "f1_score": 0.9968948794815804
+    },
+    "pending_transfer": {
+        "threshold": 0.13,
+        "f1_score": 0.9937125179604219
+    },
+    "pin_blocked": {
+        "threshold": 0.14,
+        "f1_score": 0.9966232220586476
+    },
+    "receiving_money": {
+        "threshold": 0.08,
+        "f1_score": 0.9990198893922674
+    },
+    "request_refund": {
+        "threshold": 0.23,
+        "f1_score": 0.9973697244331905
+    },
+    "reverted_card_payment?": {
+        "threshold": 0.22,
+        "f1_score": 0.9965240014501098
+    },
+    "supported_cards_and_currencies": {
+        "threshold": 0.16,
+        "f1_score": 0.9965750047878825
+    },
+    "terminate_account": {
+        "threshold": 0.12,
+        "f1_score": 0.9996773021393298
+    },
+    "top_up_by_bank_transfer_charge": {
+        "threshold": 0.11,
+        "f1_score": 0.9961953780255295
+    },
+    "top_up_by_card_charge": {
+        "threshold": 0.14,
+        "f1_score": 0.9990198893922674
+    },
+    "top_up_by_cash_or_cheque": {
+        "threshold": 0.13,
+        "f1_score": 0.9976835592485767
+    },
+    "top_up_failed": {
+        "threshold": 0.18,
+        "f1_score": 0.9964503235326287
+    },
+    "top_up_limits": {
+        "threshold": 0.21,
+        "f1_score": 0.9987012987012988
+    },
+    "top_up_reverted": {
+        "threshold": 0.24,
+        "f1_score": 0.9976196131600304
+    },
+    "topping_up_by_card": {
+        "threshold": 0.09,
+        "f1_score": 0.9902672040603077
+    },
+    "transaction_charged_twice": {
+        "threshold": 0.12,
+        "f1_score": 0.9990319064179898
+    },
+    "transfer_fee_charged": {
+        "threshold": 0.18,
+        "f1_score": 0.9972985776469181
+    },
+    "transfer_into_account": {
+        "threshold": 0.16,
+        "f1_score": 0.9945200076606121
+    },
+    "transfer_not_received_by_recipient": {
+        "threshold": 0.11,
+        "f1_score": 0.9937298039770645
+    },
+    "transfer_timing": {
+        "threshold": 0.22,
+        "f1_score": 0.994298804454926
+    },
+    "unable_to_verify_identity": {
+        "threshold": 0.17,
+        "f1_score": 0.9967121555414881
+    },
+    "verify_my_identity": {
+        "threshold": 0.19,
+        "f1_score": 0.9966065020320006
+    },
+    "verify_source_of_funds": {
+        "threshold": 0.09,
+        "f1_score": 1.0
+    },
+    "verify_top_up": {
+        "threshold": 0.19,
+        "f1_score": 1.0
+    },
+    "virtual_card_not_working": {
+        "threshold": 0.04,
+        "f1_score": 0.997021719033884
+    },
+    "visa_or_mastercard": {
+        "threshold": 0.06,
+        "f1_score": 0.9983664823204456
+    },
+    "why_verify_identity": {
+        "threshold": 0.23,
+        "f1_score": 0.9976835592485767
+    },
+    "wrong_amount_of_cash_received": {
+        "threshold": 0.19,
+        "f1_score": 0.9974025974025974
+    },
+    "wrong_exchange_rate_for_cash_withdrawal": {
+        "threshold": 0.16,
+        "f1_score": 0.9955148259178385
+    }
+}

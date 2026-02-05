@@ -39,14 +39,14 @@ echo ""
 echo "Installing dependencies..."
 pip install -r requirements.txt
 
-# Create necessary directories
-echo ""
-echo "Creating project directories..."
-mkdir -p outputs/models
-mkdir -p outputs/evaluation
-mkdir -p experiments
-mkdir -p logs
-echo "✓ Directories created"
+# # Create necessary directories
+# echo ""
+# echo "Creating project directories..."
+# mkdir -p outputs/models
+# mkdir -p outputs/evaluation
+# mkdir -p experiments
+# mkdir -p logs
+# echo "✓ Directories created"
 
 # Setup .env file
 echo ""
