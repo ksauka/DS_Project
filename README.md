@@ -16,31 +16,7 @@ A production-ready, modular intent classification system using **Dempster-Shafer
 
 ---
 
-## Project Structure
 
-```
-DS_Project/
-├── src/                    # Core modular source code
-│   ├── data/              # Dataset loaders and configurations
-│   ├── models/            # Embeddings, Classifier, DS Mass Function
-│   ├── agents/            # CustomerAgent (LLM simulation)
-│   └── utils/             # Metrics, explainability, faithfulness, evaluation curves
-│
-├── scripts/               # Organized execution scripts
-│   ├── training/          # train.py
-│   ├── evaluation/        # evaluate.py, compute_thresholds.py
-│   ├── user_study/        # run_user_study.py (real), run_simulated_user.py (LLM)
-│   └── analysis/          # test_faithfulness.py, analyze_acc_curves.py
-│
-├── config/                # Configuration files
-│   ├── hierarchies/       # Intent hierarchies and descriptions
-│   └── thresholds/        # Optimal confidence thresholds
-│
-├── notebooks/             # Original Jupyter notebooks
-├── docs/                  # Documentation
-├── experiments/           # Training outputs (models, results)
-└── outputs/              # Evaluation results and user study sessions
-```
 
 ---
 
@@ -59,33 +35,35 @@ DS_Project/
            │
            ▼
     ┌─────────────────────────────────────┐
-    │  Step 1: Train Classifier           │
+    │  Step 0: Train Vanilla Baseline     │
     │  scripts/training/train.py          │
     │                                     │
     │  • E5 embeddings (intfloat/e5-base)│
     │  • Logistic Regression / SVM       │
+    │  • No hierarchy, no DS reasoning   │
     │  • Output: trained_model.pkl       │
     └──────────────┬──────────────────────┘
                    │
                    ▼
     ┌─────────────────────────────────────┐
-    │  Step 2: Evaluate (No Thresholds)  │
-    │  scripts/evaluation/evaluate.py     │
+    │  Step 1: Extract Belief Values      │
+    │  scripts/ds_preparation/            │
+    │  extract_beliefs.py                 │
     │                                     │
-    │  DS Agent with DEFAULT thresholds:  │
-    │  • Leaf: 0.3 | Parent: 0.5 | Root: 0.7│
-    │  • Extract per-intent beliefs       │
+    │  • DS with DEFAULT thresholds       │
+    │  • Compute beliefs for all intents  │
+    │  • No clarifications triggered      │
     │  • Output: banking77_beliefs.csv    │
     └──────────────┬──────────────────────┘
                    │
                    ▼
     ┌─────────────────────────────────────┐
-    │  Step 3: Compute Optimal Thresholds│
-    │  scripts/evaluation/                │
+    │  Step 2: Compute Optimal Thresholds│
+    │  scripts/ds_preparation/            │
     │  compute_thresholds.py              │
     │                                     │
     │  • Ancestor-aware ground truth      │
-    │  • Test 101 threshold values (0-1)  │
+    │  • Test multiple threshold values   │
     │  • Select best F1 per intent        │
     │  • Output: banking77_thresholds.json│
     └──────────────┬──────────────────────┘
@@ -185,18 +163,18 @@ DS_Project/
 **Goal**: Create an optimally-configured DS agent with per-intent confidence thresholds
 
 ```bash
-# Step 1: Train classifier on embeddings
+# Step 0: Train vanilla baseline classifier
 python scripts/training/train.py --dataset banking77
 
-# Step 2: Evaluate WITHOUT thresholds → Extract belief values for each query
-python scripts/evaluation/evaluate.py \
+# Step 1: Extract belief values using DEFAULT thresholds
+python scripts/ds_preparation/extract_beliefs.py \
     --dataset banking77 \
     --output-dir results/
 
 # Output: banking77_beliefs.csv (per-intent belief values for threshold optimization)
 
-# Step 3: Compute optimal thresholds using ancestor-aware ground truth
-python scripts/evaluation/compute_thresholds.py \
+# Step 2: Compute optimal thresholds using ancestor-aware ground truth
+python scripts/ds_preparation/compute_thresholds.py \
     --belief-file results/banking77_beliefs.csv \
     --hierarchy-file config/hierarchies/banking77_hierarchy.json \
     --output-file config/thresholds/banking77_thresholds.json
@@ -207,6 +185,32 @@ python scripts/evaluation/compute_thresholds.py \
 ### Phase 2: DS Agent Deployment (Interactive User Conversations)
 **Goal**: Use the configured DS agent for interactive intent disambiguation
 
+#### Option A: Streamlit Interactive Interface (Recommended)
+```bash
+# Start the Streamlit app
+python -m streamlit run src/streamlit_app/simple_banking_assistant.py
+
+# Opens at: http://localhost:8501
+```
+
+**Features**:
+- **Auto-Starting Queries**: Each session auto-starts with a sample banking query
+- **Multi-Turn Clarifications**: Chat-based dialogue for intent disambiguation
+- **Real-Time Belief Tracking**: Enabled by default with `enable_belief_tracking=True`
+- **Belief Visualization**: Charts show top-5 intents over clarification turns
+- **Explanation on Demand**: Type `why` to see belief-based reasoning
+
+**User Workflow**:
+1. Query auto-loads (e.g., "How do I activate my card?")
+2. Respond to clarification questions (if confidence is low)
+3. Once resolved, type `why` to see:
+   - **Final Decision**: The predicted intent
+   - **Belief Score**: Confidence (0.0-1.0)
+   - **Status**: ✅ Confident or ⚠️ Uncertain
+   - **Belief Improvement**: How much each clarification helped
+   - **Visualizations**: Charts showing belief progression
+
+#### Option B: Programmatic API
 ```python
 # Load optimal thresholds
 ds_calculator = DSMassFunction(
@@ -241,88 +245,58 @@ cd DS_Project
 python -m venv venv
 source venv/bin/activate  # On Windows: venv\Scripts\activate
 
-# Install dependencies
+# Install dependencies (core + Streamlit)
 pip install -r requirements.txt
-
-# Configure environment
-cp .env.example .env
-# Edit .env and add your OPENAI_API_KEY
+pip install -r requirements-streamlit.txt
 ```
 
-### 2. Test the System
-The complete system workflow, including training, threshold computation, and interactive DS agent deployment, can be tested using:
+### 2. Run the Interactive Streamlit App (Recommended)
+```bash
+# Start the interactive interface
+python -m streamlit run src/streamlit_app/simple_banking_assistant.py
 
+# Browser opens at http://localhost:8501
+```
+
+**First Time**:
+- System auto-loads pre-trained model and optimal thresholds
+- First query starts automatically
+- Follow on-screen prompts or type `why` to see belief reasoning
+
+**Commands**:
+- Press Enter or type `next` → Move to next query
+- Type `why` → See belief-based explanation with visualization
+- Type any text → Respond to clarification question
+
+### 3. Jupyter Notebook (Full Research Workflow)
 ```bash
 jupyter notebook notebooks/system_workflow_demo.ipynb
 ```
 
-This notebook demonstrates:
-- Loading pre-trained models and optimal thresholds
-- Interactive clarification with DS mass function evaluation
-- LLM-based customer simulation
-- Belief progression tracking and explainability
-
-### Core Modules
-- **DSMassFunction**: Dempster-Shafer reasoning engine with hierarchical belief propagation
-- **IntentClassifier**: Logistic Regression or SVM classifier with E5 embeddings
-- **CustomerAgent**: GPT-4o-mini powered simulated customer for automated testing
-- **BeliefTracker**: Tracks and visualizes belief progression across clarification turns
-- **FaithfulnessValidator**: Validates that explanations align with model predictions
-
-### User Interaction Modes
-1. **Real User Study** (`run_user_study.py`): Interactive terminal for actual human participants
-2. **Simulated Testing** (`run_simulated_user.py`): Automated testing with LLM-based customer agent
-
-### Analysis Tools
-- **Faithfulness Validation**: Statistical tests for explanation reliability
-- **ACC Curves**: Accuracy-Coverage-Burden analysis for selective prediction
-- **Belief Visualization**: Progressive belief tracking across dialogue turns
+Includes: Training, threshold computation, LLM simulation, query selection, and comparison analysis
 
 ---
-```
-Key dependencies (see `requirements.txt` for full list):
-- `torch`, `transformers`, `sentence-transformers`
-- `datasets`, `scikit-learn`, `scipy`
-- `openai`, `python-dotenv`
-- `pandas`, `numpy`, `matplotlib`, `seaborn`
 
-Install:
-```bash
-pip install -r requirements.txt
-```
+## Core Components
+
+- **DSMassFunction**: DS reasoning engine with hierarchical belief propagation
+- **IntentClassifier**: Logistic Regression or SVM with E5 embeddings  
+- **BeliefTracker**: Records belief progression across clarification turns
+- **BeliefVisualizer**: Matplotlib charts for belief evolution
+- **CustomerAgent**: LLM-based user simulator for testing
 
 ---
 
 ## Configuration
 
-- **Hierarchies**: Define intent hierarchies in `config/hierarchies/`
-- **Thresholds**: Optimal per-intent thresholds in `config/thresholds/`
-- **Environment**: API keys and settings in `.env` file
-
-See `config/README.md` for detailed configuration options.
-
----
-
-
-## Research Contributions
-
-This system implements novel approaches in:
-1. **Hierarchical DS Reasoning**: Multi-level belief propagation with adaptive thresholds
-2. **Intent Disambiguation Explainability**: Belief progression tracking across clarification turns
-3. **Faithfulness Validation**: Statistical tests for explanation reliability
-4. **Selective Prediction Analysis**: ACC curve framework for uncertainty quantification
-
----
-
-## License
-
-This project is available for academic and research purposes.
+- **Hierarchies**: `config/hierarchies/` - Intent structures
+- **Thresholds**: `config/thresholds/` - Optimal per-intent confidence values
+- **Environment**: `.env` - API keys (for LLM simulation)
 
 ---
 
 ## Citation
 
-If you use this work in your research, please cite:
 ```bibtex
 @software{ds_project_2026,
   title={Hierarchical Intent Disambiguation with Dempster-Shafer Theory},
@@ -332,37 +306,31 @@ If you use this work in your research, please cite:
 }
 ```
 
-
----
-
-## Requirements
-
-Dependencies are listed in `requirements.txt`. Key packages:
-- `transformers`, `datasets`, `sentence-transformers`
-- `spacy`, `scikit-learn`, `openai`
-- `matplotlib`, `seaborn`, `tqdm`, `jsonpickle`
-
-Install with:
-```bash
-pip install -r requirements.txt
-python -m spacy download en_core_web_sm
-```
-
 ---
 
 ## Troubleshooting
 
+### Streamlit App Issues
+- **Port 8501 already in use?**
+  ```bash
+  python -m streamlit run src/streamlit_app/simple_banking_assistant.py --server.port 8502
+  ```
+
+- **Models not loading?**
+  - Ensure `experiments/banking77/banking77_logistic_model.pkl` exists
+  - Check `config/hierarchies/` and `config/thresholds/` files are present
+
+- **Belief visualization not appearing?**
+  - Ensure matplotlib is installed: `pip install matplotlib`
+  - Charts appear after clarification questions are answered
+
+### General Issues
 - **Dataset not loading?**
-  - Confirm internet access and that `datasets` can access `contemmcm/clinc150`
+  - Confirm internet access for HuggingFace datasets
 
-- **No simulation results in evaluation?**
-  - Ensure `logs/conversation_log.json` was generated and populated
+- **Missing dependencies?**
+  - Run both: `pip install -r requirements.txt` and `pip install -r requirements-streamlit.txt`
 
-- **Common fixes**:
-  - Check folder paths in loaders
-  - Set your OpenAI API key (`OPENAI_API_KEY`)
-  - Install required dependencies and SpaCy models
-
----
-
-# This is work in progress, still figuring out how to intergrate actual user  in place of simulated  customer agent
+- **Clarification questions not generating?**
+  - Set `OPENAI_API_KEY` in `.env` for LLM-based questions
+  - Or use template-based clarifications (requires no API key)
