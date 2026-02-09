@@ -305,32 +305,3 @@ Includes: Training, threshold computation, LLM simulation, query selection, and 
   url={https://github.com/ksauka/DS_Project}
 }
 ```
-
----
-
-## Troubleshooting
-
-### Streamlit App Issues
-- **Port 8501 already in use?**
-  ```bash
-  python -m streamlit run src/streamlit_app/simple_banking_assistant.py --server.port 8502
-  ```
-
-- **Models not loading?**
-  - Ensure `experiments/banking77/banking77_logistic_model.pkl` exists
-  - Check `config/hierarchies/` and `config/thresholds/` files are present
-
-- **Belief visualization not appearing?**
-  - Ensure matplotlib is installed: `pip install matplotlib`
-  - Charts appear after clarification questions are answered
-
-### General Issues
-- **Dataset not loading?**
-  - Confirm internet access for HuggingFace datasets
-
-- **Missing dependencies?**
-  - Run both: `pip install -r requirements.txt` and `pip install -r requirements-streamlit.txt`
-
-- **Clarification questions not generating?**
-  - Set `OPENAI_API_KEY` in `.env` for LLM-based questions
-  - Or use template-based clarifications (requires no API key)

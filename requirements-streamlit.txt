@@ -1,4 +1,6 @@
-# Streamlit-specific dependencies for DS_Project
+which python
+/home/kudzai/projects/.venv
+/home/kudzai/miniconda3/bin/python# Streamlit-specific dependencies for DS_Project
 
 # Core Streamlit
 streamlit>=1.28.0

@@ -37,7 +37,6 @@ venv.bak/
 # IDEs
 .vscode/
 .idea/
-.streamlit/
 *.swp
 *.swo
 *~
