@@ -9,6 +9,7 @@ This implements the correct flow:
 """
 
 import streamlit as st
+import streamlit.components.v1 as components
 import sys
 from pathlib import Path
 import os
@@ -24,6 +25,7 @@ import seaborn as sns
 import numpy as np
 from io import BytesIO
 from typing import Dict, List, Tuple, Optional
+import plotly.express as px
 
 # Add root path for imports
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
@@ -38,10 +40,149 @@ from config.hierarchy_loader import (
 )
 from config.threshold_loader import load_thresholds_from_json
 
+
+def _get_openai_client():
+    """Get an OpenAI client if API key is configured."""
+    api_key = os.getenv("OPENAI_API_KEY")
+    if not api_key:
+        try:
+            api_key = st.secrets.get("OPENAI_API_KEY", None)
+        except Exception:
+            api_key = None
+    if not api_key:
+        return None
+
+    base_url = os.getenv("HICXAI_OPENAI_BASE_URL") or os.getenv("OPENAI_BASE_URL")
+    try:
+        from openai import OpenAI  # type: ignore
+        if base_url:
+            return OpenAI(api_key=api_key, base_url=base_url)
+        return OpenAI(api_key=api_key)
+    except Exception:
+        return None
+
+
+def _llm_configured() -> bool:
+    """Return True when an OpenAI API key is available."""
+    if os.getenv("OPENAI_API_KEY"):
+        return True
+    try:
+        return bool(st.secrets.get("OPENAI_API_KEY", None))
+    except Exception:
+        return False
+
+
+def _test_llm_connection() -> Tuple[bool, str]:
+    """Run a minimal LLM request to validate configuration."""
+    client = _get_openai_client()
+    if client is None:
+        return False, "OpenAI client not available. Check OPENAI_API_KEY."
+
+    model_name = st.session_state.get(
+        "llm_model_name",
+        os.getenv("HICXAI_OPENAI_MODEL", "gpt-4o-mini")
+    )
+
+    try:
+        completion = client.chat.completions.create(
+            model=model_name,
+            messages=[
+                {"role": "system", "content": "You are a test endpoint. Reply with 'ok'."},
+                {"role": "user", "content": "ping"}
+            ],
+            temperature=0.0,
+            max_tokens=5
+        )
+        content = completion.choices[0].message.content if completion and completion.choices else ""
+        if content and "ok" in content.lower():
+            return True, f"LLM test passed using model '{model_name}'."
+        return True, f"LLM responded, but output was unexpected: '{content}'."
+    except Exception as e:
+        return False, f"LLM test failed: {str(e)}"
+
+
+def _extract_options_from_clarification(text: str) -> str:
+    """Extract option list from a clarification prompt, if present."""
+    if ":" in text:
+        return text.split(":", 1)[1].strip()
+    return ""
+
+
+def _humanize_response(text: str, response_type: str, context: Optional[Dict[str, str]] = None) -> str:
+    """Optionally rewrite responses with LLM for a more natural tone."""
+    if not text:
+        return text
+    if not st.session_state.get("humanize_responses", False):
+        return text
+
+    client = _get_openai_client()
+    if client is None:
+        return text
+
+    model_name = st.session_state.get(
+        "llm_model_name",
+        os.getenv("HICXAI_OPENAI_MODEL", "gpt-4o-mini")
+    )
+    temperature = float(
+        st.session_state.get(
+            "llm_temperature",
+            os.getenv("HICXAI_TEMPERATURE", "0.6")
+        )
+    )
+
+    if response_type == "clarification":
+        system_prompt = (
+            "You rewrite clarification questions to sound natural and friendly. "
+            "Preserve intent labels exactly as given and keep the options list unchanged. "
+            "Do not add or remove options or change their wording."
+        )
+    else:
+        system_prompt = (
+            "You rewrite explanations to sound natural and conversational. "
+            "Preserve all numbers, scores, labels, and list structure exactly. "
+            "Do not change any facts."
+        )
+
+    ctx_lines = []
+    if context:
+        for key, value in context.items():
+            if value:
+                ctx_lines.append(f"- {key}: {value}")
+    ctx_blob = "\n".join(ctx_lines) if ctx_lines else "(none)"
+
+    user_prompt = (
+        "Rewrite the following response for a human user. "
+        "Keep all factual content and formatting.\n\n"
+        f"Context:\n{ctx_blob}\n\n"
+        f"Original Response:\n{text}\n\n"
+        "Return only the rewritten response."
+    )
+
+    try:
+        max_tokens = int(
+            st.session_state.get(
+                "llm_max_tokens",
+                int(os.getenv("HICXAI_MAX_TOKENS", "400"))
+            )
+        )
+        completion = client.chat.completions.create(
+            model=model_name,
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_prompt}
+            ],
+            temperature=temperature,
+            max_tokens=max_tokens
+        )
+        content = completion.choices[0].message.content if completion and completion.choices else None
+        return content or text
+    except Exception:
+        return text
+
 # Page config
 st.set_page_config(
     page_title="Clarification Asking Banking Assistant", 
-    page_icon="🏦", 
+    page_icon="B",
     layout="wide",
     initial_sidebar_state="collapsed"
 )
@@ -143,7 +284,7 @@ def load_study_queries():
 def show_header():
     """Display header with HiCXAI styling"""
     # Fallback visible header (in case HTML/CSS is suppressed)
-    st.title("🏦 Clarification Asking Banking Assistant")
+    st.title("Clarification Asking Banking Assistant")
     st.markdown("I will process each query and ask clarifying questions if needed.")
 
     st.markdown("""
@@ -179,7 +320,7 @@ def show_header():
 
     st.markdown("""
     <div class="header-container">
-        <h2 style="margin: 0;">🏦 Clarification Asking Banking Assistant</h2>
+        <h2 style="margin: 0;">Clarification Asking Banking Assistant</h2>
         <p style="margin: 10px 0 5px 0; opacity: 0.9; line-height: 1.4;">
             This banking assistant responds to queries about banking transactions.
             I will process each query and ask clarifying questions if needed.
@@ -225,6 +366,13 @@ def process_query(query_text, ds_system, is_initial=True, previous_mass=None):
         
         # Evaluate which leaves are confident
         confident_nodes, belief = ds_system.evaluate_hierarchy(leaf_nodes, combined_mass)
+
+        # Record belief progression for explainability
+        if hasattr(ds_system, 'get_belief_tracker'):
+            tracker = ds_system.get_belief_tracker()
+            if tracker is not None:
+                turn_num = len([msg for msg in ds_system.conversation_history if msg.startswith("User:")])
+                tracker.record_belief(belief, f"Turn {max(turn_num, 1)}")
         
         # Check if we have exactly one confident leaf node
         confident_leaf_nodes = [n for n in confident_nodes if ds_system.is_leaf(n[0])]
@@ -240,6 +388,13 @@ def process_query(query_text, ds_system, is_initial=True, previous_mass=None):
             # Need clarification - use DS system's built-in clarification generator
             # This uses the EXACT same logic as the LLM simulation in STEP 3
             clarification = ds_system.generate_clarification_question(combined_mass)
+            clarification += " (You are free to type what you mean exactly if these examples do not resonate with your intent.)"
+            options_text = _extract_options_from_clarification(clarification)
+            clarification = _humanize_response(
+                clarification,
+                response_type="clarification",
+                context={"options": options_text}
+            )
             return clarification, True, combined_mass
             
     except Exception as e:
@@ -312,6 +467,243 @@ def generate_confidence_explanation(ds_system):
         st.error(f"Confidence visualization error: {str(e)}")
         return None
 
+
+def generate_confidence_explanation_interactive(ds_system):
+    """Generate interactive confidence chart using Plotly."""
+    try:
+        tracker = None
+        if hasattr(ds_system, 'get_belief_tracker'):
+            tracker = ds_system.get_belief_tracker()
+        if tracker is None:
+            tracker = BeliefTracker()
+
+        history = tracker.get_history()
+        if not history:
+            return None
+
+        # Build grouped bar chart by turn for top intents + uncertainty
+        all_intents = set()
+        for belief_dict, _ in history:
+            all_intents.update(belief_dict.keys())
+
+        # Include all intents (match static plot behavior)
+        top_intents = sorted(all_intents)
+
+        records = []
+        for belief_dict, label in history:
+            for intent in top_intents:
+                records.append({
+                    "Intent": intent,
+                    "Belief": belief_dict.get(intent, 0.0),
+                    "Turn": label
+                })
+
+        df = pd.DataFrame(records)
+        fig = px.bar(
+            df,
+            x="Intent",
+            y="Belief",
+            color="Turn",
+            barmode="group",
+            title="Belief Progression and Uncertainty"
+        )
+        fig.update_layout(
+            xaxis_title="Intent",
+            yaxis_title="Belief Value",
+            legend_title="Turn",
+            height=500,
+            margin=dict(l=40, r=40, t=60, b=80)
+        )
+        fig.update_xaxes(tickangle=30)
+        fig.update_yaxes(range=[0, 1])
+        return fig
+    except Exception as e:
+        st.error(f"Interactive visualization error: {str(e)}")
+        return None
+
+
+def _render_uncertainty_tree(ds_system):
+    """Render a simple indented tree for the final belief state."""
+    tracker = None
+    if hasattr(ds_system, 'get_belief_tracker'):
+        tracker = ds_system.get_belief_tracker()
+    if tracker is None:
+        st.info("Belief history not available for tree view.")
+        return
+
+    final_belief = tracker.get_final_belief()
+    if not final_belief:
+        st.info("No belief values available to render the tree.")
+        return
+
+    hierarchy = ds_system.hierarchy
+    all_children = {child for children in hierarchy.values() for child in children}
+    roots = [node for node in hierarchy.keys() if node not in all_children]
+
+    if not roots:
+        roots = list(hierarchy.keys())
+
+    def render_node(node: str, depth: int = 0):
+        belief = final_belief.get(node, 0.0)
+        indent_px = depth * 18
+        st.markdown(
+            f"<div style='margin-left:{indent_px}px'>- {node}: {belief:.3f}</div>",
+            unsafe_allow_html=True
+        )
+        for child in hierarchy.get(node, []):
+            render_node(child, depth + 1)
+
+    for root in sorted(roots):
+        render_node(root, 0)
+
+
+
+
+def generate_uncertainty_vis_html(ds_system, turn_index: int) -> Optional[str]:
+        """Generate an interactive vis-network HTML graph for a selected belief turn."""
+        tracker = None
+        if hasattr(ds_system, 'get_belief_tracker'):
+                tracker = ds_system.get_belief_tracker()
+        if tracker is None:
+                return None
+
+        history = tracker.get_history()
+        if not history:
+                return None
+
+        turn_index = max(0, min(turn_index, len(history) - 1))
+        belief_dict, _ = history[turn_index]
+        hierarchy = ds_system.hierarchy
+
+        # Build parent map for path highlighting
+        parent_map = {}
+        for parent, children in hierarchy.items():
+            for child in children:
+                parent_map[child] = parent
+
+        # Identify top leaf intent and its path to root
+        leaf_beliefs = {
+            intent: score
+            for intent, score in belief_dict.items()
+            if ds_system.is_leaf(intent)
+        }
+        top_leaf = None
+        if leaf_beliefs:
+            top_leaf = max(leaf_beliefs.keys(), key=lambda x: leaf_beliefs[x])
+
+        highlight_nodes = set()
+        highlight_edges = set()
+        if top_leaf:
+            current = top_leaf
+            highlight_nodes.add(current)
+            while current in parent_map:
+                parent = parent_map[current]
+                highlight_nodes.add(parent)
+                highlight_edges.add((parent, current))
+                current = parent
+
+        # Build nodes with belief-based size and color
+        nodes = []
+        for intent, belief in belief_dict.items():
+            size = 12 + (belief * 30)
+            if intent in highlight_nodes:
+                color = "rgba(230, 126, 34, 0.95)"
+                font = {"size": 12, "color": "#2c3e50", "bold": True}
+                border_width = 2
+            else:
+                color = f"rgba(52, 152, 219, {0.3 + 0.7 * belief:.2f})"
+                font = {"size": 12, "color": "#2c3e50"}
+                border_width = 1
+
+            label = f"{intent}\n{belief:.3f}"
+            nodes.append({
+                "id": intent,
+                "label": label,
+                "value": belief,
+                "size": size,
+                "color": color,
+                "font": font,
+                "borderWidth": border_width
+            })
+
+        # Ensure parents exist as nodes even if not in beliefs
+        for parent in hierarchy.keys():
+            if parent not in belief_dict:
+                if parent in highlight_nodes:
+                    color = "rgba(230, 126, 34, 0.95)"
+                    font = {"size": 12, "color": "#2c3e50", "bold": True}
+                    border_width = 2
+                else:
+                    color = "rgba(149, 165, 166, 0.4)"
+                    font = {"size": 12, "color": "#2c3e50"}
+                    border_width = 1
+                nodes.append({
+                    "id": parent,
+                    "label": parent,
+                    "value": 0.0,
+                    "size": 10,
+                    "color": color,
+                    "font": font,
+                    "borderWidth": border_width
+                })
+
+        # Build edges
+        edges = []
+        for parent, children in hierarchy.items():
+            for child in children:
+                if (parent, child) in highlight_edges:
+                    edges.append({
+                        "from": parent,
+                        "to": child,
+                        "color": {"color": "#e67e22"},
+                        "width": 2
+                    })
+                else:
+                    edges.append({"from": parent, "to": child})
+
+        nodes_json = json.dumps(nodes)
+        edges_json = json.dumps(edges)
+
+        html = f"""
+<!DOCTYPE html>
+<html>
+<head>
+    <script src="https://unpkg.com/vis-network/standalone/umd/vis-network.min.js"></script>
+    <style>
+        #network {{ width: 100%; height: 600px; border: 1px solid #e1e8ed; border-radius: 8px; pointer-events: auto; }}
+    </style>
+</head>
+<body>
+    <div id="network"></div>
+    <script>
+        const nodes = new vis.DataSet({nodes_json});
+        const edges = new vis.DataSet({edges_json});
+        const container = document.getElementById('network');
+        const data = {{ nodes: nodes, edges: edges }};
+        const options = {{
+            layout: {{ hierarchical: {{ enabled: true, direction: 'UD', nodeSpacing: 200, levelSeparation: 120 }} }},
+            physics: {{ enabled: false }},
+            interaction: {{
+                dragNodes: true,
+                zoomView: true,
+                dragView: true,
+                selectable: true,
+                hover: true,
+                navigationButtons: true,
+                keyboard: true
+            }},
+            autoResize: true,
+            nodes: {{ shape: 'dot', font: {{ size: 12 }}, borderWidth: 1 }},
+            edges: {{ arrows: {{ to: {{ enabled: true, scaleFactor: 0.7 }} }}, smooth: {{ type: 'cubicBezier' }} }}
+        }};
+        const network = new vis.Network(container, data, options);
+        window.addEventListener('resize', () => network.redraw());
+    </script>
+</body>
+</html>
+"""
+        return html
+
 def main():
     """Main application"""
     
@@ -350,13 +742,28 @@ def main():
         st.session_state.last_confidence_plot = None
     if 'show_belief_chart' not in st.session_state:
         st.session_state.show_belief_chart = False
+    if 'humanize_responses' not in st.session_state:
+        st.session_state.humanize_responses = True
+    if 'llm_model_name' not in st.session_state:
+        st.session_state.llm_model_name = os.getenv("HICXAI_OPENAI_MODEL", "gpt-4o-mini")
+    if 'llm_temperature' not in st.session_state:
+        st.session_state.llm_temperature = float(os.getenv("HICXAI_TEMPERATURE", "0.6"))
+    if 'llm_max_tokens' not in st.session_state:
+        st.session_state.llm_max_tokens = int(os.getenv("HICXAI_MAX_TOKENS", "400"))
+    if 'llm_warning_shown' not in st.session_state:
+        st.session_state.llm_warning_shown = False
     
     # Show header
     show_header()
+
+    if st.session_state.humanize_responses and not _llm_configured():
+        if not st.session_state.llm_warning_shown:
+            st.warning("LLM humanization is enabled, but OPENAI_API_KEY is not set. Falling back to template responses.")
+            st.session_state.llm_warning_shown = True
     
     # Check if completed all queries
     if st.session_state.current_query_index >= len(queries_df):
-        st.success(f"🎉 Completed all {len(queries_df)} queries!")
+        st.success(f" Completed all {len(queries_df)} queries!")
         st.balloons()
         
         # Show download button for session results
@@ -367,16 +774,15 @@ def main():
             filename = f"human_session_{st.session_state.session_id}_{timestamp}.csv"
             
             st.download_button(
-                label="💾 Download Your Session Results",
+                label="Download Your Session Results",
                 data=csv_data,
                 file_name=filename,
                 mime="text/csv",
                 use_container_width=True
-            )
-            
+            ) 
             st.info(f"Your session results contain {len(st.session_state.session_results)} completed queries.")
         
-        if st.button("🔄 Start New Session"):
+        if st.button("Start New Session"):
             # Reset for new session
             for key in list(st.session_state.keys()):
                 del st.session_state[key]
@@ -394,17 +800,58 @@ def main():
     col1, col2, col3 = st.columns([2, 2, 1])
     with col1:
         remaining = len(queries_df) - st.session_state.current_query_index
-        st.caption(f"📊 Query {st.session_state.current_query_index + 1} of {len(queries_df)} ({remaining} remaining)")
+        st.caption(f"Query {st.session_state.current_query_index + 1} of {len(queries_df)} ({remaining} remaining)")
     with col2:
         if st.session_state.session_results:
             completed = len(st.session_state.session_results)
             correct = sum(1 for r in st.session_state.session_results if r.get('is_correct', False))
-            st.caption(f"✅ Accuracy: {correct}/{completed} ({100*correct/completed:.1f}%)")
+            st.caption(f"Accuracy: {correct}/{completed} ({100*correct/completed:.1f}%)")
         else:
-            st.caption("⌨️ Tip: Press Enter = Next | Type 'why' = Explain")
+            st.caption("Tip: Press Enter = Next | Type 'why' = Explain")
     with col3:
-        with st.popover("⚙️"):
-            if st.button("⏩ Skip to end (testing)", help="Skip remaining queries for testing"):
+        with st.popover("Settings"):
+            st.checkbox(
+                "Humanized responses (LLM)",
+                value=st.session_state.humanize_responses,
+                key="humanize_responses",
+                help="Rewrite clarifications and explanations using OpenAI when configured."
+            )
+            if st.session_state.humanize_responses:
+                if _llm_configured():
+                    st.caption("LLM status: active (humanized responses enabled)")
+                else:
+                    st.caption("LLM status: unavailable (falling back to templates)")
+            st.text_input(
+                "LLM model",
+                value=st.session_state.llm_model_name,
+                key="llm_model_name",
+                help="Model used for humanized responses (e.g., gpt-4o-mini)."
+            )
+            st.slider(
+                "LLM temperature",
+                min_value=0.0,
+                max_value=1.2,
+                value=float(st.session_state.llm_temperature),
+                step=0.05,
+                key="llm_temperature",
+                help="Higher values make responses warmer and more varied."
+            )
+            st.number_input(
+                "LLM max tokens",
+                min_value=50,
+                max_value=1000,
+                value=int(st.session_state.llm_max_tokens),
+                step=25,
+                key="llm_max_tokens",
+                help="Token budget for LLM response generation."
+            )
+            if st.button("Test LLM connection"):
+                ok, message = _test_llm_connection()
+                if ok:
+                    st.success(message)
+                else:
+                    st.error(message)
+            if st.button("Skip to end (testing)", help="Skip remaining queries for testing"):
                 # Save current and jump to end
                 if st.session_state.conversation_started:
                     save_query_result(current_query, ds_system)
@@ -419,8 +866,8 @@ def main():
         # Process with DS system
         response, needs_clarification, mass = process_query(query_text, ds_system, is_initial=True)
         st.session_state.conversation_history = [
-            f"💬 {query_text}",
-            f"🏦 Banking Assistant: {response}"
+            f"User: {query_text}",
+            f"Assistant: {response}"
         ]
         st.session_state.awaiting_clarification = needs_clarification
         st.session_state.query_resolved = not needs_clarification
@@ -431,7 +878,7 @@ def main():
     # Show query at top when conversation started
     st.markdown(f"""
     <div class="query-card">
-        <strong>🎯 Customer Query #{st.session_state.current_query_index + 1}:</strong><br>
+        <strong>Customer Query #{st.session_state.current_query_index + 1}:</strong><br>
         {query_text}
     </div>
     """, unsafe_allow_html=True)
@@ -440,26 +887,26 @@ def main():
     if st.session_state.query_resolved and len(st.session_state.conversation_history) <= 2:
         # Simple immediate resolution - show compact view
         for msg in st.session_state.conversation_history:
-            if msg.startswith("🏦 Banking Assistant:"):
-                assistant_text = msg.replace("🏦 Banking Assistant: ", "").strip()
+            if msg.startswith("Assistant:"):
+                assistant_text = msg.replace("Assistant: ", "").strip()
                 st.markdown(
-                    f'<div class="bot-message">🏦 {format_bubble_text(assistant_text)}</div>',
+                    f'<div class="bot-message">{format_bubble_text(assistant_text)}</div>',
                     unsafe_allow_html=True
                 )
     else:
         # Show full conversation with chat bubbles
         st.markdown("<div class=\"interaction-container\">", unsafe_allow_html=True)
         for msg in st.session_state.conversation_history:
-            if msg.startswith("💬"):
-                user_text = msg.replace("💬 ", "").strip()
+            if msg.startswith("User:"):
+                user_text = msg.replace("User: ", "").strip()
                 st.markdown(
                     f'<div class="user-message">{format_bubble_text(user_text)}</div>',
                     unsafe_allow_html=True
                 )
-            elif msg.startswith("🏦 Banking Assistant:"):
-                assistant_text = msg.replace("🏦 Banking Assistant: ", "").strip()
+            elif msg.startswith("Assistant:"):
+                assistant_text = msg.replace("Assistant: ", "").strip()
                 st.markdown(
-                    f'<div class="bot-message">🏦 Banking Assistant: {format_bubble_text(assistant_text)}</div>',
+                    f'<div class="bot-message">{format_bubble_text(assistant_text)}</div>',
                     unsafe_allow_html=True
                 )
             else:
@@ -471,23 +918,43 @@ def main():
 
     # Display belief visualizations if available
     if st.session_state.get('last_belief_plot'):
-        st.markdown("### 📊 Belief Progression")
-        col1, col2 = st.columns(2)
-        with col1:
-            if st.session_state.get('last_belief_plot'):
-                st.image(st.session_state['last_belief_plot'], caption="Top 5 Intents Over Time", use_column_width=True)
-        with col2:
-            if st.session_state.get('last_confidence_plot'):
-                st.image(st.session_state['last_confidence_plot'], caption="Uncertainty Reduction", use_column_width=True)
+        st.markdown("### Belief Progression")
+        if st.session_state.get('last_belief_plot'):
+            st.image(st.session_state['last_belief_plot'], caption="Top 5 Intents Over Time", width=520)
         st.divider()
+
+        with st.expander("View large belief chart", expanded=False):
+            if st.session_state.get('last_belief_plot'):
+                st.image(st.session_state['last_belief_plot'], caption="Top 5 Intents Over Time (Large)", width=1100)
+
+        with st.expander("View uncertainty as tree", expanded=False):
+            _render_uncertainty_tree(ds_system)
+
+        with st.expander("View uncertainty graph (vis-network)", expanded=False):
+            tracker = ds_system.get_belief_tracker() if hasattr(ds_system, 'get_belief_tracker') else None
+            history = tracker.get_history() if tracker is not None else []
+            if history:
+                turn_labels = [label for _, label in history]
+                selected_label = st.selectbox(
+                    "Select turn (vis)",
+                    options=turn_labels,
+                    index=len(turn_labels) - 1,
+                    key="vis_turn_select"
+                )
+                turn_index = turn_labels.index(selected_label)
+                html = generate_uncertainty_vis_html(ds_system, turn_index)
+                if html:
+                    components.html(html, height=650, scrolling=True)
+            else:
+                st.info("Belief history not available for vis-network view.")
     
     # Display belief visualization after clarification
     if len(st.session_state.conversation_history) > 2 and not st.session_state.awaiting_clarification:
         if st.session_state.get('show_belief_chart'):
-            with st.expander("📈 View Belief Progression Chart", expanded=False):
+            with st.expander("View Belief Progression Chart", expanded=False):
                 belief_viz = generate_belief_visualization(ds_system, "Belief Evolution")
                 if belief_viz:
-                    st.image(belief_viz, use_column_width=True)
+                    st.image(belief_viz, width=900)
 
     
 
@@ -498,9 +965,9 @@ def main():
     if st.session_state.query_resolved:
         col1, col2 = st.columns([3, 1])
         with col1:
-            st.success("✅ Query resolved! Press Enter/type 'next' or ask 'why' to see reasoning.")
+            st.success("Query resolved! Press Enter/type 'next' or ask 'why' to see reasoning.")
         with col2:
-            if st.button("➡️ Next", use_container_width=True, type="primary", key=f"next_btn_{st.session_state.current_query_index}"):
+            if st.button("Next", use_container_width=True, type="primary", key=f"next_btn_{st.session_state.current_query_index}"):
                 save_query_result(current_query, ds_system)
                 st.session_state.current_query_index += 1
                 # Reset state for next query
@@ -515,7 +982,7 @@ def main():
                 st.session_state.query_start_time = None
                 st.rerun()
     elif st.session_state.awaiting_clarification:
-        st.info("💭 Please provide more information or type 'why' to understand my question.")
+        st.info("Please provide more information or type 'why' to understand my question.")
     
     # Chat input - optimized placeholder based on state
     if st.session_state.query_resolved:
@@ -543,25 +1010,30 @@ def main():
         
         # Handle "why" questions
         elif 'why' in user_input_lower or 'how did you' in user_input_lower or 'explain' in user_input_lower:
-            st.session_state.conversation_history.append(f"💬 {user_input}")
+            st.session_state.conversation_history.append(f"User: {user_input}")
             if st.session_state.awaiting_clarification:
                 explanation, belief_plot, confidence_plot = get_ds_explanation(ds_system, "clarification")
             else:
                 explanation, belief_plot, confidence_plot = get_ds_explanation(ds_system, "decision")
-            st.session_state.conversation_history.append(f"🏦 Banking Assistant: {explanation}")
+            explanation = _humanize_response(
+                explanation,
+                response_type="explanation",
+                context={"explanation_type": "clarification" if st.session_state.awaiting_clarification else "decision"}
+            )
+            st.session_state.conversation_history.append(f"Assistant: {explanation}")
             st.session_state.last_belief_plot = belief_plot
             st.session_state.last_confidence_plot = confidence_plot
             st.rerun()
         
         # Handle clarification response
         elif st.session_state.awaiting_clarification:
-            st.session_state.conversation_history.append(f"💬 {user_input}")
+            st.session_state.conversation_history.append(f"User: {user_input}")
             ds_system.user_response = user_input
             # Pass previous mass to combine beliefs
             response, needs_clarification, mass = process_query(
                 user_input, ds_system, is_initial=False, previous_mass=st.session_state.current_mass
             )
-            st.session_state.conversation_history.append(f"🏦 Banking Assistant: {response}")
+            st.session_state.conversation_history.append(f"Assistant: {response}")
             st.session_state.awaiting_clarification = needs_clarification
             st.session_state.query_resolved = not needs_clarification
             st.session_state.current_mass = mass
@@ -569,17 +1041,17 @@ def main():
         
         # Query already resolved
         elif st.session_state.query_resolved:
-            st.session_state.conversation_history.append(f"💬 {user_input}")
+            st.session_state.conversation_history.append(f"User: {user_input}")
             st.session_state.conversation_history.append(
-                f"🏦 Banking Assistant: I've already resolved this query. Type 'next' to continue or 'why' to see my reasoning."
+                "Assistant: I've already resolved this query. Type 'next' to continue or 'why' to see my reasoning."
             )
             st.rerun()
         
         # Shouldn't reach here, but handle gracefully
         else:
-            st.session_state.conversation_history.append(f"💬 {user_input}")
+            st.session_state.conversation_history.append(f"User: {user_input}")
             st.session_state.conversation_history.append(
-                f"🏦 Banking Assistant: I'm processing your request..."
+                "Assistant: I'm processing your request..."
             )
             st.rerun()
 
@@ -589,19 +1061,18 @@ def save_query_result(query_row, ds_system):
         # Extract final prediction from conversation
         final_prediction = "unknown"
         confidence = 0.0
-        
         # Look for prediction in conversation history
         for msg in st.session_state.conversation_history:
-            if msg.startswith("🏦 Banking Assistant:") and "I understand!" in msg:
+            if msg.startswith("Assistant:") and "I understand!" in msg:
                 # Extract prediction from "I understand! You want help with: **intent** (Confidence: 0.xxx)"
                 match = re.search(r'\*\*(.*?)\*\*\s*\(Confidence:\s*([0-9.]+)\)', msg)
                 if match:
                     final_prediction = match.group(1)
                     confidence = float(match.group(2))
                 break
-        
+
         # Count clarification turns (user messages - 1 for initial query)
-        clarification_turns = len([msg for msg in st.session_state.conversation_history if msg.startswith("💬")]) - 1
+        clarification_turns = len([msg for msg in st.session_state.conversation_history if msg.startswith("User:")]) - 1
         if clarification_turns < 0:
             clarification_turns = 0
         
@@ -650,11 +1121,16 @@ def get_ds_explanation(ds_system, explanation_type):
             if final_belief:
                 # Show uncertainty analysis
                 sorted_beliefs = sorted(final_belief.items(), key=lambda x: x[1], reverse=True)[:3]
-                text_explanation += "\n\n**Top competing intents:**\n"
+                intent_summaries = []
                 for intent, belief in sorted_beliefs:
                     threshold = getattr(ds_system, 'get_threshold', lambda x: 0.7)(intent)
-                    status = "✅ Above threshold" if belief >= threshold else "❌ Below threshold"
-                    text_explanation += f"- **{intent}**: {belief:.3f} ({status})\n"
+                    status = "above" if belief >= threshold else "below"
+                    intent_summaries.append(f"{intent} ({belief:.3f}, {status} threshold {threshold:.3f})")
+                joined = "; ".join(intent_summaries)
+                text_explanation += (
+                    " I was seeing multiple close options, so I needed more detail. "
+                    f"Here were the top candidates: {joined}."
+                )
                 
                 # Generate belief visualization
                 belief_plot = generate_belief_visualization(ds_system, "Why I Asked for Clarification")
@@ -666,22 +1142,33 @@ def get_ds_explanation(ds_system, explanation_type):
         
         elif explanation_type == "decision":
             # Get actual reasoning for decision
-            text_explanation = "I made this decision because:\n"
+            text_explanation = "I made this decision because "
             
             if final_belief:
-                top_intent = max(final_belief.keys(), key=lambda x: final_belief[x])
+                leaf_beliefs = {
+                    intent: score
+                    for intent, score in final_belief.items()
+                    if ds_system.is_leaf(intent)
+                }
+                if leaf_beliefs:
+                    top_intent = max(leaf_beliefs.keys(), key=lambda x: leaf_beliefs[x])
+                else:
+                    top_intent = max(final_belief.keys(), key=lambda x: final_belief[x])
                 confidence = final_belief[top_intent]
                 threshold = getattr(ds_system, 'get_threshold', lambda x: 0.7)(top_intent)
-                
-                text_explanation += f"\n**Final Decision: {top_intent}**\n"
-                text_explanation += f"- **Belief Score**: {confidence:.3f}\n"
-                text_explanation += f"- **Required Threshold**: {threshold:.3f}\n"
-                text_explanation += f"- **Status**: {'✅ Confident' if confidence >= threshold else '⚠️ Uncertain'}"
-                
+                status = "confident" if confidence >= threshold else "uncertain"
+                text_explanation += (
+                    f"the evidence most strongly supported {top_intent}. "
+                    f"The belief score was {confidence:.3f}, which is {status} relative to the "
+                    f"required threshold of {threshold:.3f}."
+                )
                 if len(history) > 1:
                     initial_belief = history[0][0].get(top_intent, 0.0)
                     improvement = confidence - initial_belief
-                    text_explanation += f"\n- **Belief Improvement**: +{improvement:.3f} through clarification"
+                    text_explanation += (
+                        f" After your clarification, the belief improved by {improvement:.3f}, "
+                        "which helped confirm the decision."
+                    )
                 
                 # Generate visualizations
                 belief_plot = generate_belief_visualization(ds_system, "Decision Reasoning")

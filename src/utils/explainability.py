@@ -9,6 +9,7 @@ from typing import List, Tuple, Dict, Optional
 import matplotlib.pyplot as plt
 import seaborn as sns
 import pandas as pd
+import numpy as np
 
 
 class BeliefTracker:
@@ -155,19 +156,9 @@ class BeliefVisualizer:
         
         df = pd.DataFrame(records)
         
-        # Create color palette with red for Uncertainty
-        unique_intents = df["Intent"].unique()
-        if show_uncertainty:
-            palette = {
-                intent: "#ff6961" if intent == "Uncertainty" else None
-                for intent in unique_intents
-            }
-        else:
-            palette = None
-        
         # Create the plot
         plt.figure(figsize=figsize)
-        sns.barplot(data=df, x="Intent", y="Belief", hue="Turn", palette=palette)
+        sns.barplot(data=df, x="Intent", y="Belief", hue="Turn", palette="tab10")
         plt.title(title, fontsize=14, fontweight='bold')
         plt.ylabel("Belief Value", fontsize=12)
         plt.xlabel("Intent", fontsize=12)
@@ -194,7 +185,7 @@ class BeliefVisualizer:
         figsize: Tuple[int, int] = (10, 6)
     ):
         """
-        Plot progression of top-k intents across turns using line plot.
+        Plot progression of top-k intents across turns using grouped bars.
         
         Args:
             belief_history: List of tuples [(belief_dict, "Turn 1"), (belief_dict, "Turn 2"), ...]
@@ -211,43 +202,35 @@ class BeliefVisualizer:
         final_beliefs = belief_history[-1][0]
         top_intents = sorted(final_beliefs.items(), key=lambda x: x[1], reverse=True)[:top_k]
         top_intent_names = [intent for intent, _ in top_intents]
-        
-        # Create records for line plot
-        records = []
-        for idx, (belief_dict, label) in enumerate(belief_history):
-            for intent in top_intent_names:
-                belief_value = belief_dict.get(intent, 0.0)
-                records.append({
-                    "Intent": intent,
-                    "Belief": belief_value,
-                    "Turn": label,
-                    "Turn_Index": idx
-                })
-        
-        df = pd.DataFrame(records)
-        
-        # Create the line plot
+
+        turn_labels = [label for _, label in belief_history]
+        turn_count = len(turn_labels)
+        intent_count = len(top_intent_names)
+
+        x = np.arange(turn_count)
+        bar_width = 0.8 / max(intent_count, 1)
+
         plt.figure(figsize=figsize)
-        for intent in top_intent_names:
-            intent_data = df[df["Intent"] == intent]
-            plt.plot(intent_data["Turn_Index"], intent_data["Belief"], 
-                    marker='o', label=intent, linewidth=2)
-        
+        for idx, intent in enumerate(top_intent_names):
+            intent_beliefs = [belief_dict.get(intent, 0.0) for belief_dict, _ in belief_history]
+            offsets = x - 0.4 + (idx + 0.5) * bar_width
+            plt.bar(offsets, intent_beliefs, width=bar_width, label=intent)
+
         plt.title(title, fontsize=14, fontweight='bold')
         plt.ylabel("Belief Value", fontsize=12)
         plt.xlabel("Turn", fontsize=12)
-        plt.xticks(range(len(belief_history)), [label for _, label in belief_history], rotation=45, ha='right')
+        plt.xticks(x, turn_labels, rotation=45, ha='right')
         plt.legend(title="Intent", bbox_to_anchor=(1.05, 1), loc='upper left')
         plt.ylim(0, 1.0)
-        plt.grid(True, alpha=0.3)
+        plt.grid(axis='y', alpha=0.3)
         plt.tight_layout()
-        
+
         if save_path:
             plt.savefig(save_path, dpi=300, bbox_inches='tight')
             print(f"Plot saved to {save_path}")
         else:
             plt.show()
-        
+
         plt.close()
     
     @staticmethod
