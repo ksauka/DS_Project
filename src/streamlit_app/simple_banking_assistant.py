@@ -682,6 +682,8 @@ def main():
         st.session_state.query_start_time = None
     if 'feedback_form_shown' not in st.session_state:
         st.session_state.feedback_form_shown = False
+    if 'feedback_submitted' not in st.session_state:
+        st.session_state.feedback_submitted = False
     if 'last_prediction' not in st.session_state:
         st.session_state.last_prediction = None
     if 'last_confidence' not in st.session_state:
@@ -1107,37 +1109,10 @@ def collect_query_feedback(query_index, query_text, predicted_intent, is_correct
     true_intent = queries_df.iloc[query_index]['true_intent'] if query_index < len(queries_df) else 'unknown'
     
     st.markdown(f"**Your query was:** \"{query_text}\"")
-    st.markdown("") 
+    st.markdown("")
+    st.info("💡 Tip: If you asked 'why' earlier, you already saw the system's reasoning. Now validate which option best matches your intent.")
     
-    # Add "Why" explanation button BEFORE the form
-    with st.expander("🤔 Want to understand the system's reasoning? Click here", expanded=False):
-        st.markdown("#### System Reasoning")
-        
-        # Get DS system from session state
-        if 'ds_system' in st.session_state:
-            ds_system = st.session_state.ds_system
-            
-            # Generate explanation
-            explanation, belief_plot, confidence_plot = get_ds_explanation(ds_system, "decision")
-            
-            st.markdown(explanation)
-            
-            # Show visualizations
-            col1, col2 = st.columns(2)
-            with col1:
-                if belief_plot:
-                    st.markdown("**Belief Distribution**")
-                    st.image(belief_plot, width=400)
-            with col2:
-                if confidence_plot:
-                    st.markdown("**Confidence Analysis**")
-                    st.image(confidence_plot, width=400)
-        else:
-            st.info("Explanation not available - system state not found")
-    
-    st.markdown("---")
-    
-    with st.form(f"feedback_query_{query_index}", clear_on_submit=False):
+    with st.form(f"feedback_query_{query_index}", clear_on_submit=True):
         # H7 Testing: User validates their actual intent
         st.markdown("##### Which option best matches what you wanted?")
         
@@ -1220,7 +1195,8 @@ def collect_query_feedback(query_index, query_text, predicted_intent, is_correct
                 if 'data_logger' in st.session_state and st.session_state.data_logger:
                     st.session_state.data_logger.log_query_result(st.session_state.session_results[-1])
             
-            st.success("✓ Feedback saved! Loading next query...")
+            # Mark feedback as complete to prevent re-showing form
+            st.session_state.feedback_submitted = True
             return True
     
     return False
@@ -1284,28 +1260,30 @@ def save_query_result(query_row, ds_system):
         
         st.session_state.session_results.append(result)
         
-        # Collect feedback before moving to next query
-        feedback_submitted = collect_query_feedback(
-            st.session_state.current_query_index,
-            query_row['query'],
-            final_prediction,
-            is_correct
-        )
-        
-        if feedback_submitted:
-            # Move to next query
-            st.session_state.current_query_index += 1
-            # Reset conversation state
-            st.session_state.conversation_started = False
-            st.session_state.conversation_history = []
-            st.session_state.awaiting_clarification = False
-            st.session_state.query_resolved = False
-            st.session_state.current_mass = None
-            st.session_state.query_start_time = None
-            st.session_state.feedback_form_shown = False
-            st.session_state.last_belief_plot = None
-            st.session_state.last_confidence_plot = None
-            st.rerun()
+        # Show feedback form ONLY if not already submitted
+        if not st.session_state.get('feedback_submitted', False):
+            feedback_submitted = collect_query_feedback(
+                st.session_state.current_query_index,
+                query_row['query'],
+                final_prediction,
+                is_correct
+            )
+            
+            if feedback_submitted:
+                # Move to next query
+                st.session_state.current_query_index += 1
+                # Reset conversation state
+                st.session_state.conversation_started = False
+                st.session_state.conversation_history = []
+                st.session_state.awaiting_clarification = False
+                st.session_state.query_resolved = False
+                st.session_state.current_mass = None
+                st.session_state.query_start_time = None
+                st.session_state.feedback_form_shown = False
+                st.session_state.feedback_submitted = False  # Reset for next query
+                st.session_state.last_belief_plot = None
+                st.session_state.last_confidence_plot = None
+                st.rerun()
         
     except Exception as e:
         st.error(f"Error saving query result: {str(e)}")
