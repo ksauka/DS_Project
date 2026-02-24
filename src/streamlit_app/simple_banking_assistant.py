@@ -104,13 +104,13 @@ def back_to_survey(done_flag=True):
         return
     final = _build_final_return(done=done_flag)
     if not final:
-        st.warning("⚠️ Return link missing or invalid. Please close this window and return to the survey manually.")
+        st.warning("WARNING: Return link missing or invalid. Please close this window and return to the survey manually.")
         return
     st.session_state._returned = True
     # Immediate redirect using meta refresh
     st.markdown(f'<meta http-equiv="refresh" content="0;url={final}">',
                 unsafe_allow_html=True)
-    st.info("✅ Redirecting you back to the survey...")
+    st.info("Redirecting you back to the survey...")
     st.stop()
 
 # Persist URL parameters once at session start
@@ -815,9 +815,9 @@ def main():
                         with st.spinner("📤 Saving session data..."):
                             save_success = save_session_to_github()
                             if save_success:
-                                st.success("✅ Session data saved successfully!")
+                                st.success("Session data saved successfully!")
                             else:
-                                st.warning("⚠️ Data saved locally (GitHub sync may have failed)")
+                                st.warning("WARNING: Data saved locally (GitHub sync may have failed)")
                     
                     # Also save local copies for redundancy
                     feedback_dir = Path("outputs/user_study/feedback")
@@ -837,11 +837,11 @@ def main():
                     with open(complete_file, 'w') as f:
                         json.dump(complete_data, f, indent=2)
                     
-                    st.success("✅ Thank you! Your feedback has been saved.")
+                    st.success("Thank you! Your feedback has been saved.")
                     st.session_state.final_feedback_submitted = True
                     st.rerun()
         else:
-            st.success("✅ Final feedback already submitted. Thank you!")
+            st.success("Final feedback already submitted. Thank you!")
         
         st.markdown("---")
         
@@ -863,7 +863,7 @@ def main():
         # Qualtrics return button (if return URL provided)
         if st.session_state.get("return_raw") and st.session_state.get('final_feedback_submitted', False):
             st.markdown("---")
-            st.markdown("### ✅ Study Complete")
+            st.markdown("### Study Complete")
             st.info("You can now return to the survey platform.")
             if st.button("🔙 Return to Survey", type="primary", use_container_width=True):
                 back_to_survey(done_flag=True)
@@ -1036,8 +1036,8 @@ def main():
         true_intent = current_query.get('true_intent', '')
         is_correct = (predicted_intent == true_intent)
         
-        st.success(f"✅ System prediction complete: **{predicted_intent}**")
-        st.info("👇 Scroll down to validate and provide feedback")
+        st.success(f"System prediction complete: **{predicted_intent}**")
+        st.info("Scroll down to validate and provide feedback")
         
         # Trigger save_query_result which will show feedback form
         if not st.session_state.get('feedback_form_shown', False):
@@ -1082,7 +1082,7 @@ def main():
         
         # When resolved, only "why" is allowed (feedback form handles advancing)
         elif st.session_state.query_resolved:
-            st.info("⚠️ Query is resolved. Type 'why' to see reasoning, then use the feedback form below to continue.")
+            st.info("Query is resolved. Type 'why' to see reasoning, then use the feedback form below to continue.")
             st.rerun()
         
         # Handle clarification response (during active clarification)
@@ -1102,7 +1102,7 @@ def main():
 def collect_query_feedback(query_index, query_text, predicted_intent, is_correct):
     """Collect per-query feedback after resolution - includes user intent validation"""
     st.markdown("---")
-    st.markdown(f"### 📝 Validate Your Intent - Query {query_index + 1}")
+    st.markdown(f"### Validate Your Intent - Query {query_index + 1}")
     
     # Get true intent from query data
     queries_df = load_study_queries()
@@ -1110,7 +1110,7 @@ def collect_query_feedback(query_index, query_text, predicted_intent, is_correct
     
     st.markdown(f"**Your query was:** \"{query_text}\"")
     st.markdown("")
-    st.info("💡 Tip: If you asked 'why' earlier, you already saw the system's reasoning. Now validate which option best matches your intent.")
+    st.info("TIP: If you asked 'why' earlier, you already saw the system's reasoning. Now validate which option best matches your intent.")
     
     with st.form(f"feedback_query_{query_index}", clear_on_submit=True):
         # H7 Testing: User validates their actual intent
@@ -1122,19 +1122,19 @@ def collect_query_feedback(query_index, query_text, predicted_intent, is_correct
         
         # Add system's prediction
         if predicted_intent != 'unknown':
-            system_label = f"🤖 System predicted: **{predicted_intent}**"
+            system_label = f"System predicted: **{predicted_intent}**"
             options.append(predicted_intent)
             option_labels.append(system_label)
         
         # Add oracle/expected intent if different from prediction
         if true_intent != predicted_intent and true_intent != 'unknown':
-            oracle_label = f"📋 Expected intent: **{true_intent}**"
+            oracle_label = f"Expected intent: **{true_intent}**"
             options.append(true_intent)
             option_labels.append(oracle_label)
         
         # Add "Neither" option
         options.append("Neither/Other")
-        option_labels.append("❓ Neither of the above / Something else")
+        option_labels.append("Neither of the above / Something else")
         
         # User selects their actual intent
         user_selected_intent = st.radio(
@@ -1177,7 +1177,7 @@ def collect_query_feedback(query_index, query_text, predicted_intent, is_correct
             key=f"comment_{query_index}"
         )
         
-        submitted = st.form_submit_button("✓ Submit Feedback & Continue →", type="primary", use_container_width=True)
+        submitted = st.form_submit_button("Submit Feedback & Continue", type="primary", use_container_width=True)
         
         if submitted:
             # Save feedback to the most recent result
