@@ -1024,7 +1024,16 @@ def main():
     
     # Show status when resolved - feedback form will appear below via save_query_result
     if st.session_state.query_resolved:
-        st.success("✅ Query resolved! Scroll down to provide feedback before continuing.")
+        # Check if prediction is correct
+        predicted_intent = st.session_state.get('last_prediction', 'unknown')
+        true_intent = current_query.get('true_intent', '')
+        is_correct = (predicted_intent == true_intent)
+        
+        if is_correct:
+            st.success(f"✅ System predicted: **{predicted_intent}** — Please validate below")
+        else:
+            st.warning(f"⚠️ System predicted: **{predicted_intent}** (Expected: {true_intent}) — Please validate below")
+        
         # Trigger save_query_result which will show feedback form
         if not st.session_state.get('feedback_form_shown', False):
             st.session_state.feedback_form_shown = True
@@ -1035,7 +1044,7 @@ def main():
     
     # Chat input - only for clarifications and explanations (not for advancing queries)
     if st.session_state.query_resolved:
-        placeholder = "Type 'why' to see reasoning, or submit feedback below to continue..."
+        placeholder = "Type 'why' to see reasoning, then use feedback form below to continue..."
     else:
         placeholder = "Type your response or ask 'why?'"
     
@@ -1059,7 +1068,7 @@ def main():
                 st.session_state.last_confidence_plot = confidence_plot
                 st.rerun()
             else:
-                st.info("⚠️ Query is resolved. Please submit feedback below to continue, or type 'why' to see reasoning.")
+                st.info("⚠️ Please validate the prediction using the feedback form below, or type 'why' to see reasoning.")
             return
         
         # Handle "why" questions
@@ -1117,13 +1126,15 @@ def main():
 def collect_query_feedback(query_index, query_text, predicted_intent, is_correct):
     """Collect per-query feedback after resolution"""
     st.markdown("---")
-    st.markdown(f"### 📝 Quick Feedback - Query {query_index + 1}")
+    st.markdown(f"### 📝 Validate Prediction - Query {query_index + 1}")
     
-    # Show correctness indicator
+    # Show correctness indicator prominently
     if is_correct:
-        st.success(f"✅ Correct prediction: **{predicted_intent}**")
+        st.success(f"✅ **Prediction is CORRECT**: {predicted_intent}")
     else:
-        st.warning(f"⚠️ Prediction needs review: **{predicted_intent}**")
+        st.error(f"❌ **Prediction is INCORRECT**: Got '{predicted_intent}' (See expected intent above)")
+    
+    st.markdown("##### Rate the interaction:")
     
     with st.form(f"feedback_query_{query_index}", clear_on_submit=False):
         col1, col2 = st.columns(2)
