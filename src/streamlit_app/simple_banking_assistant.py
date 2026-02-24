@@ -1,4 +1,4 @@
-"""Simple Banking Assistant - Sequential Query Processing
+"""Customer Service Assistant - Sequential Query Processing
 
 This implements the correct flow:
 1. Show one query at a time (sequential)
@@ -284,7 +284,7 @@ def _humanize_response(text: str, response_type: str, context: Optional[Dict[str
 
 # Page config
 st.set_page_config(
-    page_title="Banking Assistant", 
+    page_title="Customer Service Assistant", 
     page_icon="B",
     layout="wide",
     initial_sidebar_state="collapsed"
@@ -439,16 +439,21 @@ def show_header():
 
     st.markdown("""
     <div class="header-container">
-        <h2 style="margin: 0; font-size: 2em;">Banking Assistant</h2>
+        <h2 style="margin: 0; font-size: 2em;">Customer Service Assistant</h2>
         <p style="margin: 15px 0 8px 0; opacity: 0.95; line-height: 1.5; font-size: 1.1em;">
-            This banking assistant responds to queries about banking transactions. I will process each initial message (Customer Query) and ask clarifying questions if needed to improve my understanding.
+            This customer service assistant responds to customer support queries. I will process each initial message (Customer Query) and ask clarifying questions if needed to improve my understanding.
         </p>
         <p style="margin: 8px 0 0 0; opacity: 0.95; line-height: 1.5; font-size: 1.1em;">
             Please respond as a real user would — naturally and honestly, without trying to help or mislead the system.
         </p>
         <p style="margin: 8px 0 0 0; opacity: 0.9; font-size: 1em; line-height: 1.4;">
-            <strong>After each Customer query interaction:</strong> I will state what I believe your intent is, or ask you to select the option that best matches what you wanted, if this is not the last customer query, then proceed to the next query.
+            <strong>After each Customer query interaction:</strong>
         </p>
+        <ul style="margin: 5px 0 0 20px; opacity: 0.9; font-size: 0.95em; line-height: 1.6; text-align: left; display: inline-block;">
+            <li>I will state what I believe your intent is, or</li>
+            <li>ask you to select the option that best matches what you wanted, if this is not the last customer query</li>
+            <li>proceed to the next query: Note there are (n) queries.</li>
+        </ul>
     </div>
     """, unsafe_allow_html=True)
 
@@ -1124,19 +1129,53 @@ def main():
             st.rerun()
 
 def collect_query_feedback(query_index, query_text, predicted_intent, is_correct):
-    """Collect per-query feedback after resolution"""
+    """Collect per-query feedback after resolution - includes user intent validation"""
     st.markdown("---")
-    st.markdown(f"### 📝 Validate Prediction - Query {query_index + 1}")
+    st.markdown(f"### 📝 Validate Your Intent - Query {query_index + 1}")
     
-    # Show correctness indicator prominently
-    if is_correct:
-        st.success(f"✅ **Prediction is CORRECT**: {predicted_intent}")
-    else:
-        st.error(f"❌ **Prediction is INCORRECT**: Got '{predicted_intent}' (See expected intent above)")
+    # Get true intent from query data
+    queries_df = load_study_queries()
+    true_intent = queries_df.iloc[query_index]['true_intent'] if query_index < len(queries_df) else 'unknown'
     
-    st.markdown("##### Rate the interaction:")
+    st.markdown(f"**Your query was:** \"{query_text}\"")
+    st.markdown("") 
     
     with st.form(f"feedback_query_{query_index}", clear_on_submit=False):
+        # H7 Testing: User validates their actual intent
+        st.markdown("##### Which option best matches what you wanted?")
+        
+        # Create options from system prediction and oracle label
+        options = []
+        option_labels = []
+        
+        # Add system's prediction
+        if predicted_intent != 'unknown':
+            system_label = f"🤖 System predicted: **{predicted_intent}**"
+            options.append(predicted_intent)
+            option_labels.append(system_label)
+        
+        # Add oracle/expected intent if different from prediction
+        if true_intent != predicted_intent and true_intent != 'unknown':
+            oracle_label = f"📋 Expected intent: **{true_intent}**"
+            options.append(true_intent)
+            option_labels.append(oracle_label)
+        
+        # Add "Neither" option
+        options.append("Neither/Other")
+        option_labels.append("❓ Neither of the above / Something else")
+        
+        # User selects their actual intent
+        user_selected_intent = st.radio(
+            "Select the option that best matches your intent:",
+            options=options,
+            format_func=lambda x: option_labels[options.index(x)],
+            key=f"user_intent_{query_index}",
+            help="This helps us understand if the system correctly identified what you wanted"
+        )
+        
+        st.markdown("---")
+        st.markdown("##### Rate the interaction:")
+        
         col1, col2 = st.columns(2)
         
         with col1:
@@ -1172,6 +1211,9 @@ def collect_query_feedback(query_index, query_text, predicted_intent, is_correct
             # Save feedback to the most recent result
             if 'session_results' in st.session_state and st.session_state.session_results:
                 # Update the last result with feedback
+                st.session_state.session_results[-1]['user_validated_intent'] = user_selected_intent
+                st.session_state.session_results[-1]['user_agrees_with_system'] = (user_selected_intent == predicted_intent)
+                st.session_state.session_results[-1]['user_agrees_with_oracle'] = (user_selected_intent == true_intent)
                 st.session_state.session_results[-1]['feedback_clarity'] = clarity
                 st.session_state.session_results[-1]['feedback_confidence'] = confidence_rating
                 st.session_state.session_results[-1]['feedback_comment'] = comment
@@ -1232,6 +1274,10 @@ def save_query_result(query_row, ds_system):
             'llm_num_interactions': query_row.get('num_interactions', 0),
             'llm_confidence': query_row.get('confidence', 0.0),
             'llm_was_correct': query_row.get('is_correct', False),
+            # H7 Testing: User validation fields
+            'user_validated_intent': None,
+            'user_agrees_with_system': None,
+            'user_agrees_with_oracle': None,
             # Feedback fields will be added after feedback collection
             'feedback_clarity': None,
             'feedback_confidence': None,
