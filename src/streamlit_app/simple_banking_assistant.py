@@ -9,7 +9,6 @@ This implements the correct flow:
 """
 
 import streamlit as st
-import streamlit.components.v1 as components
 import sys
 from pathlib import Path
 import os
@@ -26,19 +25,117 @@ import numpy as np
 from io import BytesIO
 from typing import Dict, List, Tuple, Optional
 import plotly.express as px
+from dotenv import load_dotenv
+from urllib.parse import urlparse, urlunparse, parse_qs, parse_qsl, urlencode, unquote
 
 # Add root path for imports
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
+
+# Load environment variables from .env (for local development)
+load_dotenv()
 
 from src.models.ds_mass_function import DSMassFunction
 from src.models.embeddings import SentenceEmbedder, IntentEmbeddings
 from src.models.classifier import IntentClassifier
 from src.utils.explainability import BeliefTracker, BeliefVisualizer
+from src.utils.data_logger import init_logger, save_session_to_github
 from config.hierarchy_loader import (
     load_hierarchy_from_json,
     load_hierarchical_intents_from_json
 )
 from config.threshold_loader import load_thresholds_from_json
+
+
+# ===== QUALTRICS/PROLIFIC INTEGRATION =====
+def _get_query_params():
+    """Get URL query parameters from Streamlit"""
+    return st.query_params
+
+def _as_str(val):
+    """Convert parameter value to string safely"""
+    if isinstance(val, list):
+        return val[0] if val else ""
+    return str(val) if val else ""
+
+def _is_safe_return(ru):
+    """Validate that return URL points to Qualtrics domain"""
+    if not ru:
+        return False
+    try:
+        d = unquote(ru)
+        if not d.startswith(("http://", "https://")):
+            d = "https://" + d
+        p = urlparse(d)
+        return (p.scheme in ("http", "https")) and ("qualtrics.com" in p.netloc)
+    except Exception:
+        return False
+
+def _build_final_return(done=True):
+    """Build Qualtrics return URL with participant data appended"""
+    rr = st.session_state.get("return_raw", "")
+    if not rr or not _is_safe_return(rr):
+        return None
+    decoded = unquote(rr)
+    if not decoded.startswith(("http://", "https://")):
+        decoded = "https://" + decoded
+    p = urlparse(decoded)
+    q = dict(parse_qsl(p.query, keep_blank_values=True))  # Use parse_qsl like anthrokit
+    
+    # Append parameters if missing (for data linkage in Qualtrics)
+    prolific_pid_ss = st.session_state.get("prolific_pid", "")
+    session_id_ss = st.session_state.get("session_id", "")  # KEY for data linkage
+    
+    if "PROLIFIC_PID" not in q and prolific_pid_ss:
+        q["PROLIFIC_PID"] = prolific_pid_ss
+    if "pid" not in q and st.session_state.get("pid"):
+        q["pid"] = st.session_state.pid
+    if "cond" not in q and st.session_state.get("cond"):
+        q["cond"] = st.session_state.cond
+    if "session_id" not in q and session_id_ss:
+        q["session_id"] = session_id_ss  # Pass session_id back for data linkage
+    if "done" not in q:
+        q["done"] = "1" if done else "0"
+    
+    return urlunparse(p._replace(query=urlencode(q, doseq=True)))
+
+def back_to_survey(done_flag=True):
+    """Redirect back to Qualtrics/Prolific survey after study completion"""
+    if st.session_state.get("_returned", False):
+        return
+    final = _build_final_return(done=done_flag)
+    if not final:
+        st.warning("⚠️ Return link missing or invalid. Please close this window and return to the survey manually.")
+        return
+    st.session_state._returned = True
+    # Immediate redirect using meta refresh
+    st.markdown(f'<meta http-equiv="refresh" content="0;url={final}">',
+                unsafe_allow_html=True)
+    st.info("✅ Redirecting you back to the survey...")
+    st.stop()
+
+# Persist URL parameters once at session start
+_qs = _get_query_params()
+_pid_in = _as_str(_qs.get("pid", ""))
+_cond_in = _as_str(_qs.get("cond", ""))
+_ret_in = _as_str(_qs.get("return", ""))
+_prolific_pid = _as_str(_qs.get("PROLIFIC_PID", ""))
+
+if "pid" not in st.session_state and _pid_in:
+    st.session_state.pid = _pid_in
+if "cond" not in st.session_state and _cond_in:
+    st.session_state.cond = _cond_in
+if "return_raw" not in st.session_state and _ret_in:
+    st.session_state.return_raw = _ret_in
+if "prolific_pid" not in st.session_state and _prolific_pid:
+    st.session_state.prolific_pid = _prolific_pid
+
+# One-shot redirect latch
+if "_returned" not in st.session_state:
+    st.session_state._returned = False
+
+# Store back_to_survey function in session state for access from UI
+st.session_state.back_to_survey = back_to_survey
+# ===== END QUALTRICS/PROLIFIC INTEGRATION =====
 
 
 def _get_openai_client():
@@ -52,7 +149,7 @@ def _get_openai_client():
     if not api_key:
         return None
 
-    base_url = os.getenv("HICXAI_OPENAI_BASE_URL") or os.getenv("OPENAI_BASE_URL")
+    base_url = os.getenv("OPENAI_BASE_URL")
     try:
         from openai import OpenAI  # type: ignore
         if base_url:
@@ -80,7 +177,7 @@ def _test_llm_connection() -> Tuple[bool, str]:
 
     model_name = st.session_state.get(
         "llm_model_name",
-        os.getenv("HICXAI_OPENAI_MODEL", "gpt-4o-mini")
+        os.getenv("OPENAI_MODEL", "gpt-4o-mini")
     )
 
     try:
@@ -121,12 +218,12 @@ def _humanize_response(text: str, response_type: str, context: Optional[Dict[str
 
     model_name = st.session_state.get(
         "llm_model_name",
-        os.getenv("HICXAI_OPENAI_MODEL", "gpt-4o-mini")
+        os.getenv("OPENAI_MODEL", "gpt-4o-mini")
     )
     temperature = float(
         st.session_state.get(
             "llm_temperature",
-            os.getenv("HICXAI_TEMPERATURE", "0.6")
+            os.getenv("TEMPERATURE", "0.6")
         )
     )
 
@@ -135,6 +232,12 @@ def _humanize_response(text: str, response_type: str, context: Optional[Dict[str
             "You rewrite clarification questions to sound natural and friendly. "
             "Preserve intent labels exactly as given and keep the options list unchanged. "
             "Do not add or remove options or change their wording."
+        )
+    elif response_type == "prediction":
+        system_prompt = (
+            "You rewrite final predictions to sound warm and natural. "
+            "Preserve the intent label exactly as given. "
+            "Keep it short and friendly, like a helpful assistant confirming they understood."
         )
     else:
         system_prompt = (
@@ -162,7 +265,7 @@ def _humanize_response(text: str, response_type: str, context: Optional[Dict[str
         max_tokens = int(
             st.session_state.get(
                 "llm_max_tokens",
-                int(os.getenv("HICXAI_MAX_TOKENS", "400"))
+                int(os.getenv("MAX_TOKENS", "400"))
             )
         )
         completion = client.chat.completions.create(
@@ -181,7 +284,7 @@ def _humanize_response(text: str, response_type: str, context: Optional[Dict[str
 
 # Page config
 st.set_page_config(
-    page_title="Clarification Asking Banking Assistant", 
+    page_title="Banking Assistant", 
     page_icon="B",
     layout="wide",
     initial_sidebar_state="collapsed"
@@ -283,10 +386,6 @@ def load_study_queries():
 
 def show_header():
     """Display header with HiCXAI styling"""
-    # Fallback visible header (in case HTML/CSS is suppressed)
-    st.title("Clarification Asking Banking Assistant")
-    st.markdown("I will process each query and ask clarifying questions if needed.")
-
     st.markdown("""
     <style>
     .main { padding: 2rem 1rem; }
@@ -312,7 +411,7 @@ def show_header():
     }
     .header-container {
         background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        padding: 20px; border-radius: 10px; margin-bottom: 30px;
+        padding: 35px 30px; border-radius: 12px; margin-bottom: 35px;
         color: white; text-align: center;
     }
     </style>
@@ -320,15 +419,15 @@ def show_header():
 
     st.markdown("""
     <div class="header-container">
-        <h2 style="margin: 0;">Clarification Asking Banking Assistant</h2>
-        <p style="margin: 10px 0 5px 0; opacity: 0.9; line-height: 1.4;">
-            This banking assistant responds to queries about banking transactions.
-            I will process each query and ask clarifying questions if needed.
+        <h2 style="margin: 0; font-size: 2em;">Banking Assistant</h2>
+        <p style="margin: 15px 0 8px 0; opacity: 0.95; line-height: 1.5; font-size: 1.1em;">
+            This banking assistant responds to queries about banking transactions. I will process each initial message (Customer Query) and ask clarifying questions if needed to improve my understanding.
         </p>
-        <p style="margin: 5px 0 0 0; opacity: 0.8; font-size: 0.9em; line-height: 1.3;">
-            <strong>How it works:</strong> If I understand your query, I'll tell you what I understood.
-            If I'm unsure, I'll ask clarification questions to improve my confidence.
-            You can also ask me to explain my reasoning at any time.
+        <p style="margin: 8px 0 0 0; opacity: 0.95; line-height: 1.5; font-size: 1.1em;">
+            Please respond as a real user would — naturally and honestly, without trying to help or mislead the system.
+        </p>
+        <p style="margin: 8px 0 0 0; opacity: 0.9; font-size: 1em; line-height: 1.4;">
+            <strong>After each Customer query interaction:</strong> I will state what I believe your intent is, or ask you to select the option that best matches what you wanted, if this is not the last customer query, then proceed to the next query.
         </p>
     </div>
     """, unsafe_allow_html=True)
@@ -382,7 +481,12 @@ def process_query(query_text, ds_system, is_initial=True, previous_mass=None):
             pred_intent, confidence = confident_leaf_nodes[0]
             st.session_state.last_prediction = pred_intent
             st.session_state.last_confidence = confidence
-            response = f"I understand! You want help with: **{pred_intent}** (Confidence: {confidence:.3f})"
+            response = f"I understand! You want help with: **{pred_intent}**"
+            response = _humanize_response(
+                response,
+                response_type="prediction",
+                context={"intent": pred_intent}
+            )
             return response, False, combined_mass
         else:
             # Need clarification - use DS system's built-in clarification generator
@@ -522,194 +626,17 @@ def generate_confidence_explanation_interactive(ds_system):
         return None
 
 
-def _render_uncertainty_tree(ds_system):
-    """Render a simple indented tree for the final belief state."""
-    tracker = None
-    if hasattr(ds_system, 'get_belief_tracker'):
-        tracker = ds_system.get_belief_tracker()
-    if tracker is None:
-        st.info("Belief history not available for tree view.")
-        return
-
-    final_belief = tracker.get_final_belief()
-    if not final_belief:
-        st.info("No belief values available to render the tree.")
-        return
-
-    hierarchy = ds_system.hierarchy
-    all_children = {child for children in hierarchy.values() for child in children}
-    roots = [node for node in hierarchy.keys() if node not in all_children]
-
-    if not roots:
-        roots = list(hierarchy.keys())
-
-    def render_node(node: str, depth: int = 0):
-        belief = final_belief.get(node, 0.0)
-        indent_px = depth * 18
-        st.markdown(
-            f"<div style='margin-left:{indent_px}px'>- {node}: {belief:.3f}</div>",
-            unsafe_allow_html=True
-        )
-        for child in hierarchy.get(node, []):
-            render_node(child, depth + 1)
-
-    for root in sorted(roots):
-        render_node(root, 0)
-
-
-
-
-def generate_uncertainty_vis_html(ds_system, turn_index: int) -> Optional[str]:
-        """Generate an interactive vis-network HTML graph for a selected belief turn."""
-        tracker = None
-        if hasattr(ds_system, 'get_belief_tracker'):
-                tracker = ds_system.get_belief_tracker()
-        if tracker is None:
-                return None
-
-        history = tracker.get_history()
-        if not history:
-                return None
-
-        turn_index = max(0, min(turn_index, len(history) - 1))
-        belief_dict, _ = history[turn_index]
-        hierarchy = ds_system.hierarchy
-
-        # Build parent map for path highlighting
-        parent_map = {}
-        for parent, children in hierarchy.items():
-            for child in children:
-                parent_map[child] = parent
-
-        # Identify top leaf intent and its path to root
-        leaf_beliefs = {
-            intent: score
-            for intent, score in belief_dict.items()
-            if ds_system.is_leaf(intent)
-        }
-        top_leaf = None
-        if leaf_beliefs:
-            top_leaf = max(leaf_beliefs.keys(), key=lambda x: leaf_beliefs[x])
-
-        highlight_nodes = set()
-        highlight_edges = set()
-        if top_leaf:
-            current = top_leaf
-            highlight_nodes.add(current)
-            while current in parent_map:
-                parent = parent_map[current]
-                highlight_nodes.add(parent)
-                highlight_edges.add((parent, current))
-                current = parent
-
-        # Build nodes with belief-based size and color
-        nodes = []
-        for intent, belief in belief_dict.items():
-            size = 12 + (belief * 30)
-            if intent in highlight_nodes:
-                color = "rgba(230, 126, 34, 0.95)"
-                font = {"size": 12, "color": "#2c3e50", "bold": True}
-                border_width = 2
-            else:
-                color = f"rgba(52, 152, 219, {0.3 + 0.7 * belief:.2f})"
-                font = {"size": 12, "color": "#2c3e50"}
-                border_width = 1
-
-            label = f"{intent}\n{belief:.3f}"
-            nodes.append({
-                "id": intent,
-                "label": label,
-                "value": belief,
-                "size": size,
-                "color": color,
-                "font": font,
-                "borderWidth": border_width
-            })
-
-        # Ensure parents exist as nodes even if not in beliefs
-        for parent in hierarchy.keys():
-            if parent not in belief_dict:
-                if parent in highlight_nodes:
-                    color = "rgba(230, 126, 34, 0.95)"
-                    font = {"size": 12, "color": "#2c3e50", "bold": True}
-                    border_width = 2
-                else:
-                    color = "rgba(149, 165, 166, 0.4)"
-                    font = {"size": 12, "color": "#2c3e50"}
-                    border_width = 1
-                nodes.append({
-                    "id": parent,
-                    "label": parent,
-                    "value": 0.0,
-                    "size": 10,
-                    "color": color,
-                    "font": font,
-                    "borderWidth": border_width
-                })
-
-        # Build edges
-        edges = []
-        for parent, children in hierarchy.items():
-            for child in children:
-                if (parent, child) in highlight_edges:
-                    edges.append({
-                        "from": parent,
-                        "to": child,
-                        "color": {"color": "#e67e22"},
-                        "width": 2
-                    })
-                else:
-                    edges.append({"from": parent, "to": child})
-
-        nodes_json = json.dumps(nodes)
-        edges_json = json.dumps(edges)
-
-        html = f"""
-<!DOCTYPE html>
-<html>
-<head>
-    <script src="https://unpkg.com/vis-network/standalone/umd/vis-network.min.js"></script>
-    <style>
-        #network {{ width: 100%; height: 600px; border: 1px solid #e1e8ed; border-radius: 8px; pointer-events: auto; }}
-    </style>
-</head>
-<body>
-    <div id="network"></div>
-    <script>
-        const nodes = new vis.DataSet({nodes_json});
-        const edges = new vis.DataSet({edges_json});
-        const container = document.getElementById('network');
-        const data = {{ nodes: nodes, edges: edges }};
-        const options = {{
-            layout: {{ hierarchical: {{ enabled: true, direction: 'UD', nodeSpacing: 200, levelSeparation: 120 }} }},
-            physics: {{ enabled: false }},
-            interaction: {{
-                dragNodes: true,
-                zoomView: true,
-                dragView: true,
-                selectable: true,
-                hover: true,
-                navigationButtons: true,
-                keyboard: true
-            }},
-            autoResize: true,
-            nodes: {{ shape: 'dot', font: {{ size: 12 }}, borderWidth: 1 }},
-            edges: {{ arrows: {{ to: {{ enabled: true, scaleFactor: 0.7 }} }}, smooth: {{ type: 'cubicBezier' }} }}
-        }};
-        const network = new vis.Network(container, data, options);
-        window.addEventListener('resize', () => network.redraw());
-    </script>
-</body>
-</html>
-"""
-        return html
-
 def main():
     """Main application"""
     
     # Initialize systems ONCE with cache
     ds_system = initialize_ds_system()
     queries_df = load_study_queries()
+    
+    # Initialize data logger (for GitHub save)
+    if 'data_logger_initialized' not in st.session_state:
+        init_logger()
+        st.session_state.data_logger_initialized = True
     
     # Initialize session state
     if 'current_query_index' not in st.session_state:
@@ -728,6 +655,8 @@ def main():
         st.session_state.session_id = str(uuid.uuid4())[:8]
     if 'query_start_time' not in st.session_state:
         st.session_state.query_start_time = None
+    if 'feedback_form_shown' not in st.session_state:
+        st.session_state.feedback_form_shown = False
     if 'last_prediction' not in st.session_state:
         st.session_state.last_prediction = None
     if 'last_confidence' not in st.session_state:
@@ -745,11 +674,11 @@ def main():
     if 'humanize_responses' not in st.session_state:
         st.session_state.humanize_responses = True
     if 'llm_model_name' not in st.session_state:
-        st.session_state.llm_model_name = os.getenv("HICXAI_OPENAI_MODEL", "gpt-4o-mini")
+        st.session_state.llm_model_name = os.getenv("OPENAI_MODEL", "gpt-4o-mini")
     if 'llm_temperature' not in st.session_state:
-        st.session_state.llm_temperature = float(os.getenv("HICXAI_TEMPERATURE", "0.6"))
+        st.session_state.llm_temperature = float(os.getenv("TEMPERATURE", "0.6"))
     if 'llm_max_tokens' not in st.session_state:
-        st.session_state.llm_max_tokens = int(os.getenv("HICXAI_MAX_TOKENS", "400"))
+        st.session_state.llm_max_tokens = int(os.getenv("MAX_TOKENS", "400"))
     if 'llm_warning_shown' not in st.session_state:
         st.session_state.llm_warning_shown = False
     
@@ -763,8 +692,131 @@ def main():
     
     # Check if completed all queries
     if st.session_state.current_query_index >= len(queries_df):
-        st.success(f" Completed all {len(queries_df)} queries!")
+        st.success(f"🎉 Completed all {len(queries_df)} queries!")
         st.balloons()
+        
+        # Calculate session statistics
+        if st.session_state.session_results:
+            completed = len(st.session_state.session_results)
+            correct = sum(1 for r in st.session_state.session_results if r.get('is_correct', False))
+            avg_interactions = np.mean([r.get('num_clarification_turns', 0) 
+                                       for r in st.session_state.session_results])
+            avg_time = np.mean([r.get('interaction_time_seconds', 0) 
+                               for r in st.session_state.session_results])
+            
+            col1, col2, col3, col4 = st.columns(4)
+            with col1:
+                st.metric("Queries Completed", completed)
+            with col2:
+                st.metric("Accuracy", f"{100*correct/completed:.1f}%")
+            with col3:
+                st.metric("Avg Interactions", f"{avg_interactions:.1f}")
+            with col4:
+                st.metric("Avg Time (sec)", f"{avg_time:.1f}")
+        
+        st.markdown("---")
+        
+        # Final feedback form (overall experience)
+        if not st.session_state.get('final_feedback_submitted', False):
+            st.markdown("### 📊 Final Survey")
+            st.markdown("Please share your overall experience with the system:")
+            
+            with st.form("final_feedback"):
+                col1, col2 = st.columns(2)
+                
+                with col1:
+                    overall_rating = st.select_slider(
+                        "Overall experience rating",
+                        options=[1, 2, 3, 4, 5],
+                        value=3,
+                        format_func=lambda x: ["😞 Poor", "😐 Fair", "🙂 Good", "😊 Very Good", "🤩 Excellent"][x-1]
+                    )
+                    
+                    trust = st.select_slider(
+                        "How much do you trust the system?",
+                        options=[1, 2, 3, 4, 5],
+                        value=3,
+                        format_func=lambda x: "⭐" * x
+                    )
+                
+                with col2:
+                    ease_of_use = st.select_slider(
+                        "Ease of use",
+                        options=[1, 2, 3, 4, 5],
+                        value=3,
+                        format_func=lambda x: "⭐" * x
+                    )
+                    
+                    would_recommend = st.radio(
+                        "Would you recommend this system?",
+                        ["Definitely", "Probably", "Maybe", "Probably Not", "Definitely Not"],
+                        index=2
+                    )
+                
+                additional_comments = st.text_area(
+                    "Additional comments (optional)",
+                    placeholder="What did you like? What could be improved? Any other feedback?",
+                    height=100
+                )
+                
+                submitted = st.form_submit_button("📤 Submit Final Feedback", type="primary", use_container_width=True)
+                
+                if submitted:
+                    # Save final feedback
+                    final_feedback = {
+                        "overall_rating": overall_rating,
+                        "trust": trust,
+                        "ease_of_use": ease_of_use,
+                        "would_recommend": would_recommend,
+                        "additional_comments": additional_comments,
+                        "session_id": st.session_state.session_id,
+                        "participant_id": st.session_state.get("pid", ""),
+                        "condition": st.session_state.get("cond", ""),
+                        "prolific_pid": st.session_state.get("prolific_pid", ""),
+                        "timestamp": datetime.datetime.now().isoformat(),
+                        "num_queries_completed": len(st.session_state.session_results),
+                        "accuracy": correct / completed if completed > 0 else 0,
+                        "avg_clarifications": avg_interactions,
+                        "avg_time_seconds": avg_time
+                    }
+                    
+                    # Log to data logger before saving to GitHub
+                    if 'data_logger' in st.session_state and st.session_state.data_logger:
+                        st.session_state.data_logger.set_final_feedback(final_feedback)
+                        
+                        # Save to GitHub (with local fallback)
+                        with st.spinner("📤 Saving session data..."):
+                            save_success = save_session_to_github()
+                            if save_success:
+                                st.success("✅ Session data saved successfully!")
+                            else:
+                                st.warning("⚠️ Data saved locally (GitHub sync may have failed)")
+                    
+                    # Also save local copies for redundancy
+                    feedback_dir = Path("outputs/user_study/feedback")
+                    feedback_dir.mkdir(parents=True, exist_ok=True)
+                    
+                    # Save final feedback as JSON
+                    feedback_file = feedback_dir / f"session_{st.session_state.session_id}_final.json"
+                    with open(feedback_file, 'w') as f:
+                        json.dump(final_feedback, f, indent=2)
+                    
+                    # Save complete session data (results + feedback)
+                    complete_data = {
+                        "final_feedback": final_feedback,
+                        "query_results": st.session_state.session_results
+                    }
+                    complete_file = feedback_dir / f"session_{st.session_state.session_id}_complete.json"
+                    with open(complete_file, 'w') as f:
+                        json.dump(complete_data, f, indent=2)
+                    
+                    st.success("✅ Thank you! Your feedback has been saved.")
+                    st.session_state.final_feedback_submitted = True
+                    st.rerun()
+        else:
+            st.success("✅ Final feedback already submitted. Thank you!")
+        
+        st.markdown("---")
         
         # Show download button for session results
         if st.session_state.session_results:
@@ -774,19 +826,29 @@ def main():
             filename = f"human_session_{st.session_state.session_id}_{timestamp}.csv"
             
             st.download_button(
-                label="Download Your Session Results",
+                label="📥 Download Your Session Results (CSV)",
                 data=csv_data,
                 file_name=filename,
                 mime="text/csv",
                 use_container_width=True
-            ) 
-            st.info(f"Your session results contain {len(st.session_state.session_results)} completed queries.")
+            )
         
-        if st.button("Start New Session"):
-            # Reset for new session
-            for key in list(st.session_state.keys()):
-                del st.session_state[key]
-            st.rerun()
+        # Qualtrics return button (if return URL provided)
+        if st.session_state.get("return_raw") and st.session_state.get('final_feedback_submitted', False):
+            st.markdown("---")
+            st.markdown("### ✅ Study Complete")
+            st.info("You can now return to the survey platform.")
+            if st.button("🔙 Return to Survey", type="primary", use_container_width=True):
+                back_to_survey(done_flag=True)
+        elif not st.session_state.get("return_raw"):
+            # No return URL, show restart option
+            st.markdown("---")
+            if st.button("🔄 Start New Session"):
+                # Reset for new session
+                for key in list(st.session_state.keys()):
+                    del st.session_state[key]
+                st.rerun()
+        
         return
     
     # Get current query
@@ -926,27 +988,6 @@ def main():
         with st.expander("View large belief chart", expanded=False):
             if st.session_state.get('last_belief_plot'):
                 st.image(st.session_state['last_belief_plot'], caption="Top 5 Intents Over Time (Large)", width=1100)
-
-        with st.expander("View uncertainty as tree", expanded=False):
-            _render_uncertainty_tree(ds_system)
-
-        with st.expander("View uncertainty graph (vis-network)", expanded=False):
-            tracker = ds_system.get_belief_tracker() if hasattr(ds_system, 'get_belief_tracker') else None
-            history = tracker.get_history() if tracker is not None else []
-            if history:
-                turn_labels = [label for _, label in history]
-                selected_label = st.selectbox(
-                    "Select turn (vis)",
-                    options=turn_labels,
-                    index=len(turn_labels) - 1,
-                    key="vis_turn_select"
-                )
-                turn_index = turn_labels.index(selected_label)
-                html = generate_uncertainty_vis_html(ds_system, turn_index)
-                if html:
-                    components.html(html, height=650, scrolling=True)
-            else:
-                st.info("Belief history not available for vis-network view.")
     
     # Display belief visualization after clarification
     if len(st.session_state.conversation_history) > 2 and not st.session_state.awaiting_clarification:
@@ -961,32 +1002,20 @@ def main():
     # Chat interface at bottom
     st.markdown("---")
     
-    # Show status and Next button when resolved
+    # Show status when resolved - feedback form will appear below via save_query_result
     if st.session_state.query_resolved:
-        col1, col2 = st.columns([3, 1])
-        with col1:
-            st.success("Query resolved! Press Enter/type 'next' or ask 'why' to see reasoning.")
-        with col2:
-            if st.button("Next", use_container_width=True, type="primary", key=f"next_btn_{st.session_state.current_query_index}"):
-                save_query_result(current_query, ds_system)
-                st.session_state.current_query_index += 1
-                # Reset state for next query
-                st.session_state.conversation_history = []
-                st.session_state.awaiting_clarification = False
-                st.session_state.conversation_started = False
-                st.session_state.query_resolved = False
-                st.session_state.last_belief_plot = None
-                st.session_state.last_confidence_plot = None
-                st.session_state.show_belief_chart = False
-                st.session_state.current_mass = None
-                st.session_state.query_start_time = None
-                st.rerun()
+        st.success("✅ Query resolved! Scroll down to provide feedback before continuing.")
+        # Trigger save_query_result which will show feedback form
+        if not st.session_state.get('feedback_form_shown', False):
+            st.session_state.feedback_form_shown = True
+            save_query_result(current_query, ds_system)
+            # Don't rerun here - let the feedback form render
     elif st.session_state.awaiting_clarification:
         st.info("Please provide more information or type 'why' to understand my question.")
     
-    # Chat input - optimized placeholder based on state
+    # Chat input - only for clarifications and explanations (not for advancing queries)
     if st.session_state.query_resolved:
-        placeholder = "Press Enter for next query, or type 'why' to explain..."
+        placeholder = "Type 'why' to see reasoning, or submit feedback below to continue..."
     else:
         placeholder = "Type your response or ask 'why?'"
     
@@ -995,22 +1024,32 @@ def main():
     if user_input:
         user_input_lower = user_input.lower().strip()
         
-        # Handle "next" or empty enter when resolved (fast advance)
-        if st.session_state.query_resolved and (not user_input.strip() or user_input_lower in ['next', 'next query', 'continue', 'n']):
-            save_query_result(current_query, ds_system)
-            st.session_state.current_query_index += 1
-            # Reset state for next query
-            st.session_state.conversation_history = []
-            st.session_state.awaiting_clarification = False
-            st.session_state.conversation_started = False
-            st.session_state.query_resolved = False
-            st.session_state.current_mass = None
-            st.session_state.query_start_time = None
-            st.rerun()
+        # When resolved, only allow "why" explanations (feedback form handles advancing)
+        if st.session_state.query_resolved:
+            if 'why' in user_input_lower or 'how did you' in user_input_lower or 'explain' in user_input_lower:
+                st.session_state.conversation_history.append(f"User: {user_input}")
+                explanation, belief_plot, confidence_plot = get_ds_explanation(ds_system, "decision")
+                explanation = _humanize_response(
+                    explanation,
+                    response_type="explanation",
+                    context={"explanation_type": "decision"}
+                )
+                st.session_state.conversation_history.append(f"Assistant: {explanation}")
+                st.session_state.last_belief_plot = belief_plot
+                st.session_state.last_confidence_plot = confidence_plot
+                st.rerun()
+            else:
+                st.info("⚠️ Query is resolved. Please submit feedback below to continue, or type 'why' to see reasoning.")
+            return
         
         # Handle "why" questions
         elif 'why' in user_input_lower or 'how did you' in user_input_lower or 'explain' in user_input_lower:
             st.session_state.conversation_history.append(f"User: {user_input}")
+            
+            # Log why question
+            if 'data_logger' in st.session_state and st.session_state.data_logger:
+                st.session_state.data_logger.log_why_question()
+            
             if st.session_state.awaiting_clarification:
                 explanation, belief_plot, confidence_plot = get_ds_explanation(ds_system, "clarification")
             else:
@@ -1055,21 +1094,83 @@ def main():
             )
             st.rerun()
 
+def collect_query_feedback(query_index, query_text, predicted_intent, is_correct):
+    """Collect per-query feedback after resolution"""
+    st.markdown("---")
+    st.markdown(f"### 📝 Quick Feedback - Query {query_index + 1}")
+    
+    # Show correctness indicator
+    if is_correct:
+        st.success(f"✅ Correct prediction: **{predicted_intent}**")
+    else:
+        st.warning(f"⚠️ Prediction needs review: **{predicted_intent}**")
+    
+    with st.form(f"feedback_query_{query_index}", clear_on_submit=False):
+        col1, col2 = st.columns(2)
+        
+        with col1:
+            clarity = st.select_slider(
+                "Was the assistant's response clear?",
+                options=[1, 2, 3, 4, 5],
+                value=3,
+                format_func=lambda x: "⭐" * x,
+                key=f"clarity_{query_index}",
+                help="1=Very unclear, 5=Very clear"
+            )
+        
+        with col2:
+            confidence_rating = st.select_slider(
+                "How confident are you in the result?",
+                options=[1, 2, 3, 4, 5],
+                value=3,
+                format_func=lambda x: "⭐" * x,
+                key=f"confidence_rating_{query_index}",
+                help="1=Not confident, 5=Very confident"
+            )
+        
+        # Optional comment
+        comment = st.text_input(
+            "Any concerns or comments? (optional)",
+            placeholder="e.g., 'Too many clarifications needed' or 'Response was perfect'",
+            key=f"comment_{query_index}"
+        )
+        
+        submitted = st.form_submit_button("✓ Submit Feedback & Continue →", type="primary", use_container_width=True)
+        
+        if submitted:
+            # Save feedback to the most recent result
+            if 'session_results' in st.session_state and st.session_state.session_results:
+                # Update the last result with feedback
+                st.session_state.session_results[-1]['feedback_clarity'] = clarity
+                st.session_state.session_results[-1]['feedback_confidence'] = confidence_rating
+                st.session_state.session_results[-1]['feedback_comment'] = comment
+                st.session_state.session_results[-1]['feedback_submitted'] = True
+                
+                # Log to data logger
+                if 'data_logger' in st.session_state and st.session_state.data_logger:
+                    st.session_state.data_logger.log_query_result(st.session_state.session_results[-1])
+            
+            st.success("✓ Feedback saved! Loading next query...")
+            return True
+    
+    return False
+
 def save_query_result(query_row, ds_system):
     """Save the completed query interaction to session results"""
     try:
-        # Extract final prediction from conversation
-        final_prediction = "unknown"
-        confidence = 0.0
-        # Look for prediction in conversation history
-        for msg in st.session_state.conversation_history:
-            if msg.startswith("Assistant:") and "I understand!" in msg:
-                # Extract prediction from "I understand! You want help with: **intent** (Confidence: 0.xxx)"
-                match = re.search(r'\*\*(.*?)\*\*\s*\(Confidence:\s*([0-9.]+)\)', msg)
-                if match:
-                    final_prediction = match.group(1)
-                    confidence = float(match.group(2))
-                break
+        # Extract final prediction from conversation or session state
+        final_prediction = st.session_state.get('last_prediction', 'unknown')
+        confidence = st.session_state.get('last_confidence', 0.0)
+        
+        # Fallback: try to extract from conversation if not in session state
+        if final_prediction == 'unknown':
+            for msg in st.session_state.conversation_history:
+                if msg.startswith("Assistant:"):
+                    # Try to extract intent from **intent** format (works with or without confidence)
+                    match = re.search(r'\*\*(.*?)\*\*', msg)
+                    if match:
+                        final_prediction = match.group(1)
+                        break
 
         # Count clarification turns (user messages - 1 for initial query)
         clarification_turns = len([msg for msg in st.session_state.conversation_history if msg.startswith("User:")]) - 1
@@ -1080,6 +1181,9 @@ def save_query_result(query_row, ds_system):
         end_time = datetime.datetime.now()
         interaction_time = (end_time - st.session_state.query_start_time).total_seconds() if st.session_state.query_start_time else 0
         
+        # Check correctness
+        is_correct = final_prediction == query_row['true_intent']
+        
         # Create result record
         result = {
             'session_id': st.session_state.session_id,
@@ -1089,17 +1193,45 @@ def save_query_result(query_row, ds_system):
             'predicted_intent': final_prediction,
             'confidence': confidence,
             'num_clarification_turns': clarification_turns,
-            'is_correct': final_prediction == query_row['true_intent'],
+            'is_correct': is_correct,
             'interaction_time_seconds': interaction_time,
             'conversation_transcript': '\n'.join(st.session_state.conversation_history),
             'timestamp': end_time.isoformat(),
             'llm_predicted_intent': query_row.get('predicted_intent', ''),
             'llm_num_interactions': query_row.get('num_interactions', 0),
             'llm_confidence': query_row.get('confidence', 0.0),
-            'llm_was_correct': query_row.get('is_correct', False)
+            'llm_was_correct': query_row.get('is_correct', False),
+            # Feedback fields will be added after feedback collection
+            'feedback_clarity': None,
+            'feedback_confidence': None,
+            'feedback_comment': '',
+            'feedback_submitted': False
         }
         
         st.session_state.session_results.append(result)
+        
+        # Collect feedback before moving to next query
+        feedback_submitted = collect_query_feedback(
+            st.session_state.current_query_index,
+            query_row['query'],
+            final_prediction,
+            is_correct
+        )
+        
+        if feedback_submitted:
+            # Move to next query
+            st.session_state.current_query_index += 1
+            # Reset conversation state
+            st.session_state.conversation_started = False
+            st.session_state.conversation_history = []
+            st.session_state.awaiting_clarification = False
+            st.session_state.query_resolved = False
+            st.session_state.current_mass = None
+            st.session_state.query_start_time = None
+            st.session_state.feedback_form_shown = False
+            st.session_state.last_belief_plot = None
+            st.session_state.last_confidence_plot = None
+            st.rerun()
         
     except Exception as e:
         st.error(f"Error saving query result: {str(e)}")

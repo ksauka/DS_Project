@@ -1,0 +1,7 @@
+# System dependencies for DS_Project Hugging Face Spaces
+
+# None required - all Python dependencies in requirements.txt
+# Uncomment below if you need system packages:
+
+# graphviz
+# build-essential

@@ -14,6 +14,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 from src.models.classifier import IntentClassifier
 from src.models.embeddings import SentenceEmbedder
 from src.utils.file_io import save_csv, save_json, ensure_dir
+from src.data.data_loader import DataLoader
 
 logging.basicConfig(
     level=logging.INFO,
@@ -70,19 +71,18 @@ def train_vanilla_baseline(dataset_name='banking77', model_path=None, batch_size
         intent_names: List of intent names
     """
     logger.info(f"Loading {dataset_name} dataset...")
-    dataset = load_dataset(dataset_name)
-    train_data = dataset["train"]
+    data_loader = DataLoader(dataset_name)
+    data_loader.load()
+    train_texts, train_labels, _ = data_loader.get_split_data('train')
     
     logger.info("Initializing Sentence-BERT embedder...")
     embedder = SentenceEmbedder()
     
     logger.info("Encoding training texts...")
-    train_texts = [ex["text"] for ex in train_data]
     train_embeddings = embedder.get_embeddings_batch(train_texts, batch_size=batch_size, show_progress=True)
     
-    # Get intent labels as STRINGS (matching old notebook exactly)
-    intent_names = dataset["train"].features["label"].names
-    train_labels = [intent_names[ex["label"]] for ex in train_data]
+    # Get intent labels as STRINGS
+    intent_names = data_loader.intent_names
     
     logger.info(f"Training Logistic Regression on {len(train_labels)} samples with STRING labels...")
     logger.info(f"Number of intents: {len(set(train_labels))}")
@@ -94,7 +94,7 @@ def train_vanilla_baseline(dataset_name='banking77', model_path=None, batch_size
     
     # Save model
     if model_path is None:
-        model_path = f"experiments/{dataset_name}/banking77_logistic_model.pkl"
+        model_path = f"experiments/{dataset_name}/{dataset_name}_logistic_model.pkl"
     
     model_path = Path(model_path)
     model_path.parent.mkdir(parents=True, exist_ok=True)
@@ -113,8 +113,9 @@ def load_vanilla_baseline(model_path, dataset_name='banking77'):
     classifier = IntentClassifier.from_pretrained(model_path)
     
     # Load intent names from dataset
-    dataset = load_dataset(dataset_name)
-    intent_names = dataset["train"].features["label"].names
+    data_loader = DataLoader(dataset_name)
+    data_loader.load()
+    intent_names = data_loader.intent_names
     
     return classifier, embedder, intent_names
 
@@ -143,17 +144,15 @@ def evaluate_vanilla_baseline(
         Dictionary with metrics
     """
     logger.info(f"Loading {dataset_name} dataset...")
-    dataset = load_dataset(dataset_name)
-    test_data = dataset["test"]
-    
+    data_loader = DataLoader(dataset_name)
+    data_loader.load()
+    test_texts, test_labels, _ = data_loader.get_split_data('test')
+
     if num_samples:
-        test_data = test_data.select(range(min(num_samples, len(test_data))))
-    
-    logger.info(f"Evaluating on {len(test_data)} test samples...")
-    
-    # Prepare test data
-    test_texts = [ex["text"] for ex in test_data]
-    test_labels = [intent_names[ex["label"]] for ex in test_data]
+        test_texts = test_texts[:num_samples]
+        test_labels = test_labels[:num_samples]
+
+    logger.info(f"Evaluating on {len(test_texts)} test samples...")
     
     # Encode test texts
     logger.info("Encoding test texts...")
@@ -206,7 +205,7 @@ def evaluate_vanilla_baseline(
     metrics = {
         'model': 'Vanilla Logistic Regression + BERT',
         'dataset': dataset_name,
-        'num_samples': len(test_data),
+        'num_samples': len(test_texts),
         'accuracy': float(accuracy),
         'f1_macro': float(f1_macro),
         'f1_weighted': float(f1_weighted),

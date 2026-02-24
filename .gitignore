@@ -3,6 +3,9 @@
 .env.local
 .env.*.local
 
+# Streamlit secrets - NEVER commit this file
+.streamlit/secrets.toml
+
 # Python
 __pycache__/
 *.py[cod]
@@ -96,7 +99,28 @@ temp/
 Thumbs.db
 .DS_Store
 
-# Coverage reports
+# Deployment temporary files
+/tmp/hf_deploy_ds/
+.huggingface/
+*.hf_space_backup
+
+# Documentation markdown files (ignore setup/deployment guides)
+GITHUB_LOGGING_QUICKSTART.md
+GITHUB_LOGGING_SETUP.md
+HUGGINGFACE_QUICKSTART.md
+QUALTRICS_INTEGRATION.md
+README_HUGGINGFACE.md
+docs/HUGGINGFACE_DEPLOYMENT.md
+*QUICKSTART*.md
+*SETUP*.md
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+*.temp
+*.bak
+*.backup
 htmlcov/
 .coverage
 .coverage.*

@@ -23,6 +23,7 @@ class DataLoader:
         self.dataset_name = dataset_name
         self.config = config or get_dataset_config(dataset_name)
         self.dataset = None
+        self.full_intent_names = []
         self.intent_names = []
         self.index_to_name = {}
         self.name_to_index = {}
@@ -72,28 +73,30 @@ class DataLoader:
 
         if hasattr(label_feature, 'names'):
             # ClassLabel feature
-            self.intent_names = label_feature.names
+            self.full_intent_names = list(label_feature.names)
         elif hasattr(label_feature, '_int2str'):
             # Some datasets use _int2str
-            self.intent_names = list(label_feature._int2str.values())
+            self.full_intent_names = list(label_feature._int2str.values())
         else:
             # Fallback: extract unique labels
             labels = train_data[self.config.label_field]
-            self.intent_names = sorted(list(set(labels)))
+            self.full_intent_names = sorted(list(set(labels)))
 
         # Filter out OOS if specified
         if self.config.has_oos and self.config.oos_label:
             self.intent_names = [
-                name for name in self.intent_names
+                name for name in self.full_intent_names
                 if name != self.config.oos_label
             ]
+        else:
+            self.intent_names = list(self.full_intent_names)
 
-        # Create mappings
+        # Create mappings based on full list to preserve raw label indices
         self.index_to_name = {
-            i: name for i, name in enumerate(self.intent_names)
+            i: name for i, name in enumerate(self.full_intent_names)
         }
         self.name_to_index = {
-            name: i for i, name in enumerate(self.intent_names)
+            name: i for i, name in self.index_to_name.items()
         }
 
     def get_split_data(

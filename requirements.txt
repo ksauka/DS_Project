@@ -18,6 +18,9 @@ datasets>=2.14.0
 # API and Environment
 openai>=1.0.0
 python-dotenv>=1.0.0
+PyGithub>=2.1.0  # For GitHub data logging
+dropbox>=11.36.0  # For model file storage and download
+requests>=2.31.0  # For HTTP requests
 
 # Utilities
 tqdm>=4.65.0

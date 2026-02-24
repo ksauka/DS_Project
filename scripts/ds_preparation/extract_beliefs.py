@@ -122,15 +122,24 @@ def extract_beliefs_from_data(
     test_data = []
     text_field = data_loader.config.text_field
     label_field = data_loader.config.label_field
+    label_feature = raw_dataset.features.get(label_field)
+    label_names = list(label_feature.names) if hasattr(label_feature, 'names') else None
     
     for i in range(len(raw_dataset)):
         example = raw_dataset[i]
         label = example[label_field]
         # Convert label to intent name if it's an integer
         if isinstance(label, int):
-            intent_name = data_loader.index_to_name.get(label, str(label))
+            if label_names:
+                intent_name = label_names[label]
+            else:
+                intent_name = data_loader.index_to_name.get(label, str(label))
         else:
             intent_name = label
+
+        if data_loader.config.has_oos and data_loader.config.oos_label:
+            if intent_name == data_loader.config.oos_label:
+                continue
         
         test_data.append({
             'text': example[text_field],

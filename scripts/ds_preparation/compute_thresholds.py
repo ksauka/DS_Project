@@ -92,18 +92,24 @@ def add_ancestor_labels(df: pd.DataFrame, hierarchy: Dict[str, list]) -> pd.Data
     all_intents = set(hierarchy.keys())
     for children in hierarchy.values():
         all_intents.update(children)
-    
-    # For each intent, create is_correct column
+
+    ancestors_map = {intent: get_ancestors(intent, hierarchy) for intent in all_intents}
+    true_intents = df['true_intent']
+
+    new_cols = {}
     for intent in all_intents:
         if intent not in df.columns:
             continue
-        
-        # Check if true_intent is intent or any of its descendants
-        df[f'is_correct_{intent}'] = df['true_intent'].apply(
-            lambda true_intent: int(intent in get_ancestors(true_intent, hierarchy))
+
+        # Check if true_intent is intent or any of its ancestors
+        new_cols[f'is_correct_{intent}'] = true_intents.map(
+            lambda true_intent: int(intent in ancestors_map.get(true_intent, set()))
         )
-    
-    return df
+
+    if not new_cols:
+        return df
+
+    return pd.concat([df, pd.DataFrame(new_cols, index=df.index)], axis=1)
 
 
 def compute_optimal_thresholds(

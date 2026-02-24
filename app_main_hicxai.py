@@ -9,8 +9,7 @@ import sys
 
 # Configure page - HicXAI style
 st.set_page_config(
-    page_title="Banking Assistant - DS Reasoning",
-    page_icon="🏦",
+    page_title="Customer Service Assistant",
     layout="wide",
     initial_sidebar_state="collapsed"
 )

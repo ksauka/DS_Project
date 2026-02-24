@@ -1,10 +1,8 @@
 """Query selector for identifying problematic samples for user study."""
 
 import logging
-from typing import List, Dict, Tuple
+from typing import Dict
 import pandas as pd
-import numpy as np
-from pathlib import Path
 
 logger = logging.getLogger(__name__)
 
@@ -16,99 +14,189 @@ class QuerySelector:
         self,
         min_interactions: int = 2,
         max_confidence: float = 0.7,
-        include_incorrect: bool = True
+        problematic_ratio: float = 0.5
     ):
         """Initialize query selector.
 
         Args:
             min_interactions: Minimum clarification turns to consider
             max_confidence: Maximum confidence for low-confidence queries
-            include_incorrect: Whether to include incorrectly classified queries
+            problematic_ratio: Fraction of samples allocated to problematic queries
         """
         self.min_interactions = min_interactions
         self.max_confidence = max_confidence
-        self.include_incorrect = include_incorrect
-
-    def analyze_results(
-        self,
-        results_df: pd.DataFrame
-    ) -> Dict[str, pd.DataFrame]:
-        """Analyze results and categorize problematic queries.
-
-        Args:
-            results_df: DataFrame with evaluation results containing:
-                - query, true_intent, predicted_intent, confidence, interaction
-
-        Returns:
-            Dictionary with categorized query DataFrames
+        self.problematic_ratio = min(max(problematic_ratio, 0.0), 1.0)
+    
+    def _preprocess(self, df: pd.DataFrame) -> pd.DataFrame:
+        """Add computed columns: num_interactions, is_correct.
+        
+        IMPORTANT: is_correct validates predictions against GROUND TRUTH labels,
+        not confidence scores. Model can be confidently wrong!
         """
+        df = df.copy()
+        
         # Count interactions
-        results_df['num_interactions'] = results_df['interaction'].apply(
-            lambda x: x.count('Chatbot:') if pd.notna(x) else 0
+        if 'interaction' in df.columns:
+            df['num_interactions'] = df['interaction'].apply(
+                lambda x: x.count('Chatbot:') if pd.notna(x) else 0
+            )
+        elif 'num_interactions' not in df.columns:
+            df['num_interactions'] = 0
+        
+        # Check correctness: Compare prediction to ground truth label
+        # NOTE: High confidence ≠ correct! We validate against true_intent.
+        df['is_correct'] = df['true_intent'] == df['predicted_intent']
+        
+        return df
+
+
+
+    def select_by_interaction_levels(
+        self,
+        results_df: pd.DataFrame,
+        max_samples: int
+    ) -> pd.DataFrame:
+        """Select queries by success and interaction level.
+        
+        Categories are based on GROUND TRUTH CORRECTNESS (not confidence):
+        - successful_level1: CORRECT predictions (true_intent == predicted_intent) with exactly 2 turns
+        - successful_level2: CORRECT predictions with >2 turns
+        - problematic_level1: INCORRECT predictions with exactly 2 turns  
+        - problematic_level2: INCORRECT predictions with >2 turns
+        
+        NOTE: Model can have high confidence but be wrong! We validate against
+        dataset labels to identify actual successes vs failures.
+        """
+        df = self._preprocess(results_df)
+        
+        # Filter high-interaction only
+        df = df[df['num_interactions'] >= self.min_interactions].copy()
+        logger.info(f"Filtered to {len(df)} high-interaction queries")
+        
+        # Split by level and correctness
+        categories = {
+            'successful_level1': df[(df['is_correct']) & (df['num_interactions'] == 2)],
+            'successful_level2': df[(df['is_correct']) & (df['num_interactions'] > 2)],
+            'problematic_level1': df[(~df['is_correct']) & (df['num_interactions'] == 2)],
+            'problematic_level2': df[(~df['is_correct']) & (df['num_interactions'] > 2)]
+        }
+        
+        # Remove empty categories
+        categories = {k: v for k, v in categories.items() if len(v) > 0}
+        
+        if not categories:
+            logger.warning("No queries found!")
+            return pd.DataFrame()
+        
+        # Log availability
+        for cat, cat_df in categories.items():
+            logger.info(f"{cat}: {len(cat_df)} available")
+        
+        # Balanced sampling
+        per_cat = max_samples // len(categories)
+        remainder = max_samples % len(categories)
+        
+        selected = []
+        for idx, (cat, cat_df) in enumerate(categories.items()):
+            n = per_cat + (1 if idx < remainder else 0)
+            n = min(n, len(cat_df))
+            sample = cat_df.sample(n=n, random_state=42).copy()
+            sample['selection_category'] = cat
+            selected.append(sample)
+            logger.info(f"{cat}: selected {n}")
+        
+        result = pd.concat(selected, ignore_index=True) if selected else pd.DataFrame()
+        logger.info(f"Total: {len(result)} queries")
+        return result
+
+    def select_worst_queries(
+        self,
+        results_df: pd.DataFrame,
+        max_samples: int
+    ) -> pd.DataFrame:
+        """Select most problematic queries."""
+        df = self._preprocess(results_df)
+        
+        # Prioritize: high interaction + incorrect + low confidence
+        problematic = df[
+            (df['num_interactions'] >= self.min_interactions) &
+            (~df['is_correct'])
+        ]
+        
+        if len(problematic) == 0:
+            # Fallback to incorrect only
+            problematic = df[~df['is_correct']]
+        
+        if len(problematic) == 0:
+            # Fallback to low confidence
+            problematic = df[df['confidence'] <= self.max_confidence]
+        
+        # Sort by interactions (desc) then confidence (asc)
+        problematic = problematic.sort_values(
+            by=['num_interactions', 'confidence'],
+            ascending=[False, True]
         )
+        
+        selected = problematic.head(max_samples).copy()
+        selected['selection_category'] = 'worst'
+        logger.info(f"Selected {len(selected)} worst queries")
+        return selected
 
-        # Check correctness
-        results_df['is_correct'] = (
-            results_df['true_intent'] == results_df['predicted_intent']
+    def select_high_interaction(
+        self,
+        results_df: pd.DataFrame,
+        max_samples: int
+    ) -> pd.DataFrame:
+        """Mix of problematic and successful high-interaction queries."""
+        df = self._preprocess(results_df)
+        
+        # Filter high-interaction
+        df = df[df['num_interactions'] >= self.min_interactions]
+        
+        problematic = df[~df['is_correct']].sort_values(
+            by=['num_interactions', 'confidence'],
+            ascending=[False, True]
         )
-
-        categorized = {}
-
-        # Category 1: High interaction count (many clarifications)
-        high_interaction = results_df[
-            results_df['num_interactions'] >= self.min_interactions
-        ].copy()
-        categorized['high_interaction'] = high_interaction
-        logger.info(
-            f"Found {len(high_interaction)} queries with "
-            f">= {self.min_interactions} interactions"
+        successful = df[df['is_correct']].sort_values(
+            by=['num_interactions', 'confidence'],
+            ascending=[False, False]
         )
-
-        # Category 2: Low confidence predictions
-        low_confidence = results_df[
-            results_df['confidence'] <= self.max_confidence
-        ].copy()
-        categorized['low_confidence'] = low_confidence
-        logger.info(
-            f"Found {len(low_confidence)} queries with "
-            f"confidence <= {self.max_confidence}"
+        
+        # Allocate samples
+        n_prob = int(round(max_samples * self.problematic_ratio))
+        n_succ = max_samples - n_prob
+        
+        prob_sample = problematic.head(n_prob).copy()
+        succ_sample = successful.head(n_succ).copy()
+        
+        # Handle shortfalls
+        if len(prob_sample) < n_prob and len(successful) > n_succ:
+            extra = successful.iloc[n_succ:n_succ + (n_prob - len(prob_sample))]
+            succ_sample = pd.concat([succ_sample, extra], ignore_index=True)
+        
+        if len(succ_sample) < n_succ and len(problematic) > n_prob:
+            extra = problematic.iloc[n_prob:n_prob + (n_succ - len(succ_sample))]
+            prob_sample = pd.concat([prob_sample, extra], ignore_index=True)
+        
+        # Label and combine
+        if len(prob_sample) > 0:
+            prob_sample['selection_category'] = 'problematic'
+        if len(succ_sample) > 0:
+            succ_sample['selection_category'] = 'successful'
+        
+        selected = pd.concat(
+            [df for df in [prob_sample, succ_sample] if len(df) > 0],
+            ignore_index=True
         )
-
-        # Category 3: Incorrect predictions
-        if self.include_incorrect:
-            incorrect = results_df[~results_df['is_correct']].copy()
-            categorized['incorrect'] = incorrect
-            logger.info(f"Found {len(incorrect)} incorrect predictions")
-
-        # Category 4: High interaction AND incorrect
-        problematic = results_df[
-            (results_df['num_interactions'] >= self.min_interactions) &
-            (~results_df['is_correct'])
-        ].copy()
-        categorized['problematic'] = problematic
-        logger.info(
-            f"Found {len(problematic)} queries that are both "
-            f"high-interaction and incorrect"
-        )
-
-        # Category 5: Low confidence AND incorrect
-        uncertain = results_df[
-            (results_df['confidence'] <= self.max_confidence) &
-            (~results_df['is_correct'])
-        ].copy()
-        categorized['uncertain'] = uncertain
-        logger.info(
-            f"Found {len(uncertain)} queries that are both "
-            f"low-confidence and incorrect"
-        )
-
-        return categorized
+        
+        logger.info(f"Selected {len(selected)} high-interaction queries")
+        return selected
 
     def select_for_user_study(
         self,
         results_df: pd.DataFrame,
         max_samples: int = 100,
-        strategy: str = 'balanced'
+        strategy: str = 'interaction_levels'
     ) -> pd.DataFrame:
         """Select specific queries for user study.
 
@@ -116,156 +204,48 @@ class QuerySelector:
             results_df: DataFrame with evaluation results
             max_samples: Maximum number of queries to select
             strategy: Selection strategy:
-                - 'balanced': Mix of all categories
+                - 'interaction_levels': Split by success and level (default)
                 - 'worst': Most problematic queries
-                - 'high_interaction': Focus on multi-turn dialogues
+                - 'high_interaction': Mix of problematic and successful
 
         Returns:
             DataFrame with selected queries
         """
-        categorized = self.analyze_results(results_df)
-
-        if strategy == 'balanced':
-            selected = self._balanced_selection(categorized, max_samples)
+        if strategy == 'interaction_levels':
+            selected = self.select_by_interaction_levels(results_df, max_samples)
         elif strategy == 'worst':
-            selected = self._worst_queries(categorized, max_samples)
+            selected = self.select_worst_queries(results_df, max_samples)
         elif strategy == 'high_interaction':
-            selected = self._high_interaction_focus(categorized, max_samples)
+            selected = self.select_high_interaction(results_df, max_samples)
         else:
-            raise ValueError(f"Unknown strategy: {strategy}")
+            raise ValueError(
+                f"Unknown strategy '{strategy}'. "
+                f"Valid options: 'interaction_levels', 'worst', 'high_interaction'"
+            )
 
-        logger.info(f"Selected {len(selected)} queries for user study")
+        logger.info(f"Selected {len(selected)} queries using '{strategy}' strategy")
         return selected
 
-    def _balanced_selection(
-        self,
-        categorized: Dict[str, pd.DataFrame],
-        max_samples: int
-    ) -> pd.DataFrame:
-        """Select balanced mix from all categories."""
-        samples_per_category = max_samples // len(categorized)
-        selected_dfs = []
+    def generate_study_summary(self, selected_df: pd.DataFrame) -> Dict:
+        """Generate summary statistics."""
+        if selected_df.empty:
+            return {
+                'total_selected': 0,
+                'avg_interactions': 0.0,
+                'avg_confidence': 0.0,
+                'accuracy': 0.0,
+                'categories': {}
+            }
 
-        for category, df in categorized.items():
-            if len(df) > 0:
-                n_samples = min(samples_per_category, len(df))
-                sample = df.sample(n=n_samples, random_state=42)
-                sample['selection_category'] = category
-                selected_dfs.append(sample)
-
-        selected = pd.concat(selected_dfs, ignore_index=True)
-        
-        # Remove duplicates, keeping first occurrence
-        selected = selected.drop_duplicates(subset=['query'], keep='first')
-        
-        return selected.head(max_samples)
-
-    def _worst_queries(
-        self,
-        categorized: Dict[str, pd.DataFrame],
-        max_samples: int
-    ) -> pd.DataFrame:
-        """Select most problematic queries."""
-        # Prioritize: incorrect + high interaction + low confidence
-        if 'problematic' in categorized and len(categorized['problematic']) > 0:
-            df = categorized['problematic'].copy()
-        elif 'uncertain' in categorized and len(categorized['uncertain']) > 0:
-            df = categorized['uncertain'].copy()
-        else:
-            df = categorized['incorrect'].copy()
-
-        # Sort by: interaction count (desc), confidence (asc)
-        df = df.sort_values(
-            by=['num_interactions', 'confidence'],
-            ascending=[False, True]
-        )
-        
-        selected = df.head(max_samples).copy()
-        selected['selection_category'] = 'worst'
-        return selected
-
-    def _high_interaction_focus(
-        self,
-        categorized: Dict[str, pd.DataFrame],
-        max_samples: int
-    ) -> pd.DataFrame:
-        """Focus on queries with most interactions."""
-        df = categorized['high_interaction'].copy()
-        
-        # Sort by interaction count
-        df = df.sort_values(by='num_interactions', ascending=False)
-        
-        selected = df.head(max_samples).copy()
-        selected['selection_category'] = 'high_interaction'
-        return selected
-
-    def generate_study_summary(
-        self,
-        selected_df: pd.DataFrame
-    ) -> Dict:
-        """Generate summary statistics for selected queries.
-
-        Args:
-            selected_df: Selected queries DataFrame
-
-        Returns:
-            Dictionary with summary statistics
-        """
-        summary = {
+        return {
             'total_selected': len(selected_df),
-            'avg_interactions': selected_df['num_interactions'].mean(),
-            'avg_confidence': selected_df['confidence'].mean(),
-            'accuracy': selected_df['is_correct'].mean(),
-            'categories': selected_df['selection_category'].value_counts().to_dict()
+            'avg_interactions': float(selected_df['num_interactions'].mean()),
+            'avg_confidence': float(selected_df['confidence'].mean()),
+            'accuracy': float(selected_df['is_correct'].mean()),
+            'categories': selected_df['selection_category'].value_counts().to_dict(),
+            'intent_distribution': (
+                selected_df['true_intent'].value_counts().head(10).to_dict()
+                if 'true_intent' in selected_df.columns else {}
+            )
         }
 
-        # Intent distribution
-        summary['intent_distribution'] = (
-            selected_df['true_intent'].value_counts().head(10).to_dict()
-        )
-
-        return summary
-
-    def export_for_user_study(
-        self,
-        selected_df: pd.DataFrame,
-        output_path: Path,
-        include_llm_interaction: bool = False
-    ):
-        """Export selected queries in format suitable for user study.
-
-        Args:
-            selected_df: Selected queries DataFrame
-            output_path: Path to save export file
-            include_llm_interaction: Whether to include LLM conversation history
-        """
-        # Prepare export data
-        export_columns = [
-            'query',
-            'true_intent',
-            'predicted_intent',
-            'confidence',
-            'num_interactions',
-            'is_correct',
-            'selection_category'
-        ]
-
-        if include_llm_interaction:
-            export_columns.append('interaction')
-
-        export_df = selected_df[export_columns].copy()
-        
-        # Add study fields
-        export_df['user_id'] = ''
-        export_df['user_response_1'] = ''
-        export_df['user_response_2'] = ''
-        export_df['user_response_3'] = ''
-        export_df['final_prediction'] = ''
-        export_df['human_interaction_count'] = ''
-        export_df['notes'] = ''
-
-        # Save
-        output_path.parent.mkdir(parents=True, exist_ok=True)
-        export_df.to_csv(output_path, index=False)
-        
-        logger.info(f"Exported {len(export_df)} queries to {output_path}")

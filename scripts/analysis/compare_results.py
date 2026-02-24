@@ -312,11 +312,12 @@ def generate_summary_report(results: dict, comparison_df: pd.DataFrame, output_d
     report_lines.append("="*70)
     
     # Calculate improvements if possible
-    if 'vanilla' in results and 'ds_with_thresh' in results:
+    if results.get('vanilla') and results.get('ds_with_thresh'):
         vanilla_acc = results['vanilla'].get('accuracy', 0)
         ds_acc = results['ds_with_thresh'].get('accuracy', 0)
-        improvement = (ds_acc - vanilla_acc) / vanilla_acc * 100 if vanilla_acc > 0 else 0
-        report_lines.append(f"DS Improvement over Vanilla: {improvement:+.2f}%")
+        if vanilla_acc > 0:
+            improvement = (ds_acc - vanilla_acc) / vanilla_acc * 100
+            report_lines.append(f"DS Improvement over Vanilla: {improvement:+.2f}%")
     
     if 'llm_simulation' in results:
         l = results['llm_simulation']

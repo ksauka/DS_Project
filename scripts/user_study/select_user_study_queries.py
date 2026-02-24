@@ -44,7 +44,12 @@ def parse_args():
         '--strategy',
         type=str,
         default='balanced',
-        choices=['balanced', 'worst', 'high_interaction'],
+        choices=[
+            'balanced',
+            'worst',
+            'high_interaction',
+            'high_interaction_quadrant_balanced'
+        ],
         help='Selection strategy'
     )
     parser.add_argument(
@@ -58,6 +63,22 @@ def parse_args():
         type=float,
         default=0.7,
         help='Maximum confidence for low-confidence category'
+    )
+    parser.add_argument(
+        '--problematic-ratio',
+        type=float,
+        default=0.5,
+        help='For high_interaction strategy: fraction reserved for high_interaction_problematic'
+    )
+    parser.add_argument(
+        '--entropy-threshold',
+        type=float,
+        help='Optional fixed threshold for high entropy H (else median-based)'
+    )
+    parser.add_argument(
+        '--conflict-threshold',
+        type=float,
+        help='Optional fixed threshold for high conflict K (else median-based)'
     )
     parser.add_argument(
         '--include-llm-history',
@@ -78,7 +99,10 @@ def main():
     selector = QuerySelector(
         min_interactions=args.min_interactions,
         max_confidence=args.max_confidence,
-        include_incorrect=True
+        include_incorrect=True,
+        high_interaction_problematic_ratio=args.problematic_ratio,
+        entropy_threshold=args.entropy_threshold,
+        conflict_threshold=args.conflict_threshold
     )
 
     # Analyze and categorize
