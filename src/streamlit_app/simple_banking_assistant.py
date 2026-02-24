@@ -332,8 +332,28 @@ def initialize_ds_system():
         embedder = SentenceEmbedder(model_name='intfloat/e5-base')
         intent_embeddings = IntentEmbeddings(hierarchical_intents, embedder=embedder)
         
-        # Load trained classifier - same path as LLM simulation
+        # Load trained classifier - download from Dropbox if needed
         classifier_path = 'experiments/banking77/banking77_logistic_model.pkl'
+        
+        # Download model from Dropbox if not available locally
+        if not os.path.exists(classifier_path):
+            st.info("Downloading model from Dropbox...")
+            try:
+                from src.utils.dropbox_saver import download_model_from_dropbox
+                downloaded_path = download_model_from_dropbox(
+                    model_name='banking77_logistic_model.pkl',
+                    local_dir='experiments/banking77'
+                )
+                if downloaded_path:
+                    st.success("Model downloaded successfully!")
+                    classifier_path = downloaded_path
+                else:
+                    st.error("Failed to download model from Dropbox")
+                    st.stop()
+            except Exception as e:
+                st.error(f"Dropbox download failed: {e}")
+                st.stop()
+        
         classifier = IntentClassifier.from_pretrained(classifier_path)
         
         # Load optimal thresholds computed in STEP 2
