@@ -1034,10 +1034,8 @@ def main():
         true_intent = current_query.get('true_intent', '')
         is_correct = (predicted_intent == true_intent)
         
-        if is_correct:
-            st.success(f"✅ System predicted: **{predicted_intent}** — Please validate below")
-        else:
-            st.warning(f"⚠️ System predicted: **{predicted_intent}** (Expected: {true_intent}) — Please validate below")
+        st.success(f"✅ System prediction complete: **{predicted_intent}**")
+        st.info("👇 Scroll down to validate and provide feedback")
         
         # Trigger save_query_result which will show feedback form
         if not st.session_state.get('feedback_form_shown', False):
@@ -1047,9 +1045,9 @@ def main():
     elif st.session_state.awaiting_clarification:
         st.info("Please provide more information or type 'why' to understand my question.")
     
-    # Chat input - only for clarifications and explanations (not for advancing queries)
+    # Chat input - for clarifications, explanations, and "why" questions
     if st.session_state.query_resolved:
-        placeholder = "Type 'why' to see reasoning, then use feedback form below to continue..."
+        placeholder = "Type 'why' to see my reasoning, then submit feedback below..."
     else:
         placeholder = "Type your response or ask 'why?'"
     
@@ -1058,26 +1056,8 @@ def main():
     if user_input:
         user_input_lower = user_input.lower().strip()
         
-        # When resolved, only allow "why" explanations (feedback form handles advancing)
-        if st.session_state.query_resolved:
-            if 'why' in user_input_lower or 'how did you' in user_input_lower or 'explain' in user_input_lower:
-                st.session_state.conversation_history.append(f"User: {user_input}")
-                explanation, belief_plot, confidence_plot = get_ds_explanation(ds_system, "decision")
-                explanation = _humanize_response(
-                    explanation,
-                    response_type="explanation",
-                    context={"explanation_type": "decision"}
-                )
-                st.session_state.conversation_history.append(f"Assistant: {explanation}")
-                st.session_state.last_belief_plot = belief_plot
-                st.session_state.last_confidence_plot = confidence_plot
-                st.rerun()
-            else:
-                st.info("⚠️ Please validate the prediction using the feedback form below, or type 'why' to see reasoning.")
-            return
-        
-        # Handle "why" questions
-        elif 'why' in user_input_lower or 'how did you' in user_input_lower or 'explain' in user_input_lower:
+        # Handle "why" questions (allowed during clarification AND after resolution)
+        if 'why' in user_input_lower or 'how did you' in user_input_lower or 'explain' in user_input_lower:
             st.session_state.conversation_history.append(f"User: {user_input}")
             
             # Log why question
@@ -1098,7 +1078,12 @@ def main():
             st.session_state.last_confidence_plot = confidence_plot
             st.rerun()
         
-        # Handle clarification response
+        # When resolved, only "why" is allowed (feedback form handles advancing)
+        elif st.session_state.query_resolved:
+            st.info("⚠️ Query is resolved. Type 'why' to see reasoning, then use the feedback form below to continue.")
+            st.rerun()
+        
+        # Handle clarification response (during active clarification)
         elif st.session_state.awaiting_clarification:
             st.session_state.conversation_history.append(f"User: {user_input}")
             ds_system.user_response = user_input
@@ -1110,22 +1095,6 @@ def main():
             st.session_state.awaiting_clarification = needs_clarification
             st.session_state.query_resolved = not needs_clarification
             st.session_state.current_mass = mass
-            st.rerun()
-        
-        # Query already resolved
-        elif st.session_state.query_resolved:
-            st.session_state.conversation_history.append(f"User: {user_input}")
-            st.session_state.conversation_history.append(
-                "Assistant: I've already resolved this query. Type 'next' to continue or 'why' to see my reasoning."
-            )
-            st.rerun()
-        
-        # Shouldn't reach here, but handle gracefully
-        else:
-            st.session_state.conversation_history.append(f"User: {user_input}")
-            st.session_state.conversation_history.append(
-                "Assistant: I'm processing your request..."
-            )
             st.rerun()
 
 def collect_query_feedback(query_index, query_text, predicted_intent, is_correct):
@@ -1139,6 +1108,34 @@ def collect_query_feedback(query_index, query_text, predicted_intent, is_correct
     
     st.markdown(f"**Your query was:** \"{query_text}\"")
     st.markdown("") 
+    
+    # Add "Why" explanation button BEFORE the form
+    with st.expander("🤔 Want to understand the system's reasoning? Click here", expanded=False):
+        st.markdown("#### System Reasoning")
+        
+        # Get DS system from session state
+        if 'ds_system' in st.session_state:
+            ds_system = st.session_state.ds_system
+            
+            # Generate explanation
+            explanation, belief_plot, confidence_plot = get_ds_explanation(ds_system, "decision")
+            
+            st.markdown(explanation)
+            
+            # Show visualizations
+            col1, col2 = st.columns(2)
+            with col1:
+                if belief_plot:
+                    st.markdown("**Belief Distribution**")
+                    st.image(belief_plot, width=400)
+            with col2:
+                if confidence_plot:
+                    st.markdown("**Confidence Analysis**")
+                    st.image(confidence_plot, width=400)
+        else:
+            st.info("Explanation not available - system state not found")
+    
+    st.markdown("---")
     
     with st.form(f"feedback_query_{query_index}", clear_on_submit=False):
         # H7 Testing: User validates their actual intent
