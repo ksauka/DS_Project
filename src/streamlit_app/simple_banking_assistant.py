@@ -518,7 +518,10 @@ def process_query(query_text, ds_system, is_initial=True, previous_mass=None):
             # Need clarification - use DS system's built-in clarification generator
             # This uses the EXACT same logic as the LLM simulation in STEP 3
             clarification = ds_system.generate_clarification_question(combined_mass)
-            clarification += " (You are free to type what you mean exactly if these examples do not resonate with your intent.)"
+            # Add helpful guidance for user
+            if not clarification.endswith("?"):
+                clarification += "?"
+            clarification += " Or feel free to describe what you need in your own words."
             options_text = _extract_options_from_clarification(clarification)
             clarification = _humanize_response(
                 clarification,
