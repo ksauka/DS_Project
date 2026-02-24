@@ -447,12 +447,12 @@ def show_header():
             Please respond as a real user would — naturally and honestly, without trying to help or mislead the system.
         </p>
         <p style="margin: 8px 0 0 0; opacity: 0.9; font-size: 1em; line-height: 1.4;">
-            <strong>After each Customer query interaction:</strong>
+            <strong>For each query:</strong>
         </p>
         <ul style="margin: 5px 0 0 20px; opacity: 0.9; font-size: 0.95em; line-height: 1.6; text-align: left; display: inline-block;">
-            <li>I will state what I believe your intent is, or</li>
-            <li>ask you to select the option that best matches what you wanted, if this is not the last customer query</li>
-            <li>proceed to the next query: Note there are (n) queries.</li>
+            <li>I may ask clarifying questions to better understand your needs</li>
+            <li>Once resolved, you'll validate which option best matches your intent</li>
+            <li>Then we'll proceed to the next query</li>
         </ul>
     </div>
     """, unsafe_allow_html=True)
@@ -506,7 +506,8 @@ def process_query(query_text, ds_system, is_initial=True, previous_mass=None):
             pred_intent, confidence = confident_leaf_nodes[0]
             st.session_state.last_prediction = pred_intent
             st.session_state.last_confidence = confidence
-            response = f"I understand! You want help with: **{pred_intent}**"
+            # Return simple acknowledgment
+            response = f"I believe you need help with **{pred_intent}**."
             response = _humanize_response(
                 response,
                 response_type="prediction",
@@ -680,8 +681,8 @@ def main():
         st.session_state.session_id = str(uuid.uuid4())[:8]
     if 'query_start_time' not in st.session_state:
         st.session_state.query_start_time = None
-    if 'feedback_form_shown' not in st.session_state:
-        st.session_state.feedback_form_shown = False
+    if 'result_saved' not in st.session_state:
+        st.session_state.result_saved = False
     if 'feedback_submitted' not in st.session_state:
         st.session_state.feedback_submitted = False
     if 'last_prediction' not in st.session_state:
@@ -712,9 +713,10 @@ def main():
     # Show header
     show_header()
 
+    # LLM warning moved to sidebar only (don't distract participants)
     if st.session_state.humanize_responses and not _llm_configured():
         if not st.session_state.llm_warning_shown:
-            st.warning("LLM humanization is enabled, but OPENAI_API_KEY is not set. Falling back to template responses.")
+            # Only show in sidebar, not main interface
             st.session_state.llm_warning_shown = True
     
     # Check if completed all queries
@@ -972,17 +974,9 @@ def main():
     </div>
     """, unsafe_allow_html=True)
     
-    # Show compact result if resolved immediately (no clarification needed)
-    if st.session_state.query_resolved and len(st.session_state.conversation_history) <= 2:
-        # Simple immediate resolution - show compact view
-        for msg in st.session_state.conversation_history:
-            if msg.startswith("Assistant:"):
-                assistant_text = msg.replace("Assistant: ", "").strip()
-                st.markdown(
-                    f'<div class="bot-message">{format_bubble_text(assistant_text)}</div>',
-                    unsafe_allow_html=True
-                )
-    else:
+    # Show conversation only if there was interaction (clarification needed)
+    # For immediate predictions, skip conversation display - status message is enough
+    if len(st.session_state.conversation_history) > 2 or st.session_state.awaiting_clarification:
         # Show full conversation with chat bubbles
         st.markdown("<div class=\"interaction-container\">", unsafe_allow_html=True)
         for msg in st.session_state.conversation_history:
@@ -1029,7 +1023,7 @@ def main():
     # Chat interface at bottom
     st.markdown("---")
     
-    # Show status when resolved - feedback form will appear below via save_query_result
+    # Show status when resolved - feedback form will appear below
     if st.session_state.query_resolved:
         # Check if prediction is correct
         predicted_intent = st.session_state.get('last_prediction', 'unknown')
@@ -1039,11 +1033,35 @@ def main():
         st.success(f"System prediction complete: **{predicted_intent}**")
         st.info("Scroll down to validate and provide feedback")
         
-        # Trigger save_query_result which will show feedback form
-        if not st.session_state.get('feedback_form_shown', False):
-            st.session_state.feedback_form_shown = True
-            save_query_result(current_query, ds_system)
-            # Don't rerun here - let the feedback form render
+        # Save result to session_results ONCE when query first resolves
+        if not st.session_state.get('result_saved', False):
+            save_result_to_session(current_query, ds_system, predicted_intent, is_correct)
+            st.session_state.result_saved = True
+        
+        # Show feedback form on every render (until feedback is submitted)
+        if not st.session_state.get('feedback_submitted', False):
+            feedback_submitted = collect_query_feedback(
+                st.session_state.current_query_index,
+                current_query['query'],
+                predicted_intent,
+                is_correct
+            )
+            
+            if feedback_submitted:
+                # Move to next query
+                st.session_state.current_query_index += 1
+                # Reset conversation state
+                st.session_state.conversation_started = False
+                st.session_state.conversation_history = []
+                st.session_state.awaiting_clarification = False
+                st.session_state.query_resolved = False
+                st.session_state.current_mass = None
+                st.session_state.query_start_time = None
+                st.session_state.result_saved = False  # Reset for next query
+                st.session_state.feedback_submitted = False  # Reset for next query
+                st.session_state.last_belief_plot = None
+                st.session_state.last_confidence_plot = None
+                st.rerun()
     elif st.session_state.awaiting_clarification:
         st.info("Please provide more information or type 'why' to understand my question.")
     
@@ -1201,8 +1219,57 @@ def collect_query_feedback(query_index, query_text, predicted_intent, is_correct
     
     return False
 
+def save_result_to_session(query_row, ds_system, predicted_intent, is_correct):
+    """Save the completed query interaction to session results (called once per query)"""
+    try:
+        confidence = st.session_state.get('last_confidence', 0.0)
+        
+        # Count clarification turns (user messages - 1 for initial query)
+        clarification_turns = len([msg for msg in st.session_state.conversation_history if msg.startswith("User:")]) - 1
+        if clarification_turns < 0:
+            clarification_turns = 0
+        
+        # Calculate interaction time
+        end_time = datetime.datetime.now()
+        interaction_time = (end_time - st.session_state.query_start_time).total_seconds() if st.session_state.query_start_time else 0
+        
+        # Create result record
+        result = {
+            'session_id': st.session_state.session_id,
+            'query_index': st.session_state.current_query_index,
+            'query_text': query_row['query'],
+            'true_intent': query_row['true_intent'],
+            'predicted_intent': predicted_intent,
+            'confidence': confidence,
+            'num_clarification_turns': clarification_turns,
+            'is_correct': is_correct,
+            'interaction_time_seconds': interaction_time,
+            'conversation_transcript': '\n'.join(st.session_state.conversation_history),
+            'timestamp': end_time.isoformat(),
+            'llm_predicted_intent': query_row.get('predicted_intent', ''),
+            'llm_num_interactions': query_row.get('num_interactions', 0),
+            'llm_confidence': query_row.get('confidence', 0.0),
+            'llm_was_correct': query_row.get('is_correct', False),
+            # H7 Testing: User validation fields
+            'user_validated_intent': None,
+            'user_agrees_with_system': None,
+            'user_agrees_with_oracle': None,
+            # Feedback fields will be added after feedback collection
+            'feedback_clarity': None,
+            'feedback_confidence': None,
+            'feedback_comment': '',
+            'feedback_submitted': False
+        }
+        
+        st.session_state.session_results.append(result)
+        
+    except Exception as e:
+        st.error(f"Error saving query result: {str(e)}")
+
 def save_query_result(query_row, ds_system):
-    """Save the completed query interaction to session results"""
+    """DEPRECATED - kept for backward compatibility with skip button"""
+    # This function is now split into save_result_to_session() and collect_query_feedback()
+    # Only called by the "Skip to end" button in sidebar
     try:
         # Extract final prediction from conversation or session state
         final_prediction = st.session_state.get('last_prediction', 'unknown')
