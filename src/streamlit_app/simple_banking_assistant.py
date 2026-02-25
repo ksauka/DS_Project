@@ -571,18 +571,37 @@ def _get_tracker(ds_system):
     return BeliefTracker()
 
 def generate_belief_visualization(ds_system, title="Belief Progression"):
-    """Generate real-time belief visualization using BeliefVisualizer."""
+    """Generate real-time belief visualization for leaf intents only."""
     try:
         tracker = _get_tracker(ds_system)
-
         history = tracker.get_history()
         if not history:
             return None
 
+        # Extract leaf intents only (actual decision points)
+        all_intents = set()
+        for belief_dict, _ in history:
+            all_intents.update(belief_dict.keys())
+
+        hierarchy = ds_system.hierarchy if hasattr(ds_system, 'hierarchy') else {}
+        leaf_intents = []
+        
+        for intent in all_intents:
+            # Intent is a leaf if it's not a parent (has no children in hierarchy)
+            if intent not in hierarchy or not hierarchy[intent]:
+                leaf_intents.append(intent)
+        
+        # Filter history to show only top leaf intents
+        filtered_history = []
+        for belief_dict, label in history:
+            filtered_belief = {intent: belief_dict.get(intent, 0.0) 
+                             for intent in leaf_intents}
+            filtered_history.append((filtered_belief, label))
+
         with tempfile.NamedTemporaryFile(suffix=".png", delete=False) as tmp:
             BeliefVisualizer.plot_top_intents_progression(
-                belief_history=history,
-                top_k=5,
+                belief_history=filtered_history,
+                top_k=min(5, len(leaf_intents)),  # Show top 5 leaf intents
                 title=title,
                 save_path=tmp.name,
                 figsize=(10, 6)
@@ -628,49 +647,79 @@ def generate_confidence_explanation(ds_system):
 
 
 def generate_confidence_explanation_interactive(ds_system):
-    """Generate interactive confidence chart using Plotly."""
+    """Generate clustered bargraph showing leaf intents grouped by parent category."""
     try:
         tracker = _get_tracker(ds_system)
-
         history = tracker.get_history()
         if not history:
             return None
 
-        # Build grouped bar chart by turn for top intents + uncertainty
+        # Extract leaf intents only (actual decision points)
+        all_beliefs = [belief_dict for belief_dict, _ in history]
         all_intents = set()
-        for belief_dict, _ in history:
+        for belief_dict in all_beliefs:
             all_intents.update(belief_dict.keys())
 
-        # Include all intents (match static plot behavior)
-        top_intents = sorted(all_intents)
+        # Filter to leaf intents only (those that appear in final predictions)
+        leaf_intents = []
+        hierarchy = ds_system.hierarchy if hasattr(ds_system, 'hierarchy') else {}
+        
+        for intent in sorted(all_intents):
+            # Intent is a leaf if it's not a key in the hierarchy (has no children)
+            if intent not in hierarchy or not hierarchy[intent]:
+                leaf_intents.append(intent)
+        
+        # If no clear hierarchy, use top intents by max belief
+        if not leaf_intents:
+            max_beliefs = {}
+            for belief_dict in all_beliefs:
+                for intent, belief in belief_dict.items():
+                    max_beliefs[intent] = max(max_beliefs.get(intent, 0), belief)
+            leaf_intents = sorted(max_beliefs.keys(), 
+                                 key=lambda x: max_beliefs[x], 
+                                 reverse=True)[:10]
 
+        # Build clustered data: intent → parent category mapping
+        intent_to_parent = {}
+        for parent, children in hierarchy.items():
+            for child in children:
+                intent_to_parent[child] = parent
+
+        # Build records with parent grouping
         records = []
         for belief_dict, label in history:
-            for intent in top_intents:
+            for intent in leaf_intents:
+                parent = intent_to_parent.get(intent, "Other")
                 records.append({
                     "Intent": intent,
                     "Belief": belief_dict.get(intent, 0.0),
-                    "Turn": label
+                    "Turn": label,
+                    "Category": parent
                 })
 
         df = pd.DataFrame(records)
+        
+        # Create clustered bar chart: intents on x-axis, grouped by turn
         fig = px.bar(
             df,
             x="Intent",
             y="Belief",
             color="Turn",
             barmode="group",
-            title="Belief Progression and Uncertainty"
+            hover_data={"Category": True},
+            title="Belief Progression - Leaf Intents by Category"
         )
+        
         fig.update_layout(
             xaxis_title="Intent",
             yaxis_title="Belief Value",
             legend_title="Turn",
             height=500,
-            margin=dict(l=40, r=40, t=60, b=80)
+            margin=dict(l=40, r=40, t=80, b=120)
         )
-        fig.update_xaxes(tickangle=30)
+        fig.update_xaxes(tickangle=45)
         fig.update_yaxes(range=[0, 1])
+        
         return fig
     except Exception as e:
         st.error(f"Interactive visualization error: {str(e)}")
