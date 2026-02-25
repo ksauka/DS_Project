@@ -1130,7 +1130,7 @@ def main():
 def collect_query_feedback(query_index, query_text, predicted_intent, is_correct):
     """Collect per-query feedback after resolution - includes user intent validation"""
     st.markdown("---")
-    st.markdown(f"### Validate Your Intent - Query {query_index + 1}")
+    st.markdown(f"### Session Feedback - Query {query_index + 1}")
     
     # Get true intent from query data
     queries_df = load_study_queries()
