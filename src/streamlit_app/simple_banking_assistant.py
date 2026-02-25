@@ -8,25 +8,35 @@ This implements the correct flow:
 5. Repeat for all 91 queries
 """
 
-import streamlit as st
-import sys
-from pathlib import Path
-import os
-import json
-import pandas as pd
+# Standard library imports
 import datetime
-import uuid
 import html
+import json
+import os
 import re
+import sys
 import tempfile
-import matplotlib.pyplot as plt
-import seaborn as sns
-import numpy as np
+import uuid
 from io import BytesIO
-from typing import Dict, List, Tuple, Optional
+from pathlib import Path
+from typing import Dict, List, Optional, Tuple
+from urllib.parse import (
+    parse_qs,
+    parse_qsl,
+    unquote,
+    urlencode,
+    urlparse,
+    urlunparse,
+)
+
+# Third-party imports
+import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
 import plotly.express as px
+import seaborn as sns
+import streamlit as st
 from dotenv import load_dotenv
-from urllib.parse import urlparse, urlunparse, parse_qs, parse_qsl, urlencode, unquote
 
 # Add root path for imports
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
@@ -34,16 +44,17 @@ sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 # Load environment variables from .env (for local development)
 load_dotenv()
 
-from src.models.ds_mass_function import DSMassFunction
-from src.models.embeddings import SentenceEmbedder, IntentEmbeddings
-from src.models.classifier import IntentClassifier
-from src.utils.explainability import BeliefTracker, BeliefVisualizer
-from src.utils.data_logger import init_logger, save_session_to_github
+# Local application imports
 from config.hierarchy_loader import (
+    load_hierarchical_intents_from_json,
     load_hierarchy_from_json,
-    load_hierarchical_intents_from_json
 )
 from config.threshold_loader import load_thresholds_from_json
+from src.models.classifier import IntentClassifier
+from src.models.ds_mass_function import DSMassFunction
+from src.models.embeddings import IntentEmbeddings, SentenceEmbedder
+from src.utils.data_logger import init_logger, save_session_to_github
+from src.utils.explainability import BeliefTracker, BeliefVisualizer
 
 
 # ===== QUALTRICS/PROLIFIC INTEGRATION =====
@@ -79,11 +90,13 @@ def _build_final_return(done=True):
     if not decoded.startswith(("http://", "https://")):
         decoded = "https://" + decoded
     p = urlparse(decoded)
-    q = dict(parse_qsl(p.query, keep_blank_values=True))  # Use parse_qsl like anthrokit
+    # Use parse_qsl like anthrokit
+    q = dict(parse_qsl(p.query, keep_blank_values=True))
     
     # Append parameters if missing (for data linkage in Qualtrics)
     prolific_pid_ss = st.session_state.get("prolific_pid", "")
-    session_id_ss = st.session_state.get("session_id", "")  # KEY for data linkage
+    # KEY for data linkage
+    session_id_ss = st.session_state.get("session_id", "")
     
     if "PROLIFIC_PID" not in q and prolific_pid_ss:
         q["PROLIFIC_PID"] = prolific_pid_ss
@@ -92,7 +105,8 @@ def _build_final_return(done=True):
     if "cond" not in q and st.session_state.get("cond"):
         q["cond"] = st.session_state.cond
     if "session_id" not in q and session_id_ss:
-        q["session_id"] = session_id_ss  # Pass session_id back for data linkage
+        # Pass session_id back for data linkage
+        q["session_id"] = session_id_ss
     if "done" not in q:
         q["done"] = "1" if done else "0"
     
@@ -104,7 +118,11 @@ def back_to_survey(done_flag=True):
         return
     final = _build_final_return(done=done_flag)
     if not final:
-        st.warning("WARNING: Return link missing or invalid. Please close this window and return to the survey manually.")
+        msg = (
+            "WARNING: Return link missing or invalid. Please close this "
+            "window and return to the survey manually."
+        )
+        st.warning(msg)
         return
     st.session_state._returned = True
     # Immediate redirect using meta refresh
@@ -230,21 +248,23 @@ def _humanize_response(text: str, response_type: str, context: Optional[Dict[str
 
     if response_type == "clarification":
         system_prompt = (
-            "You rewrite clarification questions to sound natural and friendly. "
-            "Preserve intent labels exactly as given and keep the options list unchanged. "
-            "Do not add or remove options or change their wording."
+            "You rewrite clarification questions to sound natural and "
+            "friendly. Preserve intent labels exactly as given and keep "
+            "the options list unchanged. Do not add or remove options or "
+            "change their wording."
         )
     elif response_type == "prediction":
         system_prompt = (
             "You rewrite final predictions to sound warm and natural. "
-            "Preserve the intent label exactly as given. "
-            "Keep it short and friendly, like a helpful assistant confirming they understood."
+            "Preserve the intent label exactly as given. Keep it short "
+            "and friendly, like a helpful assistant confirming they "
+            "understood."
         )
     else:
         system_prompt = (
             "You rewrite explanations to sound natural and conversational. "
-            "Preserve all numbers, scores, labels, and list structure exactly. "
-            "Do not change any facts."
+            "Preserve all numbers, scores, labels, and list structure "
+            "exactly. Do not change any facts."
         )
 
     ctx_lines = []
@@ -278,7 +298,11 @@ def _humanize_response(text: str, response_type: str, context: Optional[Dict[str
             temperature=temperature,
             max_tokens=max_tokens
         )
-        content = completion.choices[0].message.content if completion and completion.choices else None
+        content = (
+            completion.choices[0].message.content
+            if completion and completion.choices
+            else None
+        )
         return content or text
     except Exception:
         return text
@@ -297,21 +321,34 @@ st.markdown("""
 .main { padding: 2rem 1rem; }
 .header-container {
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    padding: 20px; border-radius: 10px; margin-bottom: 30px;
-    color: white; text-align: center;
+    padding: 20px;
+    border-radius: 10px;
+    margin-bottom: 30px;
+    color: white;
+    text-align: center;
 }
 .query-card {
-    background: white; border: 1px solid #e1e8ed;
-    border-radius: 10px; padding: 15px; margin: 10px 0;
+    background: white;
+    border: 1px solid #e1e8ed;
+    border-radius: 10px;
+    padding: 15px;
+    margin: 10px 0;
     box-shadow: 0 2px 4px rgba(0,0,0,0.1);
 }
-.user-message { 
-    background: #007bff; color: white; padding: 12px 16px;
-    border-radius: 18px 18px 4px 18px; margin: 10px 0; text-align: right;
+.user-message {
+    background: #007bff;
+    color: white;
+    padding: 12px 16px;
+    border-radius: 18px 18px 4px 18px;
+    margin: 10px 0;
+    text-align: right;
 }
 .bot-message {
-    background: white; border: 1px solid #e1e8ed; padding: 12px 16px;
-    border-radius: 18px 18px 18px 4px; margin: 10px 0;
+    background: white;
+    border: 1px solid #e1e8ed;
+    padding: 12px 16px;
+    border-radius: 18px 18px 18px 4px;
+    margin: 10px 0;
     box-shadow: 0 1px 3px rgba(0,0,0,0.1);
 }
 </style>
