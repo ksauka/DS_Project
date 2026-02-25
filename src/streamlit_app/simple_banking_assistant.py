@@ -1043,9 +1043,6 @@ def main():
         true_intent = current_query.get('true_intent', '')
         is_correct = (predicted_intent == true_intent)
         
-        st.success(f"System prediction complete: **{predicted_intent}**")
-        st.info("Scroll down to validate and provide feedback")
-        
         # Save result to session_results ONCE when query first resolves
         if not st.session_state.get('result_saved', False):
             save_result_to_session(current_query, ds_system, predicted_intent, is_correct)
