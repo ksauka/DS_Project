@@ -1141,27 +1141,29 @@ def collect_query_feedback(query_index, query_text, predicted_intent, is_correct
     
     st.markdown(f"**Your query was:** \"{query_text}\"")
     st.markdown("")
-    st.info("TIP: If you asked 'why' earlier, you already saw the system's reasoning. Now validate which option best matches your intent.")
     
     with st.form(f"feedback_query_{query_index}", clear_on_submit=True):
-        # H7 Testing: User validates their actual intent
+        # H7 Testing: User validates their actual intent (unbiased)
         st.markdown("##### Which option best matches what you wanted?")
         
-        # Create options from system prediction and oracle label
+        # Create unbiased options without system labels
         options = []
         option_labels = []
         
-        # Add system's prediction
-        if predicted_intent != 'unknown':
-            system_label = f"System predicted: **{predicted_intent}**"
+        # Check if system and oracle agree
+        if predicted_intent != 'unknown' and predicted_intent == true_intent:
+            # Both systems agree - show single option
             options.append(predicted_intent)
-            option_labels.append(system_label)
-        
-        # Add oracle/expected intent if different from prediction
-        if true_intent != predicted_intent and true_intent != 'unknown':
-            oracle_label = f"Expected intent: **{true_intent}**"
-            options.append(true_intent)
-            option_labels.append(oracle_label)
+            option_labels.append(predicted_intent)
+        else:
+            # Different intents - show both without identifying source
+            if predicted_intent != 'unknown':
+                options.append(predicted_intent)
+                option_labels.append(predicted_intent)
+            
+            if true_intent != 'unknown' and true_intent != predicted_intent:
+                options.append(true_intent)
+                option_labels.append(true_intent)
         
         # Add "Neither" option
         options.append("Neither/Other")
@@ -1172,8 +1174,7 @@ def collect_query_feedback(query_index, query_text, predicted_intent, is_correct
             "Select the option that best matches your intent:",
             options=options,
             format_func=lambda x: option_labels[options.index(x)],
-            key=f"user_intent_{query_index}",
-            help="This helps us understand if the system correctly identified what you wanted"
+            key=f"user_intent_{query_index}"
         )
         
         st.markdown("---")
