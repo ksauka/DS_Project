@@ -478,22 +478,6 @@ class DSMassFunction:
 
             else:
                 # --- CASE 3: No confident nodes ---
-                # Before asking for clarification, check if there's a dominant leaf node
-                # that just barely missed the threshold
-                if depth == 0:  # Only on initial query
-                    leaf_beliefs = [(leaf, belief.get(leaf, 0)) for leaf in leaf_nodes]
-                    leaf_beliefs.sort(key=lambda x: x[1], reverse=True)
-                    
-                    if len(leaf_beliefs) >= 2:
-                        top_leaf, top_score = leaf_beliefs[0]
-                        second_leaf, second_score = leaf_beliefs[1]
-                        
-                        # If top leaf is clearly dominant (2x higher than second)
-                        # and has reasonable belief (>0.3), return it without clarification
-                        if top_score > 0.3 and top_score >= 2 * second_score:
-                            logger.info(f"Dominant leaf node found at depth 0: {top_leaf} (belief={top_score:.3f}, 2nd={second_score:.3f})")
-                            return (top_leaf, top_score)
-                
                 if depth >= maximum_depth - 1:
                     # Max depth reached - return None to signal no confident answer found
                     logger.info(f"Max depth ({maximum_depth}) reached without finding confident answer")
