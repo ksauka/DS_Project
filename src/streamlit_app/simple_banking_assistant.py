@@ -138,14 +138,20 @@ st.session_state.back_to_survey = back_to_survey
 # ===== END QUALTRICS/PROLIFIC INTEGRATION =====
 
 
-def _get_openai_client():
-    """Get an OpenAI client if API key is configured."""
+def _get_api_key() -> Optional[str]:
+    """Get OpenAI API key from env or Streamlit secrets."""
     api_key = os.getenv("OPENAI_API_KEY")
     if not api_key:
         try:
             api_key = st.secrets.get("OPENAI_API_KEY", None)
         except Exception:
             api_key = None
+    return api_key
+
+
+def _get_openai_client():
+    """Get an OpenAI client if API key is configured."""
+    api_key = _get_api_key()
     if not api_key:
         return None
 
@@ -161,12 +167,7 @@ def _get_openai_client():
 
 def _llm_configured() -> bool:
     """Return True when an OpenAI API key is available."""
-    if os.getenv("OPENAI_API_KEY"):
-        return True
-    try:
-        return bool(st.secrets.get("OPENAI_API_KEY", None))
-    except Exception:
-        return False
+    return bool(_get_api_key())
 
 
 def _test_llm_connection() -> Tuple[bool, str]:
@@ -483,42 +484,18 @@ def process_query(query_text, ds_system, is_initial=True, previous_mass=None):
             combined_mass = ds_system.combine_mass_functions(previous_mass, current_mass)
         else:
             combined_mass = current_mass
-        
-        # Check confidence manually WITHOUT blocking on input()
-        # Get all leaf nodes
-        leaf_nodes = [intent for intent in ds_system.hierarchy if ds_system.is_leaf(intent)]
-        
-        # Evaluate which leaves are confident
-        confident_nodes, belief = ds_system.evaluate_hierarchy(leaf_nodes, combined_mass)
 
         # Record belief progression for explainability
+        belief = ds_system.compute_belief(combined_mass)
         if hasattr(ds_system, 'get_belief_tracker'):
             tracker = ds_system.get_belief_tracker()
             if tracker is not None:
                 turn_num = len([msg for msg in ds_system.conversation_history if msg.startswith("User:")])
                 tracker.record_belief(belief, f"Turn {max(turn_num, 1)}")
-        
-        # Check if we have exactly one confident leaf node
-        confident_leaf_nodes = [n for n in confident_nodes if ds_system.is_leaf(n[0])]
-        
-        if len(confident_leaf_nodes) == 1:
-            # Single confident leaf - predict it
-            pred_intent, confidence = confident_leaf_nodes[0]
-            st.session_state.last_prediction = pred_intent
-            st.session_state.last_confidence = confidence
-            # Return simple acknowledgment
-            response = f"I believe you need help with **{pred_intent}**."
-            response = _humanize_response(
-                response,
-                response_type="prediction",
-                context={"intent": pred_intent}
-            )
-            return response, False, combined_mass
-        else:
+
+        if ds_system.should_ask_clarification(combined_mass):
             # Need clarification - use DS system's built-in clarification generator
-            # This uses the EXACT same logic as the LLM simulation in STEP 3
             clarification = ds_system.generate_clarification_question(combined_mass)
-            # Add helpful guidance for user
             if not clarification.endswith("?"):
                 clarification += "?"
             clarification += " Or feel free to describe what you need in your own words."
@@ -529,6 +506,18 @@ def process_query(query_text, ds_system, is_initial=True, previous_mass=None):
                 context={"options": options_text}
             )
             return clarification, True, combined_mass
+
+        # Confident prediction
+        pred_intent, confidence = ds_system.get_prediction_from_mass(combined_mass)
+        st.session_state.last_prediction = pred_intent
+        st.session_state.last_confidence = confidence
+        response = f"I believe you need help with **{pred_intent}**."
+        response = _humanize_response(
+            response,
+            response_type="prediction",
+            context={"intent": pred_intent}
+        )
+        return response, False, combined_mass
             
     except Exception as e:
         st.error(f"DS Error: {str(e)}")
@@ -536,14 +525,18 @@ def process_query(query_text, ds_system, is_initial=True, previous_mass=None):
         st.error(traceback.format_exc())
         return "I encountered an error. Could you rephrase?", True, None
 
+def _get_tracker(ds_system):
+    """Get belief tracker from DS system with fallback."""
+    if hasattr(ds_system, 'get_belief_tracker'):
+        tracker = ds_system.get_belief_tracker()
+        if tracker is not None:
+            return tracker
+    return BeliefTracker()
+
 def generate_belief_visualization(ds_system, title="Belief Progression"):
     """Generate real-time belief visualization using BeliefVisualizer."""
     try:
-        tracker = None
-        if hasattr(ds_system, 'get_belief_tracker'):
-            tracker = ds_system.get_belief_tracker()
-        if tracker is None:
-            tracker = BeliefTracker()
+        tracker = _get_tracker(ds_system)
 
         history = tracker.get_history()
         if not history:
@@ -571,11 +564,7 @@ def generate_belief_visualization(ds_system, title="Belief Progression"):
 def generate_confidence_explanation(ds_system):
     """Generate confidence explanation using BeliefVisualizer."""
     try:
-        tracker = None
-        if hasattr(ds_system, 'get_belief_tracker'):
-            tracker = ds_system.get_belief_tracker()
-        if tracker is None:
-            tracker = BeliefTracker()
+        tracker = _get_tracker(ds_system)
 
         history = tracker.get_history()
         if not history:
@@ -604,11 +593,7 @@ def generate_confidence_explanation(ds_system):
 def generate_confidence_explanation_interactive(ds_system):
     """Generate interactive confidence chart using Plotly."""
     try:
-        tracker = None
-        if hasattr(ds_system, 'get_belief_tracker'):
-            tracker = ds_system.get_belief_tracker()
-        if tracker is None:
-            tracker = BeliefTracker()
+        tracker = _get_tracker(ds_system)
 
         history = tracker.get_history()
         if not history:
@@ -655,6 +640,37 @@ def generate_confidence_explanation_interactive(ds_system):
         return None
 
 
+def _init_session_defaults():
+    """Initialize Streamlit session state defaults."""
+    defaults = {
+        'current_query_index': 0,
+        'conversation_history': [],
+        'awaiting_clarification': False,
+        'current_mass': None,
+        'ds_system_state': None,
+        'session_results': [],
+        'session_id': str(uuid.uuid4())[:8],
+        'query_start_time': None,
+        'result_saved': False,
+        'feedback_submitted': False,
+        'last_prediction': None,
+        'last_confidence': None,
+        'conversation_started': False,
+        'query_resolved': False,
+        'last_belief_plot': None,
+        'last_confidence_plot': None,
+        'show_belief_chart': False,
+        'humanize_responses': True,
+        'llm_model_name': os.getenv("OPENAI_MODEL", "gpt-4o-mini"),
+        'llm_temperature': float(os.getenv("TEMPERATURE", "0.6")),
+        'llm_max_tokens': int(os.getenv("MAX_TOKENS", "400")),
+        'llm_warning_shown': False,
+    }
+    for key, value in defaults.items():
+        if key not in st.session_state:
+            st.session_state[key] = value
+
+
 def main():
     """Main application"""
     
@@ -668,50 +684,7 @@ def main():
         st.session_state.data_logger_initialized = True
     
     # Initialize session state
-    if 'current_query_index' not in st.session_state:
-        st.session_state.current_query_index = 0
-    if 'conversation_history' not in st.session_state:
-        st.session_state.conversation_history = []
-    if 'awaiting_clarification' not in st.session_state:
-        st.session_state.awaiting_clarification = False
-    if 'current_mass' not in st.session_state:
-        st.session_state.current_mass = None
-    if 'ds_system_state' not in st.session_state:
-        st.session_state.ds_system_state = None
-    if 'session_results' not in st.session_state:
-        st.session_state.session_results = []
-    if 'session_id' not in st.session_state:
-        st.session_state.session_id = str(uuid.uuid4())[:8]
-    if 'query_start_time' not in st.session_state:
-        st.session_state.query_start_time = None
-    if 'result_saved' not in st.session_state:
-        st.session_state.result_saved = False
-    if 'feedback_submitted' not in st.session_state:
-        st.session_state.feedback_submitted = False
-    if 'last_prediction' not in st.session_state:
-        st.session_state.last_prediction = None
-    if 'last_confidence' not in st.session_state:
-        st.session_state.last_confidence = None
-    if 'conversation_started' not in st.session_state:
-        st.session_state.conversation_started = False
-    if 'query_resolved' not in st.session_state:
-        st.session_state.query_resolved = False
-    if 'last_belief_plot' not in st.session_state:
-        st.session_state.last_belief_plot = None
-    if 'last_confidence_plot' not in st.session_state:
-        st.session_state.last_confidence_plot = None
-    if 'show_belief_chart' not in st.session_state:
-        st.session_state.show_belief_chart = False
-    if 'humanize_responses' not in st.session_state:
-        st.session_state.humanize_responses = True
-    if 'llm_model_name' not in st.session_state:
-        st.session_state.llm_model_name = os.getenv("OPENAI_MODEL", "gpt-4o-mini")
-    if 'llm_temperature' not in st.session_state:
-        st.session_state.llm_temperature = float(os.getenv("TEMPERATURE", "0.6"))
-    if 'llm_max_tokens' not in st.session_state:
-        st.session_state.llm_max_tokens = int(os.getenv("MAX_TOKENS", "400"))
-    if 'llm_warning_shown' not in st.session_state:
-        st.session_state.llm_warning_shown = False
+    _init_session_defaults()
     
     # Show header
     show_header()
@@ -1236,38 +1209,55 @@ def save_result_to_session(query_row, ds_system, predicted_intent, is_correct):
         end_time = datetime.datetime.now()
         interaction_time = (end_time - st.session_state.query_start_time).total_seconds() if st.session_state.query_start_time else 0
         
-        # Create result record
-        result = {
-            'session_id': st.session_state.session_id,
-            'query_index': st.session_state.current_query_index,
-            'query_text': query_row['query'],
-            'true_intent': query_row['true_intent'],
-            'predicted_intent': predicted_intent,
-            'confidence': confidence,
-            'num_clarification_turns': clarification_turns,
-            'is_correct': is_correct,
-            'interaction_time_seconds': interaction_time,
-            'conversation_transcript': '\n'.join(st.session_state.conversation_history),
-            'timestamp': end_time.isoformat(),
-            'llm_predicted_intent': query_row.get('predicted_intent', ''),
-            'llm_num_interactions': query_row.get('num_interactions', 0),
-            'llm_confidence': query_row.get('confidence', 0.0),
-            'llm_was_correct': query_row.get('is_correct', False),
-            # H7 Testing: User validation fields
-            'user_validated_intent': None,
-            'user_agrees_with_system': None,
-            'user_agrees_with_oracle': None,
-            # Feedback fields will be added after feedback collection
-            'feedback_clarity': None,
-            'feedback_confidence': None,
-            'feedback_comment': '',
-            'feedback_submitted': False
-        }
+        result = _create_result_dict(
+            query_row,
+            predicted_intent,
+            is_correct,
+            confidence,
+            clarification_turns,
+            interaction_time,
+            end_time
+        )
         
         st.session_state.session_results.append(result)
         
     except Exception as e:
         st.error(f"Error saving query result: {str(e)}")
+
+def _create_result_dict(
+    query_row,
+    predicted_intent: str,
+    is_correct: bool,
+    confidence: float,
+    clarification_turns: int,
+    interaction_time: float,
+    end_time: datetime.datetime
+) -> Dict:
+    """Create standardized result dictionary."""
+    return {
+        'session_id': st.session_state.session_id,
+        'query_index': st.session_state.current_query_index,
+        'query_text': query_row['query'],
+        'true_intent': query_row['true_intent'],
+        'predicted_intent': predicted_intent,
+        'confidence': confidence,
+        'num_clarification_turns': clarification_turns,
+        'is_correct': is_correct,
+        'interaction_time_seconds': interaction_time,
+        'conversation_transcript': '\n'.join(st.session_state.conversation_history),
+        'timestamp': end_time.isoformat(),
+        'llm_predicted_intent': query_row.get('predicted_intent', ''),
+        'llm_num_interactions': query_row.get('num_interactions', 0),
+        'llm_confidence': query_row.get('confidence', 0.0),
+        'llm_was_correct': query_row.get('is_correct', False),
+        'user_validated_intent': None,
+        'user_agrees_with_system': None,
+        'user_agrees_with_oracle': None,
+        'feedback_clarity': None,
+        'feedback_confidence': None,
+        'feedback_comment': '',
+        'feedback_submitted': False
+    }
 
 def save_query_result(query_row, ds_system):
     """DEPRECATED - kept for backward compatibility with skip button"""
@@ -1300,33 +1290,15 @@ def save_query_result(query_row, ds_system):
         # Check correctness
         is_correct = final_prediction == query_row['true_intent']
         
-        # Create result record
-        result = {
-            'session_id': st.session_state.session_id,
-            'query_index': st.session_state.current_query_index,
-            'query_text': query_row['query'],
-            'true_intent': query_row['true_intent'],
-            'predicted_intent': final_prediction,
-            'confidence': confidence,
-            'num_clarification_turns': clarification_turns,
-            'is_correct': is_correct,
-            'interaction_time_seconds': interaction_time,
-            'conversation_transcript': '\n'.join(st.session_state.conversation_history),
-            'timestamp': end_time.isoformat(),
-            'llm_predicted_intent': query_row.get('predicted_intent', ''),
-            'llm_num_interactions': query_row.get('num_interactions', 0),
-            'llm_confidence': query_row.get('confidence', 0.0),
-            'llm_was_correct': query_row.get('is_correct', False),
-            # H7 Testing: User validation fields
-            'user_validated_intent': None,
-            'user_agrees_with_system': None,
-            'user_agrees_with_oracle': None,
-            # Feedback fields will be added after feedback collection
-            'feedback_clarity': None,
-            'feedback_confidence': None,
-            'feedback_comment': '',
-            'feedback_submitted': False
-        }
+        result = _create_result_dict(
+            query_row,
+            final_prediction,
+            is_correct,
+            confidence,
+            clarification_turns,
+            interaction_time,
+            end_time
+        )
         
         st.session_state.session_results.append(result)
         
