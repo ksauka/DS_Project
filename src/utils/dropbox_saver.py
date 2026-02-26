@@ -188,6 +188,37 @@ def download_from_dropbox(
         return False
 
 
+def upload_file_to_dropbox(
+    local_path: str,
+    dropbox_path: str,
+    overwrite: bool = False
+) -> bool:
+    """Upload any local file to an arbitrary Dropbox path.
+
+    Args:
+        local_path:   Path to the local file.
+        dropbox_path: Full destination path in Dropbox (e.g. '/ds_project_queries/small.csv').
+        overwrite:    Replace existing file if True.
+
+    Returns:
+        True on success, False otherwise.
+    """
+    if not os.path.exists(local_path):
+        print(f"❌ Local file not found: {local_path}")
+        return False
+    try:
+        dbx = _get_dropbox_client()
+        with open(local_path, 'rb') as f:
+            content = f.read()
+        mode = WriteMode.overwrite if overwrite else WriteMode.add
+        dbx.files_upload(content, dropbox_path, mode=mode, mute=True)
+        print(f"☁️  Uploaded {os.path.basename(local_path)} → Dropbox:{dropbox_path}")
+        return True
+    except Exception as e:
+        print(f"❌ upload_file_to_dropbox failed: {e}")
+        return False
+
+
 def upload_model_to_dropbox(
     local_path: str,
     model_name: str,

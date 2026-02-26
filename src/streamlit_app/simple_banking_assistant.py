@@ -4,6 +4,7 @@
 
 # Standard library imports
 import datetime
+import gc
 import html
 import json
 import os
@@ -469,68 +470,100 @@ def _load_ds_model_for_dataset(dataset_name: str):
 def _get_shared_embedder():
     """Load the SentenceEmbedder once and share it across all dataset models."""
     print("Loading shared SentenceEmbedder (intfloat/e5-base)...")
-    return SentenceEmbedder(model_name='intfloat/e5-base')
+    embedder = SentenceEmbedder(model_name='intfloat/e5-base')
+    gc.collect()
+    return embedder
 
 
 @st.cache_resource
-def initialize_ds_systems():
-    """Load DS models for all available datasets. Returns dict keyed by dataset name."""
+def _get_ds_model_cached(dataset_name: str):
+    """Load a single DS model lazily, cached per dataset.
+
+    Models are only loaded on first access — banking77 warms up at startup;
+    clinc150 loads the first time a clinc150 query is served. This keeps
+    peak memory low on Community Cloud.
+    """
     global _shared_embedder
-    _shared_embedder = _get_shared_embedder()
+    if _shared_embedder is None:
+        _shared_embedder = _get_shared_embedder()
+    model = _load_ds_model_for_dataset(dataset_name)
+    gc.collect()
+    return model
 
-    systems = {}
-    load_errors = []
-    for name in ['banking77', 'clinc150']:
-        model = _load_ds_model_for_dataset(name)
-        if model is not None:
-            systems[name] = model
-        else:
-            load_errors.append(name)
 
-    if not systems:
-        st.error(
-            '❌ No DS models could be loaded. '
-            'Check that experiments/ and config/hierarchies/ exist.'
-        )
-        st.stop()
-
-    if load_errors:
-        st.warning(
-            f"⚠️ Could not load model(s) for: **{', '.join(load_errors)}**. "
-            f"Queries from those datasets will fall back to the **{list(systems.keys())[0]}** model, "
-            f"which will show wrong intent options. Run the workflow notebook to generate the missing "
-            f"model first."
-        )
-
-    print(f"DS systems loaded: {list(systems.keys())}")
-    return systems
+def get_ds_system(dataset_name: str):
+    """Return (ds_system, active_dataset, fallback_used) for the given dataset."""
+    model = _get_ds_model_cached(dataset_name)
+    if model is not None:
+        return model, dataset_name, False
+    # Fallback to banking77
+    fallback = _get_ds_model_cached('banking77')
+    return fallback, 'banking77', True
 
 @st.cache_data
 def load_study_queries():
-    """Load the merged study queries produced by the MERGE STEP in system_workflow_demo.ipynb.
+    """Load the study query set, downloading from Dropbox if not cached locally.
 
-    Primary path: outputs/user_study/workflow_demo/selected_queries_for_user_study.csv
-      — written by the notebook's MERGE STEP after both Banking77 + Clinc150 workflows
-        complete (185 rows: 100 banking77 + 85 clinc150).
-    Fallback: sample_study_queries.csv (project root)
-      — a manually placed copy for convenience; kept as a fallback.
+    The active set is controlled by the STUDY_SET env variable:
+      small  → study_set_small.csv   (2 per group = 16 queries)  [default]
+      medium → study_set_medium.csv  (5 per group = 40 queries)
+      large  → study_set_large.csv   (10 per group = 80 queries)
+      full   → selected_queries_for_user_study.csv  (all merged queries)
+
+    CSVs are stored in Dropbox under /ds_project_queries/ and downloaded
+    on first use. Local cache at outputs/user_study/workflow_demo/ is reused
+    on subsequent runs (no re-download).
     """
-    primary_path  = 'outputs/user_study/workflow_demo/selected_queries_for_user_study.csv'
-    fallback_path = 'sample_study_queries.csv'
-    try:
-        if os.path.exists(primary_path):
-            return pd.read_csv(primary_path)
-        if os.path.exists(fallback_path):
-            return pd.read_csv(fallback_path)
-        st.error(
-            "Study queries file not found. "
-            f"Expected: '{primary_path}'. "
-            "Run the MERGE STEP in notebooks/system_workflow_demo.ipynb first."
-        )
-        st.stop()
-    except Exception as e:
-        st.error(f"Failed to load study queries: {str(e)}")
-        st.stop()
+    _base = 'outputs/user_study/workflow_demo'
+    _set_name = os.getenv('STUDY_SET', 'small').strip().lower()
+
+    # Map set name → (local path, Dropbox path)
+    _candidates = {
+        'small':  (f'{_base}/study_set_small.csv',  '/ds_project_queries/study_set_small.csv'),
+        'medium': (f'{_base}/study_set_medium.csv', '/ds_project_queries/study_set_medium.csv'),
+        'large':  (f'{_base}/study_set_large.csv',  '/ds_project_queries/study_set_large.csv'),
+        'full':   (f'{_base}/selected_queries_for_user_study.csv',
+                   '/ds_project_queries/selected_queries_for_user_study.csv'),
+    }
+
+    def _try_load(key):
+        """Return DataFrame for key, downloading from Dropbox if needed. None if unavailable."""
+        local_path, dropbox_path = _candidates[key]
+        # Already cached locally?
+        if os.path.exists(local_path) and os.path.getsize(local_path) > 100:
+            return pd.read_csv(local_path)
+        # Try Dropbox
+        try:
+            from src.utils.dropbox_saver import download_from_dropbox
+            os.makedirs(os.path.dirname(local_path), exist_ok=True)
+            ok = download_from_dropbox(dropbox_path, local_path)
+            if ok and os.path.exists(local_path):
+                print(f"[load_study_queries] Downloaded '{key}' from Dropbox → {local_path}")
+                return pd.read_csv(local_path)
+        except Exception as _e:
+            print(f"[load_study_queries] Dropbox download failed for '{key}': {_e}")
+        return None
+
+    # Try requested set first, then fall back through the others
+    _order = [_set_name] + [k for k in ('small', 'medium', 'large', 'full') if k != _set_name]
+    for _key in _order:
+        df = _try_load(_key)
+        if df is not None:
+            if _key != _set_name:
+                st.warning(
+                    f"⚠️ STUDY_SET='{_set_name}' not available — loaded '{_key}' instead. "
+                    f"Upload the CSV to Dropbox (/ds_project_queries/{_set_name}.csv) or "
+                    f"run the EXPERIMENT SETS cell in the workflow notebook."
+                )
+            print(f"[load_study_queries] Using set='{_key}' ({len(df)} queries)")
+            return df
+
+    st.error(
+        f"No study query file found for STUDY_SET='{_set_name}' and Dropbox download failed. "
+        "Upload the CSVs to Dropbox under /ds_project_queries/ or run the "
+        "EXPERIMENT SETS cell in notebooks/system_workflow_demo.ipynb first."
+    )
+    st.stop()
 
 def show_header():
     """Display header with HiCXAI styling"""
@@ -783,8 +816,8 @@ def _init_session_defaults():
 def main():
     """Main application"""
 
-    # Initialize DS systems ONCE with cache (one per available dataset)
-    ds_systems = initialize_ds_systems()
+    # Both models load lazily on first use via _get_ds_model_cached (@st.cache_resource).
+    # Nothing is pre-warmed at startup — keeps Community Cloud within memory limits.
     queries_df = load_study_queries()
     
     # Initialize data logger (for GitHub save)
@@ -963,14 +996,14 @@ def main():
         
         return
     
-    # Get current query and select the matching DS model
+    # Get current query and lazily load the matching DS model
     current_query = queries_df.iloc[st.session_state.current_query_index]
     query_text = current_query['query']
-    # Route to the correct DS model based on dataset column (falls back to first available)
     _query_dataset = str(current_query.get('dataset', 'banking77')) if 'dataset' in current_query.index else 'banking77'
-    _fallback_used = _query_dataset not in ds_systems
-    ds_system = ds_systems.get(_query_dataset, next(iter(ds_systems.values())))
-    _active_dataset = _query_dataset if not _fallback_used else next(iter(ds_systems.keys()))
+    ds_system, _active_dataset, _fallback_used = get_ds_system(_query_dataset)
+    if ds_system is None:
+        st.error('❌ No DS model available. Check experiments/ and config/hierarchies/.')
+        st.stop()
 
     # Progress indicator with stats
     progress = st.session_state.current_query_index / len(queries_df)
@@ -1151,6 +1184,7 @@ def main():
                 st.session_state.result_saved = False  # Reset for next query
                 st.session_state.feedback_submitted = False  # Reset for next query
                 st.session_state.last_belief_plot = None
+                gc.collect()  # Free belief plots and mass function objects
                 st.rerun()
     elif st.session_state.awaiting_clarification:
         st.info("Please provide more information or type 'why' to understand my question.")
@@ -1359,7 +1393,7 @@ def _create_result_dict(
         'num_clarification_turns': clarification_turns,
         'is_correct': is_correct,
         'interaction_time_seconds': interaction_time,
-        'conversation_transcript': '\n'.join(st.session_state.conversation_history),
+        'conversation_transcript': '\n'.join(st.session_state.conversation_history)[-3000:],  # cap to save memory
         'timestamp': end_time.isoformat(),
         'llm_predicted_intent': query_row.get('predicted_intent', ''),
         'llm_num_interactions': query_row.get('num_interactions', 0),
