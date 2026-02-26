@@ -1152,8 +1152,7 @@ def main():
             # Immediately confident — make the prediction visible
             st.info(
                 f"The assistant was immediately confident: "
-                f"**{predicted_intent.replace('_', ' ')}** "
-                f"(confidence {st.session_state.get('last_confidence', 0):.0%}). "
+                f"**{predicted_intent.replace('_', ' ')}**. "
                 f"No clarification was needed."
             )
         
