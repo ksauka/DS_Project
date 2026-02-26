@@ -1,0 +1,24 @@
+# Example Configuration: Optimal Thresholds
+
+{
+  "activate_my_card": {
+    "threshold": 0.45,
+    "f1_score": 0.89
+  },
+  "card_not_working": {
+    "threshold": 0.52,
+    "f1_score": 0.87
+  },
+  "getting_virtual_card": {
+    "threshold": 0.48,
+    "f1_score": 0.91
+  },
+  "edit_personal_details": {
+    "threshold": 0.50,
+    "f1_score": 0.85
+  },
+  "top_up_failed": {
+    "threshold": 0.55,
+    "f1_score": 0.88
+  }
+}

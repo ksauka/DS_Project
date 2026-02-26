@@ -1,0 +1,26 @@
+# Example Configuration: Banking77 Intent Descriptions
+
+{
+  "Card Issues": "Issues related to physical or virtual cards and their functionality.",
+  "Physical Cards": "Concerns involving physical debit or credit cards.",
+  "activate_my_card": "Help with activating a new physical card.",
+  "card_about_to_expire": "What to do when your card is about to expire.",
+  "card_arrival": "Information about expected delivery of your card.",
+  "card_not_working": "Troubleshooting issues with card functionality.",
+  "lost_or_stolen_card": "Report and handle lost or stolen physical cards.",
+  
+  "Virtual Cards": "Support for virtual or disposable cards.",
+  "getting_virtual_card": "How to request or access a virtual card.",
+  "virtual_card_not_working": "Problems with using virtual cards.",
+  
+  "Account Services": "Managing your account, top-ups, and profile.",
+  "Account Management": "Profile updates and account access issues.",
+  "edit_personal_details": "Update your name, address, etc.",
+  "pin_blocked": "Your PIN is blocked — how to unblock or reset.",
+  "terminate_account": "Close your account permanently.",
+  
+  "Top-Ups": "Adding money to your account.",
+  "automatic_top_up": "Enable or troubleshoot automatic top-ups.",
+  "top_up_failed": "Top-up attempt failed.",
+  "verify_top_up": "Verification required for a top-up."
+}

@@ -1,0 +1,642 @@
+{
+    "freeze_account": {
+        "threshold": 0.14,
+        "f1_score": 0.9997795868414764
+    },
+    "routing": {
+        "threshold": 0.08,
+        "f1_score": 1.0
+    },
+    "pin_change": {
+        "threshold": 0.04,
+        "f1_score": 0.9997795868414764
+    },
+    "bill_due": {
+        "threshold": 0.14,
+        "f1_score": 0.9993159012929843
+    },
+    "pay_bill": {
+        "threshold": 0.1,
+        "f1_score": 0.9989151574247244
+    },
+    "account_blocked": {
+        "threshold": 0.14,
+        "f1_score": 0.9981591276940114
+    },
+    "interest_rate": {
+        "threshold": 0.18,
+        "f1_score": 0.999547942423331
+    },
+    "min_payment": {
+        "threshold": 0.08,
+        "f1_score": 1.0
+    },
+    "bill_balance": {
+        "threshold": 0.13,
+        "f1_score": 0.997868706913459
+    },
+    "transfer": {
+        "threshold": 0.11,
+        "f1_score": 0.9997759069657521
+    },
+    "order_checks": {
+        "threshold": 0.08,
+        "f1_score": 1.0
+    },
+    "balance": {
+        "threshold": 0.15,
+        "f1_score": 0.9983423275993569
+    },
+    "spending_history": {
+        "threshold": 0.11,
+        "f1_score": 0.9989313130443516
+    },
+    "transactions": {
+        "threshold": 0.07,
+        "f1_score": 0.9981591276940114
+    },
+    "report_fraud": {
+        "threshold": 0.09,
+        "f1_score": 0.9984571078903336
+    },
+    "banking": {
+        "threshold": 0.27,
+        "f1_score": 0.9932932192547576
+    },
+    "replacement_card_duration": {
+        "threshold": 0.08,
+        "f1_score": 0.9988795348287614
+    },
+    "expiration_date": {
+        "threshold": 0.14,
+        "f1_score": 0.9991253485781381
+    },
+    "damaged_card": {
+        "threshold": 0.14,
+        "f1_score": 0.9997795868414764
+    },
+    "improve_credit_score": {
+        "threshold": 0.11,
+        "f1_score": 0.9993387605244287
+    },
+    "report_lost_card": {
+        "threshold": 0.19,
+        "f1_score": 0.999095884846662
+    },
+    "card_declined": {
+        "threshold": 0.05,
+        "f1_score": 0.9995626742890691
+    },
+    "credit_limit_change": {
+        "threshold": 0.15,
+        "f1_score": 0.9997795868414764
+    },
+    "apr": {
+        "threshold": 0.06,
+        "f1_score": 0.9997795868414764
+    },
+    "redeem_rewards": {
+        "threshold": 0.14,
+        "f1_score": 0.9991111111111111
+    },
+    "credit_limit": {
+        "threshold": 0.11,
+        "f1_score": 0.9997795868414764
+    },
+    "rewards_balance": {
+        "threshold": 0.14,
+        "f1_score": 0.9980763634798332
+    },
+    "application_status": {
+        "threshold": 0.1,
+        "f1_score": 0.9995626742890691
+    },
+    "credit_score": {
+        "threshold": 0.14,
+        "f1_score": 0.999547942423331
+    },
+    "new_card": {
+        "threshold": 0.11,
+        "f1_score": 0.9993277208972566
+    },
+    "international_fees": {
+        "threshold": 0.1,
+        "f1_score": 1.0
+    },
+    "credit_cards": {
+        "threshold": 0.27,
+        "f1_score": 0.9973437625892544
+    },
+    "food_last": {
+        "threshold": 0.09,
+        "f1_score": 0.999547942423331
+    },
+    "confirm_reservation": {
+        "threshold": 0.11,
+        "f1_score": 0.9991111111111111
+    },
+    "how_busy": {
+        "threshold": 0.07,
+        "f1_score": 0.9984313487602657
+    },
+    "ingredients_list": {
+        "threshold": 0.15,
+        "f1_score": 0.9986193457705087
+    },
+    "calories": {
+        "threshold": 0.08,
+        "f1_score": 1.0
+    },
+    "nutrition_info": {
+        "threshold": 0.15,
+        "f1_score": 1.0
+    },
+    "recipe": {
+        "threshold": 0.17,
+        "f1_score": 0.9982506971562761
+    },
+    "restaurant_reviews": {
+        "threshold": 0.09,
+        "f1_score": 0.9986438272699929
+    },
+    "restaurant_reservation": {
+        "threshold": 0.14,
+        "f1_score": 0.9993277208972566
+    },
+    "meal_suggestion": {
+        "threshold": 0.17,
+        "f1_score": 0.9979096498805834
+    },
+    "restaurant_suggestion": {
+        "threshold": 0.14,
+        "f1_score": 0.9997759069657521
+    },
+    "cancel_reservation": {
+        "threshold": 0.14,
+        "f1_score": 1.0
+    },
+    "ingredient_substitution": {
+        "threshold": 0.08,
+        "f1_score": 1.0
+    },
+    "cook_time": {
+        "threshold": 0.22,
+        "f1_score": 0.9993159012929843
+    },
+    "accept_reservations": {
+        "threshold": 0.2,
+        "f1_score": 0.9991111111111111
+    },
+    "kitchen_and_dining": {
+        "threshold": 0.27,
+        "f1_score": 0.9968733288075479
+    },
+    "what_song": {
+        "threshold": 0.14,
+        "f1_score": 0.9995555555555555
+    },
+    "play_music": {
+        "threshold": 0.14,
+        "f1_score": 0.997445127631824
+    },
+    "todo_list_update": {
+        "threshold": 0.14,
+        "f1_score": 0.9982506971562761
+    },
+    "reminder": {
+        "threshold": 0.16,
+        "f1_score": 0.9993277208972566
+    },
+    "reminder_update": {
+        "threshold": 0.1,
+        "f1_score": 0.9980162815732863
+    },
+    "calendar_update": {
+        "threshold": 0.19,
+        "f1_score": 0.9983423275993569
+    },
+    "order_status": {
+        "threshold": 0.16,
+        "f1_score": 0.9997759069657521
+    },
+    "update_playlist": {
+        "threshold": 0.13,
+        "f1_score": 0.9997795868414764
+    },
+    "shopping_list": {
+        "threshold": 0.18,
+        "f1_score": 0.997282681143064
+    },
+    "calendar": {
+        "threshold": 0.08,
+        "f1_score": 0.9974536499989825
+    },
+    "next_song": {
+        "threshold": 0.1,
+        "f1_score": 0.9997759069657521
+    },
+    "order": {
+        "threshold": 0.1,
+        "f1_score": 0.9964478448557649
+    },
+    "todo_list": {
+        "threshold": 0.19,
+        "f1_score": 0.9985930397198004
+    },
+    "shopping_list_update": {
+        "threshold": 0.23,
+        "f1_score": 0.9975754552562389
+    },
+    "smart_home": {
+        "threshold": 0.09,
+        "f1_score": 0.9997759069657521
+    },
+    "home": {
+        "threshold": 0.19,
+        "f1_score": 0.9944250686264936
+    },
+    "current_location": {
+        "threshold": 0.19,
+        "f1_score": 0.9995555555555555
+    },
+    "oil_change_when": {
+        "threshold": 0.18,
+        "f1_score": 0.999095884846662
+    },
+    "oil_change_how": {
+        "threshold": 0.22,
+        "f1_score": 0.9997795868414764
+    },
+    "uber": {
+        "threshold": 0.05,
+        "f1_score": 1.0
+    },
+    "traffic": {
+        "threshold": 0.07,
+        "f1_score": 1.0
+    },
+    "tire_pressure": {
+        "threshold": 0.13,
+        "f1_score": 1.0
+    },
+    "schedule_maintenance": {
+        "threshold": 0.08,
+        "f1_score": 0.9995626742890691
+    },
+    "gas": {
+        "threshold": 0.14,
+        "f1_score": 0.9993159012929843
+    },
+    "mpg": {
+        "threshold": 0.14,
+        "f1_score": 1.0
+    },
+    "distance": {
+        "threshold": 0.08,
+        "f1_score": 0.9981591276940114
+    },
+    "directions": {
+        "threshold": 0.11,
+        "f1_score": 0.9993387605244287
+    },
+    "last_maintenance": {
+        "threshold": 0.15,
+        "f1_score": 1.0
+    },
+    "gas_type": {
+        "threshold": 0.15,
+        "f1_score": 0.9997759069657521
+    },
+    "tire_change": {
+        "threshold": 0.14,
+        "f1_score": 1.0
+    },
+    "jump_start": {
+        "threshold": 0.03,
+        "f1_score": 1.0
+    },
+    "auto_and_commute": {
+        "threshold": 0.25,
+        "f1_score": 0.9968764725532664
+    },
+    "plug_type": {
+        "threshold": 0.05,
+        "f1_score": 0.9997759069657521
+    },
+    "travel_notification": {
+        "threshold": 0.09,
+        "f1_score": 1.0
+    },
+    "translate": {
+        "threshold": 0.11,
+        "f1_score": 1.0
+    },
+    "flight_status": {
+        "threshold": 0.13,
+        "f1_score": 0.9995555555555555
+    },
+    "international_visa": {
+        "threshold": 0.19,
+        "f1_score": 1.0
+    },
+    "timezone": {
+        "threshold": 0.29,
+        "f1_score": 0.9991253485781381
+    },
+    "exchange_rate": {
+        "threshold": 0.07,
+        "f1_score": 1.0
+    },
+    "travel_suggestion": {
+        "threshold": 0.06,
+        "f1_score": 0.9997759069657521
+    },
+    "travel_alert": {
+        "threshold": 0.08,
+        "f1_score": 1.0
+    },
+    "vaccines": {
+        "threshold": 0.08,
+        "f1_score": 1.0
+    },
+    "lost_luggage": {
+        "threshold": 0.06,
+        "f1_score": 1.0
+    },
+    "book_flight": {
+        "threshold": 0.11,
+        "f1_score": 1.0
+    },
+    "book_hotel": {
+        "threshold": 0.09,
+        "f1_score": 1.0
+    },
+    "carry_on": {
+        "threshold": 0.08,
+        "f1_score": 1.0
+    },
+    "car_rental": {
+        "threshold": 0.06,
+        "f1_score": 1.0
+    },
+    "travel": {
+        "threshold": 0.18,
+        "f1_score": 0.996030976061399
+    },
+    "weather": {
+        "threshold": 0.22,
+        "f1_score": 0.9997795868414764
+    },
+    "alarm": {
+        "threshold": 0.25,
+        "f1_score": 0.999547942423331
+    },
+    "date": {
+        "threshold": 0.11,
+        "f1_score": 1.0
+    },
+    "find_phone": {
+        "threshold": 0.07,
+        "f1_score": 1.0
+    },
+    "share_location": {
+        "threshold": 0.19,
+        "f1_score": 0.9990795638470059
+    },
+    "timer": {
+        "threshold": 0.1,
+        "f1_score": 0.9997759069657521
+    },
+    "make_call": {
+        "threshold": 0.11,
+        "f1_score": 0.9988979342073813
+    },
+    "calculator": {
+        "threshold": 0.1,
+        "f1_score": 0.9993159012929843
+    },
+    "definition": {
+        "threshold": 0.11,
+        "f1_score": 0.999547942423331
+    },
+    "measurement_conversion": {
+        "threshold": 0.08,
+        "f1_score": 1.0
+    },
+    "flip_coin": {
+        "threshold": 0.07,
+        "f1_score": 1.0
+    },
+    "spelling": {
+        "threshold": 0.14,
+        "f1_score": 0.999547942423331
+    },
+    "time": {
+        "threshold": 0.18,
+        "f1_score": 0.9986193457705087
+    },
+    "roll_dice": {
+        "threshold": 0.06,
+        "f1_score": 1.0
+    },
+    "text": {
+        "threshold": 0.06,
+        "f1_score": 0.999095884846662
+    },
+    "utility": {
+        "threshold": 0.25,
+        "f1_score": 0.9922028956537623
+    },
+    "pto_request_status": {
+        "threshold": 0.21,
+        "f1_score": 0.9970867905547794
+    },
+    "next_holiday": {
+        "threshold": 0.12,
+        "f1_score": 0.9995626742890691
+    },
+    "insurance_change": {
+        "threshold": 0.21,
+        "f1_score": 0.9990795638470059
+    },
+    "insurance": {
+        "threshold": 0.11,
+        "f1_score": 1.0
+    },
+    "meeting_schedule": {
+        "threshold": 0.1,
+        "f1_score": 0.9995626742890691
+    },
+    "payday": {
+        "threshold": 0.08,
+        "f1_score": 0.9997795868414764
+    },
+    "taxes": {
+        "threshold": 0.12,
+        "f1_score": 1.0
+    },
+    "income": {
+        "threshold": 0.16,
+        "f1_score": 0.9990795638470059
+    },
+    "rollover_401k": {
+        "threshold": 0.1,
+        "f1_score": 1.0
+    },
+    "pto_balance": {
+        "threshold": 0.13,
+        "f1_score": 0.9981036940006116
+    },
+    "pto_request": {
+        "threshold": 0.08,
+        "f1_score": 0.9993277208972566
+    },
+    "w2": {
+        "threshold": 0.06,
+        "f1_score": 1.0
+    },
+    "schedule_meeting": {
+        "threshold": 0.29,
+        "f1_score": 0.9988979342073813
+    },
+    "direct_deposit": {
+        "threshold": 0.06,
+        "f1_score": 1.0
+    },
+    "pto_used": {
+        "threshold": 0.2,
+        "f1_score": 0.9988795348287614
+    },
+    "work": {
+        "threshold": 0.24,
+        "f1_score": 0.9982222222222222
+    },
+    "who_made_you": {
+        "threshold": 0.14,
+        "f1_score": 0.9997795868414764
+    },
+    "meaning_of_life": {
+        "threshold": 0.06,
+        "f1_score": 1.0
+    },
+    "who_do_you_work_for": {
+        "threshold": 0.1,
+        "f1_score": 0.9984037696836299
+    },
+    "do_you_have_pets": {
+        "threshold": 0.09,
+        "f1_score": 1.0
+    },
+    "what_are_your_hobbies": {
+        "threshold": 0.15,
+        "f1_score": 0.999547942423331
+    },
+    "fun_fact": {
+        "threshold": 0.14,
+        "f1_score": 0.999547942423331
+    },
+    "what_is_your_name": {
+        "threshold": 0.2,
+        "f1_score": 0.9983423275993569
+    },
+    "where_are_you_from": {
+        "threshold": 0.09,
+        "f1_score": 0.9995555555555555
+    },
+    "goodbye": {
+        "threshold": 0.08,
+        "f1_score": 0.9991111111111111
+    },
+    "thank_you": {
+        "threshold": 0.16,
+        "f1_score": 0.9988795348287614
+    },
+    "greeting": {
+        "threshold": 0.09,
+        "f1_score": 0.9997759069657521
+    },
+    "tell_joke": {
+        "threshold": 0.09,
+        "f1_score": 1.0
+    },
+    "are_you_a_bot": {
+        "threshold": 0.1,
+        "f1_score": 1.0
+    },
+    "how_old_are_you": {
+        "threshold": 0.07,
+        "f1_score": 1.0
+    },
+    "what_can_i_ask_you": {
+        "threshold": 0.09,
+        "f1_score": 0.9993159012929843
+    },
+    "small_talk": {
+        "threshold": 0.25,
+        "f1_score": 0.9924666624120229
+    },
+    "change_speed": {
+        "threshold": 0.16,
+        "f1_score": 0.9997759069657521
+    },
+    "user_name": {
+        "threshold": 0.19,
+        "f1_score": 0.997655066199667
+    },
+    "whisper_mode": {
+        "threshold": 0.17,
+        "f1_score": 1.0
+    },
+    "yes": {
+        "threshold": 0.09,
+        "f1_score": 0.9981917696933237
+    },
+    "change_volume": {
+        "threshold": 0.05,
+        "f1_score": 0.9993387605244287
+    },
+    "no": {
+        "threshold": 0.13,
+        "f1_score": 0.9997795868414764
+    },
+    "change_language": {
+        "threshold": 0.18,
+        "f1_score": 0.9988795348287614
+    },
+    "repeat": {
+        "threshold": 0.07,
+        "f1_score": 0.9995626742890691
+    },
+    "change_accent": {
+        "threshold": 0.11,
+        "f1_score": 0.9997795868414764
+    },
+    "cancel": {
+        "threshold": 0.17,
+        "f1_score": 0.999095884846662
+    },
+    "sync_device": {
+        "threshold": 0.19,
+        "f1_score": 1.0
+    },
+    "change_user_name": {
+        "threshold": 0.18,
+        "f1_score": 0.9953978192350286
+    },
+    "change_ai_name": {
+        "threshold": 0.12,
+        "f1_score": 0.9963306451612902
+    },
+    "reset_settings": {
+        "threshold": 0.06,
+        "f1_score": 1.0
+    },
+    "maybe": {
+        "threshold": 0.11,
+        "f1_score": 0.9995555555555555
+    },
+    "meta": {
+        "threshold": 0.3,
+        "f1_score": 0.9919436962338593
+    }
+}
