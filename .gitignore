@@ -1,6 +1,18 @@
 # Local backup snapshots — never commit
 backups/
 
+# Dev/test artefacts — local only
+STEP4_UPGRADE_SUMMARY.md
+test_dropbox_integration.py
+test_github_logging.py
+test_qualtrics_integration.py
+test_stolen_wallet.py
+setup.sh
+setup_conda.sh
+sample_study_queries.csv
+.python-version
+.gitattributes
+
 # Environment variables - NEVER commit this file
 .env
 .env.local
