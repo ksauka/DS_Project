@@ -1,3 +1,6 @@
+# Local backup snapshots — never commit
+backups/
+
 # Environment variables - NEVER commit this file
 .env
 .env.local
