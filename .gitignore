@@ -132,6 +132,8 @@ README_HUGGINGFACE.md
 docs/HUGGINGFACE_DEPLOYMENT.md
 *QUICKSTART*.md
 *SETUP*.md
+HANDBOOK.md
+HANDBOOK.tex
 
 # Temporary files
 tmp/
