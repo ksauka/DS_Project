@@ -638,8 +638,15 @@ class DSMassFunction:
         # Find top uncertain intents
         leaf_beliefs = [(leaf, belief.get(leaf, 0)) for leaf in self.hierarchy if self.is_leaf(leaf)]
         leaf_beliefs.sort(key=lambda x: x[1], reverse=True)
-        
-        if len(leaf_beliefs) >= 2:
+
+        # Only name a category when there is meaningful belief concentration.
+        # If the top leaf belief is below this threshold the model is genuinely
+        # lost and naming a parent node would actively mislead the participant.
+        _MIN_TOP_BELIEF = 0.15
+
+        top_belief_score = leaf_beliefs[0][1] if leaf_beliefs else 0.0
+
+        if len(leaf_beliefs) >= 2 and top_belief_score >= _MIN_TOP_BELIEF:
             top_intents = [intent for intent, _ in leaf_beliefs[:3]]
             
             # Find common parent for grouping
@@ -659,8 +666,9 @@ class DSMassFunction:
                     return (f"It seems like you're looking for something related to {most_common_parent}. "
                            f"Could you clarify which specific area: {', '.join(children_options)}?")
         
-        # Fallback generic question
-        return "I need more information to help you better. Could you provide more details about what you're looking for?"
+        # Fallback generic question — used when belief is spread too thinly to
+        # name a category confidently (e.g. predicted=unknown, confidence=0.0).
+        return "I want to make sure I help you with the right thing. Could you tell me a bit more about what you need, or try rephrasing your request?"
     
     def update_mass_with_clarification(self, current_mass: Dict[str, float], user_response: str) -> Dict[str, float]:
         """
