@@ -8,6 +8,7 @@ import gc
 import html
 import json
 import os
+import random
 import re
 import tempfile
 import uuid
@@ -606,18 +607,18 @@ def show_header():
     <div class="header-container">
         <h2 style="margin: 0; font-size: 2em;">Customer Service Assistant</h2>
         <p style="margin: 15px 0 8px 0; opacity: 0.95; line-height: 1.5; font-size: 1.1em;">
-            This customer service assistant responds to customer support queries. I will process each initial message (Customer Query) and ask clarifying questions if needed to improve my understanding.
+            This customer service assistant helps with customer support queries. It will process each initial message and may ask clarifying questions when needed to better understand what you mean.
         </p>
         <p style="margin: 8px 0 0 0; opacity: 0.95; line-height: 1.5; font-size: 1.1em;">
-            Please respond as a real user would — naturally and honestly, without trying to help or mislead the system.
+            Please respond as a real user would — naturally and honestly — without trying to help or mislead the system.
         </p>
         <p style="margin: 8px 0 0 0; opacity: 0.9; font-size: 1em; line-height: 1.4;">
             <strong>For each query:</strong>
         </p>
         <ul style="margin: 5px 0 0 20px; opacity: 0.9; font-size: 0.95em; line-height: 1.6; text-align: left; display: inline-block;">
-            <li>I may ask clarifying questions to better understand your needs</li>
-            <li>Once resolved, you'll validate which option best matches your intent</li>
-            <li>Then we'll proceed to the next query</li>
+            <li>The assistant may ask clarifying questions to better understand your request.</li>
+            <li>Once the query is resolved, you will be asked to confirm which option best matches what you intended.</li>
+            <li>The interaction will then continue to the next query.</li>
         </ul>
     </div>
     """, unsafe_allow_html=True)
@@ -1283,11 +1284,22 @@ def collect_query_feedback(query_index, query_text, predicted_intent, is_correct
         options.append("Neither/Other")
         option_labels.append("Neither of the above / Something else")
         
-        # User selects their actual intent
+        # Randomize the intent options once per query (stable across rerenders)
+        _shuffle_key = f"intent_order_{query_index}"
+        if _shuffle_key not in st.session_state:
+            _intent_options = list(zip(options[:-1], option_labels[:-1]))
+            random.shuffle(_intent_options)
+            st.session_state[_shuffle_key] = _intent_options
+        _shuffled = st.session_state[_shuffle_key]
+        options      = [o for o, _ in _shuffled] + ["Neither/Other"]
+        option_labels = [l for _, l in _shuffled] + ["Neither of the above / Something else"]
+
+        # User selects their actual intent — no pre-selection
         user_selected_intent = st.radio(
             "Select the option that best matches your intent:",
             options=options,
             format_func=lambda x: option_labels[options.index(x)],
+            index=None,
             key=f"user_intent_{query_index}"
         )
         
@@ -1318,32 +1330,35 @@ def collect_query_feedback(query_index, query_text, predicted_intent, is_correct
         
         # Optional comment
         comment = st.text_input(
-            "Any concerns or comments? (optional)",
-            placeholder="e.g., 'Too many clarifications needed' or 'Response was perfect'",
+            "Help us improve — share any concerns or suggestions: (optional)",
+            placeholder="e.g., 'Too many clarifying questions' or 'The response was spot on'",
             key=f"comment_{query_index}"
         )
         
         submitted = st.form_submit_button("Submit Feedback & Continue", type="primary", use_container_width=True)
         
         if submitted:
-            # Save feedback to the most recent result
-            if 'session_results' in st.session_state and st.session_state.session_results:
-                # Update the last result with feedback
-                st.session_state.session_results[-1]['user_validated_intent'] = user_selected_intent
-                st.session_state.session_results[-1]['user_agrees_with_system'] = (user_selected_intent == predicted_intent)
-                st.session_state.session_results[-1]['user_agrees_with_oracle'] = (user_selected_intent == true_intent)
-                st.session_state.session_results[-1]['feedback_clarity'] = clarity
-                st.session_state.session_results[-1]['feedback_confidence'] = confidence_rating
-                st.session_state.session_results[-1]['feedback_comment'] = comment
-                st.session_state.session_results[-1]['feedback_submitted'] = True
+            if user_selected_intent is None:
+                st.warning("Please select an option before submitting.")
+            else:
+                # Save feedback to the most recent result
+                if 'session_results' in st.session_state and st.session_state.session_results:
+                    # Update the last result with feedback
+                    st.session_state.session_results[-1]['user_validated_intent'] = user_selected_intent
+                    st.session_state.session_results[-1]['user_agrees_with_system'] = (user_selected_intent == predicted_intent)
+                    st.session_state.session_results[-1]['user_agrees_with_oracle'] = (user_selected_intent == true_intent)
+                    st.session_state.session_results[-1]['feedback_clarity'] = clarity
+                    st.session_state.session_results[-1]['feedback_confidence'] = confidence_rating
+                    st.session_state.session_results[-1]['feedback_comment'] = comment
+                    st.session_state.session_results[-1]['feedback_submitted'] = True
+                    
+                    # Log to data logger
+                    if 'data_logger' in st.session_state and st.session_state.data_logger:
+                        st.session_state.data_logger.log_query_result(st.session_state.session_results[-1])
                 
-                # Log to data logger
-                if 'data_logger' in st.session_state and st.session_state.data_logger:
-                    st.session_state.data_logger.log_query_result(st.session_state.session_results[-1])
-            
-            # Mark feedback as complete to prevent re-showing form
-            st.session_state.feedback_submitted = True
-            return True
+                # Mark feedback as complete to prevent re-showing form
+                st.session_state.feedback_submitted = True
+                return True
     
     return False
 
