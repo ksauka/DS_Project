@@ -504,26 +504,30 @@ def get_ds_system(dataset_name: str):
 def load_study_queries():
     """Load the study query set, downloading from Dropbox if not cached locally.
 
-    The active set is controlled by the STUDY_SET env variable:
-      small  → study_set_small.csv   (2 per group = 16 queries)  [default]
-      medium → study_set_medium.csv  (5 per group = 40 queries)
-      large  → study_set_large.csv   (10 per group = 80 queries)
-      full   → selected_queries_for_user_study.csv  (all merged queries)
+    Directory is controlled by STUDY_SET_DIR env variable:
+      unset / default → outputs/user_study/workflow_demo/  (original equal-split sets)
+      study_v2        → outputs/user_study/study_v2/       (75/25 b77/clinc150 sets)
 
-    CSVs are stored in Dropbox under /ds_project_queries/ and downloaded
-    on first use. Local cache at outputs/user_study/workflow_demo/ is reused
-    on subsequent runs (no re-download).
+    The active set within the directory is controlled by STUDY_SET:
+      small  → study_set_small.csv   (default)
+      medium → study_set_medium.csv
+      large  → study_set_large.csv
+      full   → selected_queries_for_user_study.csv  (workflow_demo only)
+
+    CSVs are stored in Dropbox and downloaded on first use.
+    Dropbox path mirrors the local dir name: /ds_project_queries/<dir_basename>/
     """
-    _base = 'outputs/user_study/workflow_demo'
+    _base = os.getenv('STUDY_SET_DIR', 'outputs/user_study/workflow_demo').rstrip('/')
+    _dropbox_folder = '/ds_project_queries/' + os.path.basename(_base)
     _set_name = os.getenv('STUDY_SET', 'small').strip().lower()
 
     # Map set name → (local path, Dropbox path)
     _candidates = {
-        'small':  (f'{_base}/study_set_small.csv',  '/ds_project_queries/study_set_small.csv'),
-        'medium': (f'{_base}/study_set_medium.csv', '/ds_project_queries/study_set_medium.csv'),
-        'large':  (f'{_base}/study_set_large.csv',  '/ds_project_queries/study_set_large.csv'),
+        'small':  (f'{_base}/study_set_small.csv',  f'{_dropbox_folder}/study_set_small.csv'),
+        'medium': (f'{_base}/study_set_medium.csv', f'{_dropbox_folder}/study_set_medium.csv'),
+        'large':  (f'{_base}/study_set_large.csv',  f'{_dropbox_folder}/study_set_large.csv'),
         'full':   (f'{_base}/selected_queries_for_user_study.csv',
-                   '/ds_project_queries/selected_queries_for_user_study.csv'),
+                   f'{_dropbox_folder}/selected_queries_for_user_study.csv'),
     }
 
     def _try_load(key):

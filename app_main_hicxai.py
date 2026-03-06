@@ -1,6 +1,9 @@
 """
-DS Project - HicXAI-Style Main Application
-Clean, question-driven interface for DS intent classification
+DS Project - HicXAI-Style Main Application (original setup)
+
+Loads study queries from outputs/user_study/workflow_demo/ — the original
+equal-split banking77 / clinc150 sets produced by the workflow notebook.
+Controlled by STUDY_SET env var (small / medium / large / full).
 """
 
 import streamlit as st
@@ -32,7 +35,7 @@ except ImportError as e:
     st.stop()
 
 def main():
-    """Run the simple banking assistant"""
+    """Run the simple banking assistant (original equal-split query sets)."""
     banking_main()
 
 if __name__ == "__main__":
