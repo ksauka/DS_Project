@@ -572,54 +572,77 @@ def load_study_queries():
 
 def show_header():
     """Display header with HiCXAI styling"""
+
+    query_number = st.session_state.get("current_query_index", 0) + 1
+
     st.markdown("""
     <style>
     .main { padding: 2rem 1rem; }
     .stApp { background-color: #fafafa; }
 
     .query-card {
-        background: white; border: 1px solid #e1e8ed;
-        border-radius: 10px; padding: 15px; margin: 10px 0;
+        background: white;
+        border: 1px solid #e1e8ed;
+        border-radius: 10px;
+        padding: 15px;
+        margin: 10px 0;
         box-shadow: 0 2px 4px rgba(0,0,0,0.1);
     }
+
     .query-card:hover {
-        border-color: #007bff; box-shadow: 0 4px 8px rgba(0,123,255,0.2);
+        border-color: #007bff;
+        box-shadow: 0 4px 8px rgba(0,123,255,0.2);
     }
-    .interaction-container { max-width: 100%; margin: 0 auto; }
+
+    .interaction-container {
+        max-width: 100%;
+        margin: 0 auto;
+    }
+
     .user-message {
-        background: #007bff; color: white; padding: 12px 16px;
-        border-radius: 18px 18px 4px 18px; margin: 10px 0; text-align: right;
+        background: #007bff;
+        color: white;
+        padding: 12px 16px;
+        border-radius: 18px 18px 4px 18px;
+        margin: 10px 0;
+        text-align: right;
     }
+
     .bot-message {
-        background: white; border: 1px solid #e1e8ed; padding: 12px 16px;
-        border-radius: 18px 18px 18px 4px; margin: 10px 0;
+        background: white;
+        border: 1px solid #e1e8ed;
+        padding: 12px 16px;
+        border-radius: 18px 18px 18px 4px;
+        margin: 10px 0;
         box-shadow: 0 1px 3px rgba(0,0,0,0.1);
     }
+
     .header-container {
         background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        padding: 35px 30px; border-radius: 12px; margin-bottom: 35px;
-        color: white; text-align: center;
+        padding: 35px 30px;
+        border-radius: 12px;
+        margin-bottom: 35px;
+        color: white;
+        text-align: center;
     }
     </style>
     """, unsafe_allow_html=True)
 
-    st.markdown("""
+    st.markdown(f"""
     <div class="header-container">
         <h2 style="margin: 0; font-size: 2em;">Customer Service Assistant</h2>
-        <p style="margin: 15px 0 8px 0; opacity: 0.95; line-height: 1.5; font-size: 1.1em;">
-            This customer service assistant helps with customer support queries. It will process each initial message and may ask clarifying questions when needed to better understand what you mean.
+
+        <p style="margin: 14px 0 8px 0; opacity: 0.95; line-height: 1.5; font-size: 1.08em;">
+            This assistant helps with customer support requests and may ask follow-up questions when needed.
         </p>
-        <p style="margin: 8px 0 0 0; opacity: 0.95; line-height: 1.5; font-size: 1.1em;">
-            Please respond as a real user would — naturally and honestly — without trying to help or mislead the system.
+
+        <p style="margin: 8px 0 0 0; opacity: 0.95; line-height: 1.5; font-size: 1.08em;">
+            You are the customer seeking help for <strong>Customer Query #{query_number}</strong>, shown below. Please respond as you would in a real customer service conversation.
         </p>
-        <p style="margin: 8px 0 0 0; opacity: 0.9; font-size: 1em; line-height: 1.4;">
-            <strong>For each query:</strong>
+
+        <p style="margin: 10px 0 0 0; opacity: 0.9; font-size: 0.98em; line-height: 1.45;">
+            You may exchange up to 5 messages with the assistant. If the issue is still not resolved after 5 interactions, the outcome will be marked as <strong>Unknown</strong>.
         </p>
-        <ul style="margin: 5px 0 0 20px; opacity: 0.9; font-size: 0.95em; line-height: 1.6; text-align: left; display: inline-block;">
-            <li>The assistant may ask clarifying questions to better understand your request.</li>
-            <li>Once the query is resolved, you will be asked to confirm which option best matches what you intended.</li>
-            <li>The interaction will then continue to the next query.</li>
-        </ul>
     </div>
     """, unsafe_allow_html=True)
 
@@ -812,6 +835,7 @@ def _init_session_defaults():
         'llm_temperature': float(os.getenv("TEMPERATURE", "0.6")),
         'llm_max_tokens': int(os.getenv("MAX_TOKENS", "400")),
         'llm_warning_shown': False,
+        'clarification_turns': 0,
     }
     for key, value in defaults.items():
         if key not in st.session_state:
@@ -1188,6 +1212,7 @@ def main():
                 st.session_state.result_saved = False  # Reset for next query
                 st.session_state.feedback_submitted = False  # Reset for next query
                 st.session_state.last_belief_plot = None
+                st.session_state.clarification_turns = 0  # Reset turn counter
                 gc.collect()  # Free belief plots and mass function objects
                 st.rerun()
     elif st.session_state.awaiting_clarification:
@@ -1233,16 +1258,30 @@ def main():
         # Handle clarification response (during active clarification)
         elif st.session_state.awaiting_clarification:
             st.session_state.conversation_history.append(f"User: {user_input}")
-            # Synchronous per-turn: combine user answer with accumulated mass
-            response, needs_clarification, current_mass = process_query(
-                user_input, ds_system,
-                is_initial=False,
-                previous_mass=st.session_state.current_mass
-            )
-            st.session_state.current_mass = current_mass
-            st.session_state.conversation_history.append(f"Assistant: {response}")
-            st.session_state.awaiting_clarification = needs_clarification
-            st.session_state.query_resolved = not needs_clarification
+            st.session_state.clarification_turns += 1
+
+            # Mirror notebook maximum_depth=5: give up after 5 clarification turns
+            if st.session_state.clarification_turns >= 5:
+                unresolved_msg = (
+                    "I wasn't able to determine your intent after several attempts. "
+                    "Query not resolved."
+                )
+                st.session_state.last_prediction = "unknown"
+                st.session_state.last_confidence = 0.0
+                st.session_state.conversation_history.append(f"Assistant: {unresolved_msg}")
+                st.session_state.awaiting_clarification = False
+                st.session_state.query_resolved = True
+            else:
+                # Synchronous per-turn: combine user answer with accumulated mass
+                response, needs_clarification, current_mass = process_query(
+                    user_input, ds_system,
+                    is_initial=False,
+                    previous_mass=st.session_state.current_mass
+                )
+                st.session_state.current_mass = current_mass
+                st.session_state.conversation_history.append(f"Assistant: {response}")
+                st.session_state.awaiting_clarification = needs_clarification
+                st.session_state.query_resolved = not needs_clarification
             st.rerun()
 
 def collect_query_feedback(query_index, query_text, predicted_intent, is_correct):

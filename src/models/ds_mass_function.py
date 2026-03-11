@@ -548,57 +548,63 @@ class DSMassFunction:
             logger.warning("Belief tracking is not enabled")
     
     def get_clarification_step(self, mass_function: Dict[str, float]) -> Tuple[Optional[str], Optional[str], float]:
-        """Single non-blocking step that exactly mirrors evaluate_from_leaves() logic.
+        """Single non-blocking step that exactly mirrors the notebook's evaluate_from_leaves() logic.
 
-        Replicates the same three-case decision tree used during notebook simulation so
-        the live Streamlit app produces clarifications on the same queries.
+        evaluate_from_leaves() in logistic_DS_B77.ipynb evaluates ONLY leaf nodes, so:
+          Case 1 — confident leaf nodes exist:
+            - Single → return prediction immediately
+            - Multiple → find LCA → return clarification question
+          Case 3 — no confident leaf nodes → return rephrase request
 
         Returns:
-            (question, None, 0.0)  — ask this clarification question
-            (None, intent, confidence) — single confident leaf, predict now
+            (None, intent, confidence) — single confident leaf: predict now
+            (question, None, 0.0)     — ask this clarification question
         """
+        belief = self.compute_belief(mass_function)
         leaf_nodes = [intent for intent in self.hierarchy if self.is_leaf(intent)]
-        confident_nodes, belief = self.evaluate_hierarchy(leaf_nodes, mass_function)
+        confident_nodes, _ = self.evaluate_hierarchy(leaf_nodes, mass_function)
 
         if confident_nodes:
-            # All returned nodes are leaves (we only passed leaf_nodes)
+            # --- CASE 1: Confident leaf nodes ---
             confident_leaf_nodes = [n for n in confident_nodes if self.is_leaf(n[0])]
 
             if len(confident_leaf_nodes) == 1:
-                # CASE 1 — single confident leaf → predict immediately, no clarification
                 intent, confidence = confident_leaf_nodes[0]
                 logger.info(f"get_clarification_step: single confident leaf {intent} ({confidence:.3f})")
                 return None, intent, confidence
 
             if len(confident_leaf_nodes) > 1:
-                # CASE 1b — multiple confident leaves → find LCA → ask clarification
                 lca = self.find_lowest_common_ancestor([i for i, _ in confident_leaf_nodes])
                 if lca:
                     logger.info(f"get_clarification_step: {len(confident_leaf_nodes)} confident leaves, LCA={lca}")
                     clarification_queries = self.ask_clarification([(lca, belief.get(lca, 0))], belief)
                     for parent, children in clarification_queries:
-                        question = (
+                        return (
                             f"It seems like you're looking for something related to {parent}. "
                             f"Could you clarify which specific thing you're interested in? "
                             f"Here are a few suggestions: ({children})"
-                        )
-                        return question, None, 0.0
+                        ), None, 0.0
                 else:
                     top_nodes = sorted(confident_leaf_nodes, key=lambda x: x[1], reverse=True)[:3]
                     options = [i for i, _ in top_nodes]
-                    question = (
+                    return (
                         f"There are a few things that might match: ({options}). "
                         f"Could you clarify a bit more?"
-                    )
-                    return question, None, 0.0
+                    ), None, 0.0
 
-        # CASE 3 — no confident nodes at all → ask to rephrase
-        logger.info("get_clarification_step: no confident nodes, asking to rephrase")
-        question = (
+        else:
+            # --- CASE 3: No confident leaf nodes → ask to rephrase ---
+            logger.info("get_clarification_step: no confident nodes, asking to rephrase")
+            return (
+                "I'm not entirely sure what you're asking. "
+                "Could you rephrase your question a bit?"
+            ), None, 0.0
+
+        # Fallback (should not be reached in normal operation)
+        return (
             "I'm not entirely sure what you're asking. "
             "Could you rephrase your question a bit?"
-        )
-        return question, None, 0.0
+        ), None, 0.0
 
     def should_ask_clarification(self, mass_function: Dict[str, float]) -> bool:
         """
@@ -624,51 +630,47 @@ class DSMassFunction:
         return True  # Need clarification
     
     def generate_clarification_question(self, mass_function: Dict[str, float]) -> str:
-        """
-        Generate a clarification question based on current mass function.
-        
+        """Generate a clarification question, exactly mirroring the notebook's evaluate_from_leaves() logic.
+
+        evaluate_from_leaves() evaluates ONLY leaf nodes, so:
+          Case 1b — multiple confident leaves → LCA-based question with child options
+          Case 3  — no confident leaves       → generic rephrase request
+
         Args:
             mass_function: Current mass function
-            
+
         Returns:
             Clarification question string
         """
         belief = self.compute_belief(mass_function)
-        
-        # Find top uncertain intents
-        leaf_beliefs = [(leaf, belief.get(leaf, 0)) for leaf in self.hierarchy if self.is_leaf(leaf)]
-        leaf_beliefs.sort(key=lambda x: x[1], reverse=True)
+        leaf_nodes = [intent for intent in self.hierarchy if self.is_leaf(intent)]
+        confident_nodes, _ = self.evaluate_hierarchy(leaf_nodes, mass_function)
 
-        # Only name a category when there is meaningful belief concentration.
-        # If the top leaf belief is below this threshold the model is genuinely
-        # lost and naming a parent node would actively mislead the participant.
-        _MIN_TOP_BELIEF = 0.15
+        if confident_nodes:
+            # --- CASE 1b: Multiple confident leaf nodes ---
+            confident_leaf_nodes = [n for n in confident_nodes if self.is_leaf(n[0])]
+            if len(confident_leaf_nodes) > 1:
+                lca = self.find_lowest_common_ancestor([i for i, _ in confident_leaf_nodes])
+                if lca:
+                    clarification_queries = self.ask_clarification([(lca, belief.get(lca, 0))], belief)
+                    for parent, children in clarification_queries:
+                        return (
+                            f"It seems like you're looking for something related to {parent}. "
+                            f"Could you clarify which specific thing you're interested in? "
+                            f"Here are a few suggestions: ({children})"
+                        )
+                top_nodes = sorted(confident_leaf_nodes, key=lambda x: x[1], reverse=True)[:3]
+                options = [i for i, _ in top_nodes]
+                return (
+                    f"There are a few things that might match: ({options}). "
+                    f"Could you clarify a bit more?"
+                )
 
-        top_belief_score = leaf_beliefs[0][1] if leaf_beliefs else 0.0
-
-        if len(leaf_beliefs) >= 2 and top_belief_score >= _MIN_TOP_BELIEF:
-            top_intents = [intent for intent, _ in leaf_beliefs[:3]]
-            
-            # Find common parent for grouping
-            parents = []
-            for intent in top_intents:
-                for parent, children in self.hierarchy.items():
-                    if intent in children:
-                        parents.append(parent)
-                        break
-            
-            if parents:
-                most_common_parent = max(set(parents), key=parents.count)
-                children_options = [child for child in self.hierarchy.get(most_common_parent, []) 
-                                 if child in top_intents]
-                
-                if len(children_options) > 1:
-                    return (f"It seems like you're looking for something related to {most_common_parent}. "
-                           f"Could you clarify which specific area: {', '.join(children_options)}?")
-        
-        # Fallback generic question — used when belief is spread too thinly to
-        # name a category confidently (e.g. predicted=unknown, confidence=0.0).
-        return "I want to make sure I help you with the right thing. Could you tell me a bit more about what you need, or try rephrasing your request?"
+        # --- CASE 3: No confident leaf nodes → ask to rephrase ---
+        return (
+            "I'm not entirely sure what you're asking. "
+            "Could you rephrase your question a bit?"
+        )
     
     def update_mass_with_clarification(self, current_mass: Dict[str, float], user_response: str) -> Dict[str, float]:
         """

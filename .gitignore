@@ -1,6 +1,10 @@
 # Local backup snapshots — never commit
 backups/
 
+# Markdown docs — local only
+*.md
+!README.md
+
 # Dev/test artefacts — local only
 STEP4_UPGRADE_SUMMARY.md
 test_dropbox_integration.py
