@@ -572,7 +572,6 @@ def load_study_queries():
 
 def show_header():
     """Display header with HiCXAI styling"""
-
     query_number = st.session_state.get("current_query_index", 0) + 1
 
     st.markdown("""
@@ -581,49 +580,27 @@ def show_header():
     .stApp { background-color: #fafafa; }
 
     .query-card {
-        background: white;
-        border: 1px solid #e1e8ed;
-        border-radius: 10px;
-        padding: 15px;
-        margin: 10px 0;
+        background: white; border: 1px solid #e1e8ed;
+        border-radius: 10px; padding: 15px; margin: 10px 0;
         box-shadow: 0 2px 4px rgba(0,0,0,0.1);
     }
-
     .query-card:hover {
-        border-color: #007bff;
-        box-shadow: 0 4px 8px rgba(0,123,255,0.2);
+        border-color: #007bff; box-shadow: 0 4px 8px rgba(0,123,255,0.2);
     }
-
-    .interaction-container {
-        max-width: 100%;
-        margin: 0 auto;
-    }
-
+    .interaction-container { max-width: 100%; margin: 0 auto; }
     .user-message {
-        background: #007bff;
-        color: white;
-        padding: 12px 16px;
-        border-radius: 18px 18px 4px 18px;
-        margin: 10px 0;
-        text-align: right;
+        background: #007bff; color: white; padding: 12px 16px;
+        border-radius: 18px 18px 4px 18px; margin: 10px 0; text-align: right;
     }
-
     .bot-message {
-        background: white;
-        border: 1px solid #e1e8ed;
-        padding: 12px 16px;
-        border-radius: 18px 18px 18px 4px;
-        margin: 10px 0;
+        background: white; border: 1px solid #e1e8ed; padding: 12px 16px;
+        border-radius: 18px 18px 18px 4px; margin: 10px 0;
         box-shadow: 0 1px 3px rgba(0,0,0,0.1);
     }
-
     .header-container {
         background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        padding: 35px 30px;
-        border-radius: 12px;
-        margin-bottom: 35px;
-        color: white;
-        text-align: center;
+        padding: 35px 30px; border-radius: 12px; margin-bottom: 35px;
+        color: white; text-align: center;
     }
     </style>
     """, unsafe_allow_html=True)
@@ -631,15 +608,12 @@ def show_header():
     st.markdown(f"""
     <div class="header-container">
         <h2 style="margin: 0; font-size: 2em;">Customer Service Assistant</h2>
-
         <p style="margin: 14px 0 8px 0; opacity: 0.95; line-height: 1.5; font-size: 1.08em;">
             This assistant helps with customer support requests and may ask follow-up questions when needed.
         </p>
-
         <p style="margin: 8px 0 0 0; opacity: 0.95; line-height: 1.5; font-size: 1.08em;">
             You are the customer seeking help for <strong>Customer Query #{query_number}</strong>, shown below. Please respond as you would in a real customer service conversation.
         </p>
-
         <p style="margin: 10px 0 0 0; opacity: 0.9; font-size: 0.98em; line-height: 1.45;">
             You may exchange up to 5 messages with the assistant. If the issue is still not resolved after 5 interactions, the outcome will be marked as <strong>Unknown</strong>.
         </p>
