@@ -612,7 +612,7 @@ def show_header():
             This assistant helps with customer support requests and may ask follow-up questions when needed.
         </p>
         <p style="margin: 8px 0 0 0; opacity: 0.95; line-height: 1.5; font-size: 1.08em;">
-            You are the customer seeking help for <strong style="color:#007bff;">Customer Query #{query_number}</strong>, shown below. Please respond as you would in a real customer service conversation.
+            You are the customer seeking help for <strong style="color:#000000;">Customer Query #{query_number}</strong>, shown below. Please respond as you would in a real customer service conversation.
         </p>
         <p style="margin: 10px 0 0 0; opacity: 0.9; font-size: 0.98em; line-height: 1.45;">
             You may exchange up to 5 messages with the assistant. If the issue is still not resolved after 5 interactions, the outcome will be marked as <strong>Unknown</strong>.
