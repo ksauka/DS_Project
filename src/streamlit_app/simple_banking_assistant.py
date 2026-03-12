@@ -1245,7 +1245,7 @@ def main():
                 gc.collect()
                 st.rerun()
     elif st.session_state.awaiting_clarification:
-        st.info("Please provide more information or type 'why' to understand my question.")
+        pass  # No prompt shown — the clarification question in the chat is sufficient
     
     # Chat input - for clarifications, explanations, and "why" questions
     if st.session_state.query_resolved:
