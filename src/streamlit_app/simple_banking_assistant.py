@@ -414,6 +414,13 @@ header {visibility: hidden !important;}
 [data-testid="stStatusWidget"] {display: none !important;}
 button[kind="header"] {display: none !important;}
 
+/* Hide fullscreen button (opens app without embed=true, revealing chrome) */
+[data-testid="StyledFullScreenButton"] {display: none !important;}
+button[title="View fullscreen"] {display: none !important;}
+button[aria-label="View fullscreen"] {display: none !important;}
+[class*="fullScreen"] {display: none !important;}
+[class*="FullScreen"] {display: none !important;}
+
 /* Hide footer elements - ALL variations */
 footer {visibility: hidden !important; display: none !important;}
 [data-testid="stFooter"] {display: none !important;}
@@ -532,6 +539,11 @@ section.main > div {padding-bottom: 0 !important;}
         });
     }
     
+    // Also hide fullscreen button
+    document.querySelectorAll(
+        '[data-testid="StyledFullScreenButton"], button[title="View fullscreen"], button[aria-label="View fullscreen"]'
+    ).forEach(el => el.remove());
+
     // Run immediately
     removeStreamlitBranding();
     
@@ -541,6 +553,15 @@ section.main > div {padding-bottom: 0 !important;}
     // Also run on DOM changes
     const observer = new MutationObserver(removeStreamlitBranding);
     observer.observe(document.body, { childList: true, subtree: true });
+})();
+
+// Self-enforce embed=true: if someone opens the fullscreen URL, redirect back with embed=true
+(function() {
+    if (!window.location.search.includes('embed=true')) {
+        var url = new URL(window.location.href);
+        url.searchParams.set('embed', 'true');
+        window.location.replace(url.toString());
+    }
 })();
 </script>
 """, unsafe_allow_html=True)
