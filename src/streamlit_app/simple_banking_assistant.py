@@ -847,6 +847,7 @@ def _init_session_defaults():
         'session_results': [],
         'session_id': str(uuid.uuid4())[:8],
         'query_start_time': None,
+        'session_start_time': datetime.datetime.now(),
         'result_saved': False,
         'feedback_submitted': False,
         'last_prediction': None,
@@ -901,18 +902,32 @@ def main():
         if st.session_state.session_results:
             completed = len(st.session_state.session_results)
             correct = sum(1 for r in st.session_state.session_results if r.get('is_correct', False))
-            avg_interactions = np.mean([r.get('num_clarification_turns', 0) 
+            avg_interactions = np.mean([r.get('num_clarification_turns', 0)
                                        for r in st.session_state.session_results])
-            avg_time = np.mean([r.get('interaction_time_seconds', 0) 
+            avg_time = np.mean([r.get('interaction_time_seconds', 0)
                                for r in st.session_state.session_results])
-            
-            col1, col2, col3 = st.columns(3)
+            total_session_time = (datetime.datetime.now() - st.session_state.get(
+                'session_start_time', datetime.datetime.now())).total_seconds()
+            total_mins = int(total_session_time // 60)
+            total_secs = int(total_session_time % 60)
+            avg_mins = int(avg_time // 60)
+            avg_secs = int(avg_time % 60)
+
+            col1, col2, col3, col4 = st.columns(4)
             with col1:
                 st.metric("Queries Completed", completed)
             with col2:
                 st.metric("Avg Interactions", f"{avg_interactions:.1f}")
             with col3:
-                st.metric("Avg Time (sec)", f"{avg_time:.1f}")
+                st.metric("Avg Time / Query", f"{avg_mins}m {avg_secs}s")
+            with col4:
+                st.metric("Total Session Time", f"{total_mins}m {total_secs}s")
+        else:
+            completed = 0
+            correct = 0
+            avg_interactions = 0.0
+            avg_time = 0.0
+            total_session_time = 0.0
         
         st.markdown("---")
         
@@ -977,7 +992,8 @@ def main():
                         "num_queries_completed": len(st.session_state.session_results),
                         "accuracy": correct / completed if completed > 0 else 0,
                         "avg_clarifications": avg_interactions,
-                        "avg_time_seconds": avg_time
+                        "avg_time_per_query_seconds": avg_time,
+                        "total_session_time_seconds": total_session_time
                     }
                     
                     # Log to data logger before saving to GitHub
