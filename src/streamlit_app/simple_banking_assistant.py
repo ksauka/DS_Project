@@ -405,7 +405,14 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-
+# Hide in-app fullscreen button (embed=true handles Cloud chrome; this covers the per-element button)
+st.markdown("""
+<style>
+[data-testid="StyledFullScreenButton"] {display: none !important;}
+button[title="View fullscreen"] {display: none !important;}
+button[aria-label="View fullscreen"] {display: none !important;}
+</style>
+""", unsafe_allow_html=True)
 
 
 # Module-level handle; populated by initialize_ds_systems() at startup.
