@@ -564,8 +564,8 @@ def load_study_queries():
             if _key != _set_name:
                 st.warning(
                     f"⚠️ STUDY_SET='{_set_name}' not available — loaded '{_key}' instead. "
-                    f"Upload the CSV to Dropbox (/ds_project_queries/{_set_name}.csv) or "
-                    f"run the EXPERIMENT SETS cell in the workflow notebook."
+                    f"Upload the CSV to Dropbox ({_dropbox_folder}/study_set_{_set_name}.csv) or "
+                    f"run the EXPERIMENT SETS (B77-ONLY) cell in the workflow notebook."
                 )
             print(f"[load_study_queries] Using set='{_key}' ({len(df)} queries)")
             return df
