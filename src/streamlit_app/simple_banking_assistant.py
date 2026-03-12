@@ -158,9 +158,27 @@ if st.session_state.get("_returned"):
         st.stop()
 
 # ── Prolific ID gate (optional) ───────────────────────────────────────────────
-# If no participant ID was passed in the URL, warn but proceed anyway.
+# If no participant ID was passed in the URL, show an input box but allow skipping.
 if not st.session_state.get("prolific_pid"):
-    st.warning("⚠️ No participant ID detected. Proceeding without a Prolific ID — study data may not be linkable to your survey responses.")
+    st.warning("⚠️ No participant ID detected. You can enter it below or skip to proceed without one.")
+    prolific_input = st.text_input(
+        "Prolific ID (optional):",
+        placeholder="e.g., 5f8e3c2a1b9d4e6f7a8b9c0d",
+        help="This identifier connects your app interactions to your survey responses",
+        key="prolific_id_input"
+    )
+    col1, col2 = st.columns([1, 1])
+    with col1:
+        if st.button("Continue with ID", type="primary"):
+            if prolific_input.strip():
+                st.session_state.prolific_pid = prolific_input.strip()
+                st.rerun()
+            else:
+                st.error("Please enter a Prolific ID or click 'Skip'.")
+    with col2:
+        if st.button("Skip", type="secondary"):
+            st.session_state.prolific_pid = "anonymous"
+            st.rerun()
 
 # ── 20-minute session deadline ────────────────────────────────────────────────
 if "deadline_ts" not in st.session_state:
