@@ -1645,9 +1645,11 @@ def get_ds_explanation(ds_system, explanation_type):
             text_explanation = "I asked for clarification because I noticed several similar options and wanted a bit more detail. Here are the top candidates: "
             
             if final_belief:
-                # Show top candidates WITHOUT technical details (no scores/thresholds)
-                sorted_beliefs = sorted(final_belief.items(), key=lambda x: x[1], reverse=True)[:3]
-                candidate_names = [intent for intent, _ in sorted_beliefs]
+                # Show top leaf candidates only (parent nodes have higher accumulated belief values
+                # so filtering to leaves gives the actual competing intents, not categories)
+                leaf_final = {k: v for k, v in final_belief.items() if ds_system.is_leaf(k)}
+                sorted_beliefs = sorted(leaf_final.items(), key=lambda x: x[1], reverse=True)[:3]
+                candidate_names = [intent.replace('_', ' ') for intent, _ in sorted_beliefs]
                 text_explanation += ", ".join(candidate_names) + "."
                 
                 # Reuse already-generated image (cached when prediction was made)
@@ -1670,10 +1672,15 @@ def get_ds_explanation(ds_system, explanation_type):
                     for intent, score in final_belief.items()
                     if ds_system.is_leaf(intent)
                 }
-                if leaf_beliefs:
-                    top_intent = max(leaf_beliefs.keys(), key=lambda x: leaf_beliefs[x])
-                else:
-                    top_intent = max(final_belief.keys(), key=lambda x: final_belief[x])
+                # Always use last_prediction as the authoritative intent — the belief tracker
+                # is on a cached @st.cache_resource object and may hold stale data from the
+                # previous query.  last_prediction is set explicitly by process_query() when
+                # a confident leaf is found, so it is always correct for the current query.
+                top_intent = (
+                    st.session_state.get('last_prediction')
+                    or (max(leaf_beliefs.keys(), key=lambda x: leaf_beliefs[x]) if leaf_beliefs else None)
+                    or max(final_belief.keys(), key=lambda x: final_belief[x])
+                )
                 
                 # Check if clarification ACTUALLY happened using the belief chart flag.
                 # show_belief_chart is set True inside process_query() only when the belief
@@ -1683,10 +1690,13 @@ def get_ds_explanation(ds_system, explanation_type):
                 
                 if had_clarification:
                     # Clarification happened - tell the story of the conversation
-                    # Get the candidates that were unclear initially
+                    # Get the leaf-level candidates that were unclear initially.
+                    # compute_belief() returns values for ALL nodes (parents accumulate children),
+                    # so filtering to leaves ensures we show real competing intents, not categories.
                     initial_belief = history[0][0] if history else {}
-                    sorted_initial = sorted(initial_belief.items(), key=lambda x: x[1], reverse=True)[:3]
-                    candidate_names = [intent for intent, _ in sorted_initial]
+                    initial_leaves = {k: v for k, v in initial_belief.items() if ds_system.is_leaf(k)}
+                    sorted_initial = sorted(initial_leaves.items(), key=lambda x: x[1], reverse=True)[:3]
+                    candidate_names = [intent.replace('_', ' ') for intent, _ in sorted_initial]
                     candidates_text = ", ".join(candidate_names)
 
                     # Extract actual user clarification response(s) from conversation history
@@ -1695,12 +1705,30 @@ def get_ds_explanation(ds_system, explanation_type):
                     # First user message is the original query; rest are clarification responses
                     clarification_responses = user_messages[1:] if len(user_messages) > 1 else []
 
-                    if clarification_responses:
-                        response_text = " and ".join(f'"{r}"' for r in clarification_responses)
+                    if clarification_responses and len(clarification_responses) == 1:
+                        # Single clarification round — simple narrative
                         text_explanation = (
                             f"I was a bit unsure at first — your query could have matched a few things: {candidates_text}. "
-                            f"I asked you to clarify, and your response — {response_text} — helped me understand that you want: **{top_intent.replace('_', ' ')}**. "
+                            f"I asked you to clarify, and when you responded with \"{clarification_responses[0]}\", "
+                            f"I was now sure that you meant: **{top_intent.replace('_', ' ')}**. "
                             f"You can see in the chart below how my confidence built up as we talked."
+                        )
+                    elif clarification_responses and len(clarification_responses) > 1:
+                        # Multiple clarification rounds — turn-by-turn narrative
+                        mid_parts = []
+                        for resp in clarification_responses[:-1]:
+                            mid_parts.append(
+                                f"When you responded with \"{resp}\", my confidence improved but I wasn't sure enough yet, "
+                                f"so I asked another clarification question."
+                            )
+                        final_resp = clarification_responses[-1]
+                        mid_text = " ".join(mid_parts)
+                        text_explanation = (
+                            f"I was a bit unsure at first — your query could have matched a few things: {candidates_text}. "
+                            f"I asked you to clarify. "
+                            f"{mid_text} "
+                            f"When you responded with \"{final_resp}\", I was now confident that you meant: **{top_intent.replace('_', ' ')}**. "
+                            f"You can see in the chart below how my confidence built up across each of your responses."
                         )
                     else:
                         text_explanation = (
