@@ -26,6 +26,12 @@ if project_root not in sys.path:
 # Set working directory to project root
 os.chdir(project_root)
 
+# The hicxai query CSVs live at the root of /ds_project_queries/ in Dropbox
+# (no subfolder), so override the Dropbox folder to the root directly.
+os.environ.setdefault('STUDY_SET_DIR', 'outputs/user_study/workflow_demo')
+os.environ.setdefault('STUDY_SET_DROPBOX_FOLDER', '/ds_project_queries')
+os.environ.setdefault('STUDY_SET', 'small')
+
 # Import the simple banking assistant interface
 try:
     from src.streamlit_app.simple_banking_assistant import main as banking_main

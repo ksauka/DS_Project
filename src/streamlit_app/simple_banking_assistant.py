@@ -532,7 +532,12 @@ def load_study_queries():
         or (st.secrets.get('STUDY_SET_DIR') if hasattr(st, 'secrets') else None)
         or _dir_default
     ).rstrip('/')
-    _dropbox_folder = '/ds_project_queries/' + os.path.basename(_base)
+    # Allow explicit override (e.g. when files live at Dropbox root, not a subfolder)
+    _dropbox_folder = (
+        os.getenv('STUDY_SET_DROPBOX_FOLDER')
+        or (st.secrets.get('STUDY_SET_DROPBOX_FOLDER') if hasattr(st, 'secrets') else None)
+        or ('/ds_project_queries/' + os.path.basename(_base))
+    ).rstrip('/')
     # Resolve STUDY_SET — same priority: os.environ → st.secrets → 'small'
     _set_name = (
         os.getenv('STUDY_SET')
