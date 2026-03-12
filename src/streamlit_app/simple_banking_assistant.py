@@ -1363,32 +1363,60 @@ def collect_query_feedback(query_index, query_text, predicted_intent, is_correct
         display_options = [o.replace('_', ' ') for o in intent_options]
         neither_label = "None of the above / Something else"
 
-        with st.form(f"ranking_form_{query_index}", clear_on_submit=False):
-            st.markdown("**Rank 1 — Best match to your intent:**")
-            rank1 = st.selectbox("Rank 1", options=display_options + [neither_label], index=None,
-                                  placeholder="Select…", key=f"rank1_{query_index}", label_visibility="collapsed")
-            st.markdown("**Rank 2:**")
-            rank2 = st.selectbox("Rank 2", options=display_options + [neither_label], index=None,
-                                  placeholder="Select…", key=f"rank2_{query_index}", label_visibility="collapsed")
-            st.markdown("**Rank 3:**")
-            rank3 = st.selectbox("Rank 3", options=display_options + [neither_label], index=None,
-                                  placeholder="Select…", key=f"rank3_{query_index}", label_visibility="collapsed")
-            st.markdown("**Rank 4 — Least match:**")
-            rank4 = st.selectbox("Rank 4", options=display_options + [neither_label], index=None,
-                                  placeholder="Select…", key=f"rank4_{query_index}", label_visibility="collapsed")
+        rank_labels = [
+            "**Rank 1 — Best match to your intent:**",
+            "**Rank 2:**",
+            "**Rank 3:**",
+            "**Rank 4 — Least match:**",
+        ]
 
-            submitted = st.form_submit_button("Submit Ranking", type="primary", use_container_width=True)
+        def _make_rank_on_change(rank_idx):
+            """If the newly chosen value already appears in a later rank, clear that later rank."""
+            def _cb():
+                new_val = st.session_state.get(f"rank{rank_idx + 1}_{query_index}")
+                if new_val is None:
+                    return
+                for j in range(rank_idx + 1, 4):
+                    if st.session_state.get(f"rank{j + 1}_{query_index}") == new_val:
+                        st.session_state[f"rank{j + 1}_{query_index}"] = None
+            return _cb
 
-            if submitted:
-                ranks = [rank1, rank2, rank3, rank4]
-                if None in ranks:
-                    st.warning("Please select an option for every rank before submitting.")
-                else:
-                    # Store ranking in session state for later saving
-                    st.session_state[f'user_ranking_{query_index}'] = ranks
-                    # Advance stage
-                    st.session_state.feedback_stage = 'reveal_prediction'
-                    st.rerun()
+        for i in range(4):
+            # Options for this rank = full list minus what is already chosen in ranks above
+            used = {
+                st.session_state.get(f"rank{j + 1}_{query_index}")
+                for j in range(i)
+                if st.session_state.get(f"rank{j + 1}_{query_index}") is not None
+            }
+            available = [o for o in (display_options + [neither_label]) if o not in used]
+            opts = [None] + available
+
+            # If the stored value for this rank was filtered out by a higher rank, reset it
+            cur = st.session_state.get(f"rank{i + 1}_{query_index}")
+            if cur not in opts:
+                st.session_state[f"rank{i + 1}_{query_index}"] = None
+
+            st.markdown(rank_labels[i])
+            st.selectbox(
+                f"Rank {i + 1}",
+                options=opts,
+                format_func=lambda x: "Select…" if x is None else x,
+                key=f"rank{i + 1}_{query_index}",
+                on_change=_make_rank_on_change(i),
+                label_visibility="collapsed",
+            )
+
+        sels = [st.session_state.get(f"rank{i + 1}_{query_index}") for i in range(4)]
+        all_filled = all(s is not None for s in sels)
+
+        if st.button(
+            "Submit Ranking", type="primary", use_container_width=True,
+            key=f"submit_ranking_{query_index}",
+            disabled=not all_filled,
+        ):
+            st.session_state[f'user_ranking_{query_index}'] = list(sels)
+            st.session_state.feedback_stage = 'reveal_prediction'
+            st.rerun()
         return False
 
     # ── STAGE 2: REVEAL PREDICTION ──────────────────────────────────────────
