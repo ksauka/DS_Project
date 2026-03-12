@@ -1,6 +1,7 @@
 """Dempster-Shafer mass function for hierarchical intent disambiguation."""
 
 import logging
+import random
 from typing import Dict, List, Optional, Tuple, Callable
 import numpy as np
 from .embeddings import SentenceEmbedder
@@ -355,13 +356,16 @@ class DSMassFunction:
         for parent, _ in parent_nodes:
             children = self.hierarchy.get(parent, [])
             if len(children) < 4:
-                clarification_queries.append((parent, children))
+                shuffled = list(children)
+                random.shuffle(shuffled)
+                clarification_queries.append((parent, shuffled))
             else:
                 children_with_belief = [
                     (child, belief.get(child, 0)) for child in children
                 ]
                 children_with_belief.sort(key=lambda x: x[1], reverse=True)
                 top_children = [child for child, _ in children_with_belief[:3]]
+                random.shuffle(top_children)
                 clarification_queries.append((parent, top_children))
 
         return clarification_queries
