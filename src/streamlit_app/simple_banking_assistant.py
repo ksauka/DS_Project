@@ -9,6 +9,7 @@ import os
 import random
 import re
 import tempfile
+import time
 import uuid
 from io import BytesIO
 from pathlib import Path
@@ -141,9 +142,69 @@ if "return_raw" not in st.session_state and _ret_in:
 if "prolific_pid" not in st.session_state and _prolific_pid:
     st.session_state.prolific_pid = _prolific_pid
 
+# Also try pid param as prolific_pid fallback
+if "prolific_pid" not in st.session_state and _pid_in:
+    st.session_state.prolific_pid = _pid_in
+
 # One-shot redirect latch
 if "_returned" not in st.session_state:
     st.session_state._returned = False
+
+# Handle previously latched redirect (re-render mid-redirect)
+if st.session_state.get("_returned"):
+    final = _build_final_return(done=True)
+    if final:
+        st.markdown(f'<meta http-equiv="refresh" content="0;url={final}">', unsafe_allow_html=True)
+        st.stop()
+
+# ── Prolific ID gate ──────────────────────────────────────────────────────────
+# If no participant ID was passed in the URL, demand manual entry before proceeding.
+if not st.session_state.get("prolific_pid"):
+    if st.session_state.get("return_raw"):
+        st.warning("No participant ID detected. Please enter it manually to continue.")
+    else:
+        st.info("Study environment ready. Please enter your Prolific ID to begin.")
+        st.markdown("### Study Participation")
+        st.markdown("""
+        Welcome! To participate in this study, please enter your **Prolific ID**.
+
+        You can find this in:
+        - Your Prolific dashboard (top-right corner)
+        - The study instructions page
+        - The Qualtrics survey you came from
+        """)
+
+    prolific_input = st.text_input(
+        "Prolific ID:",
+        placeholder="e.g., 5f8e3c2a1b9d4e6f7a8b9c0d",
+        help="This identifier connects your app interactions to your survey responses",
+        key="prolific_id_input"
+    )
+    if st.button("Continue to Study", type="primary"):
+        if prolific_input.strip():
+            st.session_state.prolific_pid = prolific_input.strip()
+            st.rerun()
+        else:
+            st.error("Please enter your Prolific ID to continue.")
+    st.stop()
+
+# ── 20-minute session deadline ────────────────────────────────────────────────
+if "deadline_ts" not in st.session_state:
+    st.session_state.deadline_ts = time.time() + 1200  # 20 minutes
+    st.session_state.start_time = time.time()
+
+if time.time() >= st.session_state.deadline_ts:
+    back_to_survey(done_flag=True)
+
+# ── Refresh / back-button protection ─────────────────────────────────────────
+# If the participant refreshes or uses browser Back after starting, send them
+# back to the survey instead of restarting the app.
+if "ds_agent" not in st.session_state and st.session_state.get("return_raw"):
+    if st.session_state.get("application_started", False):
+        back_to_survey(done_flag=True)
+
+# boolean flag for sticky footer / UI elements
+st.session_state.has_return_url = bool(st.session_state.get("return_raw", ""))
 
 # Store back_to_survey function in session state for access from UI
 st.session_state.back_to_survey = back_to_survey
