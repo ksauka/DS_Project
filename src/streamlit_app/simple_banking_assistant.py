@@ -400,117 +400,144 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-# Hide Streamlit branding (header, footer, GitHub icon, viewer badge, fork button)
+# Hide Streamlit branding (header, footer, GitHub icon, viewer badge)
 st.markdown("""
 <style>
-/* Header — display:none removes space entirely */
-#MainMenu {display: none !important;}
-header {display: none !important;}
+/* ===== COMPREHENSIVE STREAMLIT BRANDING REMOVAL ===== */
+
+/* Hide header elements */
+#MainMenu {visibility: hidden !important;}
+header {visibility: hidden !important;}
 [data-testid="stHeader"] {display: none !important;}
-[data-testid="stAppHeader"] {display: none !important;}
 [data-testid="stToolbar"] {display: none !important;}
-[data-testid="stToolbarActions"] {display: none !important;}
 [data-testid="stDecoration"] {display: none !important;}
 [data-testid="stStatusWidget"] {display: none !important;}
-[data-testid="stAppToolbar"] {display: none !important;}
 button[kind="header"] {display: none !important;}
-.stAppHeader {display: none !important;}
 
-/* Footer */
-footer {display: none !important;}
+/* Hide footer elements - ALL variations */
+footer {visibility: hidden !important; display: none !important;}
 [data-testid="stFooter"] {display: none !important;}
-[data-testid="stBottom"] {display: none !important;}
-[data-testid="stBottomBlockContainer"] {display: none !important;}
+footer[data-testid="stFooter"] {display: none !important;}
 div[role="contentinfo"] {display: none !important;}
+[class*="footer"] {display: none !important;}
+[class*="Footer"] {display: none !important;}
 
-/* Deploy / manage buttons */
+/* Hide deploy/manage buttons */
 [data-testid="manage-app-button"] {display: none !important;}
-[data-testid="stAppDeployButton"] {display: none !important;}
 .stAppDeployButton {display: none !important;}
 .stDeployButton {display: none !important;}
 
-/* Top padding fix after header removal */
-.stMainBlockContainer {padding-top: 1rem !important;}
-.main .block-container {padding-top: 1rem !important;}
-section.main > div.block-container {padding-top: 1rem !important;}
+/* ===== HIDE ALL CREATOR ATTRIBUTION ===== */
 
-/* Attribution / viewer badge */
+/* Text links to creator profile */
 a[href*="streamlit.io"] {display: none !important;}
 a[href*="share.streamlit.io/user"] {display: none !important;}
+a[href*="/user/ksauka"] {display: none !important;}
 a[target="_blank"][href^="https://share.streamlit.io"] {display: none !important;}
+
+/* Image/Avatar links to creator profile */
+a[href*="streamlit.io"] img {display: none !important;}
+a[href*="share.streamlit.io"] img {display: none !important;}
+a img[src*="avatar"] {display: none !important;}
+a img[src*="profile"] {display: none !important;}
+img[alt*="creator"] {display: none !important;}
+img[alt*="author"] {display: none !important;}
+
+/* Viewer badge containers and links */
 .viewerBadge_link__qRIco {display: none !important;}
 .viewerBadge_link__Ua7HT {display: none !important;}
 .viewerBadge_container__r5tak {display: none !important;}
 .viewerBadge_container__2QSob {display: none !important;}
+a.viewer-badge {display: none !important;}
 [class*="viewerBadge"] {display: none !important;}
 [class*="ViewerBadge"] {display: none !important;}
-[data-testid="AppViewerBadge"] {display: none !important;}
-[data-testid="appViewerBadge"] {display: none !important;}
-[class*="appViewerBadge"] {display: none !important;}
 
-/* Fork button injected by Streamlit Cloud */
-[data-testid="fork-button"] {display: none !important;}
-button[aria-label*="Fork"] {display: none !important;}
-button[aria-label*="fork"] {display: none !important;}
-[class*="forkButton"] {display: none !important;}
-[class*="ForkButton"] {display: none !important;}
+/* Profile/Avatar elements */
+[class*="avatar"] {display: none !important;}
+[class*="Avatar"] {display: none !important;}
+[class*="profile"] {display: none !important;}
+[class*="Profile"] {display: none !important;}
+[data-testid*="avatar"] {display: none !important;}
+[data-testid*="profile"] {display: none !important;}
 
-/* "Made with Streamlit" / cloud hosting footer */
-[data-testid="stHostingMenuButton"] {display: none !important;}
-[data-testid="stCloudFooter"] {display: none !important;}
-[class*="hostingMenu"] {display: none !important;}
-[class*="cloudFooter"] {display: none !important;}
+/* Any div containing creator attribution at bottom of page */
+div[class*="creator"] {display: none !important;}
+div[class*="author"] {display: none !important;}
+div[class*="attribution"] {display: none !important;}
 
-/* Nuclear: hide any container div holding a streamlit.io link */
+/* Catch-all: any link in bottom 100px of page pointing to streamlit.io */
+body > div:last-child a[href*="streamlit.io"] {display: none !important;}
+.main > div:last-child a[href*="streamlit.io"] {display: none !important;}
+
+/* Nuclear option: hide entire bottom-most div if it contains streamlit links */
 div:has(a[href*="streamlit.io"]) {display: none !important;}
+
+/* Disable pointer events on any remaining visible elements */
+a[href*="streamlit.io"],
+a[href*="share.streamlit.io"],
+img[src*="avatar"],
+img[src*="profile"] {
+    pointer-events: none !important;
+    cursor: default !important;
+    display: none !important;
+}
+
+/* Remove padding after footer removal */
 section.main > div {padding-bottom: 0 !important;}
+
+/* Legacy class hiding */
+.css-1v0mbdj {display: none !important;}
 </style>
+
 <script>
+// JavaScript to forcefully remove Streamlit branding (runs continuously)
 (function() {
     function removeStreamlitBranding() {
-        // Header + toolbar
-        document.querySelectorAll(
-            'header, [data-testid="stHeader"], [data-testid="stAppHeader"], ' +
-            '[data-testid="stToolbar"], [data-testid="stToolbarActions"], ' +
-            '[data-testid="stAppToolbar"], #MainMenu, .stAppHeader'
-        ).forEach(el => el.remove());
-
-        // Footer + bottom bar
-        document.querySelectorAll(
-            'footer, [data-testid="stFooter"], [data-testid="stBottom"], ' +
-            '[data-testid="stBottomBlockContainer"]'
-        ).forEach(el => el.remove());
-
-        // Viewer badge
-        document.querySelectorAll(
-            '[data-testid="AppViewerBadge"], [data-testid="appViewerBadge"], ' +
-            '[class*="viewerBadge"], [class*="ViewerBadge"], ' +
-            '[class*="appViewerBadge"], [class*="AppViewerBadge"]'
-        ).forEach(el => el.remove());
-
-        // Fork button (Streamlit Cloud hosting chrome)
-        document.querySelectorAll(
-            '[data-testid="fork-button"], [class*="forkButton"], [class*="ForkButton"]'
-        ).forEach(el => el.remove());
-        document.querySelectorAll('button').forEach(btn => {
-            const label = btn.getAttribute('aria-label') || '';
-            if (label.toLowerCase().includes('fork')) btn.remove();
+        // Remove footer elements
+        const footers = document.querySelectorAll('footer, [data-testid="stFooter"], [class*="footer"], [class*="Footer"]');
+        footers.forEach(el => el.remove());
+        
+        // Remove header elements
+        const headers = document.querySelectorAll('header, [data-testid="stHeader"], #MainMenu');
+        headers.forEach(el => el.remove());
+        
+        // Remove any links to streamlit.io
+        const streamlitLinks = document.querySelectorAll('a[href*="streamlit.io"], a[href*="share.streamlit.io"]');
+        streamlitLinks.forEach(el => el.remove());
+        
+        // Remove viewer badges
+        const badges = document.querySelectorAll('[class*="viewerBadge"], [class*="ViewerBadge"], .viewer-badge');
+        badges.forEach(el => el.remove());
+        
+        // Remove avatars and profile images
+        const avatars = document.querySelectorAll('[class*="avatar"], [class*="Avatar"], [class*="profile"], [class*="Profile"]');
+        avatars.forEach(el => {
+            // Only remove if it's in a link to streamlit
+            const parent = el.closest('a');
+            if (parent && parent.href && parent.href.includes('streamlit.io')) {
+                parent.remove();
+            }
         });
-
-        // "Made with Streamlit" cloud footer
-        document.querySelectorAll(
-            '[data-testid="stHostingMenuButton"], [data-testid="stCloudFooter"], ' +
-            '[class*="hostingMenu"], [class*="cloudFooter"]'
-        ).forEach(el => el.remove());
-
-        // Streamlit.io links — remove container div
-        document.querySelectorAll('a[href*="streamlit.io"]').forEach(link => {
-            (link.closest('div') || link).remove();
+        
+        // Remove any div that contains streamlit links
+        const allLinks = document.querySelectorAll('a[href*="streamlit.io"]');
+        allLinks.forEach(link => {
+            const container = link.closest('div');
+            if (container) {
+                container.remove();
+            }
         });
     }
+    
+    // Run immediately
     removeStreamlitBranding();
-    setInterval(removeStreamlitBranding, 300);
-    new MutationObserver(removeStreamlitBranding).observe(document.body, {childList: true, subtree: true});
+    
+    // Run every 500ms to catch dynamically added elements
+    setInterval(removeStreamlitBranding, 500);
+    
+    // Also run on DOM changes
+    const observer = new MutationObserver(removeStreamlitBranding);
+    observer.observe(document.body, { childList: true, subtree: true });
 })();
 </script>
 """, unsafe_allow_html=True)
