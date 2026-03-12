@@ -1247,13 +1247,11 @@ def main():
     elif st.session_state.awaiting_clarification:
         pass  # No prompt shown — the clarification question in the chat is sufficient
     
-    # Chat input - for clarifications, explanations, and "why" questions
+    # Chat input — only shown during active clarification, hidden once query is resolved
     if st.session_state.query_resolved:
-        placeholder = "Type here (use the feedback form below to proceed)"
+        user_input = None
     else:
-        placeholder = "Type your response here..."
-    
-    user_input = st.chat_input(placeholder, key=f"chat_{st.session_state.current_query_index}")
+        user_input = st.chat_input("Type your response here...", key=f"chat_{st.session_state.current_query_index}")
     
     if user_input:
         user_input_lower = user_input.lower().strip()
@@ -1276,11 +1274,6 @@ def main():
                 st.info("Use the 'Why was this predicted?' button in the feedback section below.")
                 st.rerun()
 
-        # When resolved, all non-why input is ignored (feedback form handles advancing)
-        elif st.session_state.query_resolved:
-            st.info("Please use the feedback form below to continue.")
-            st.rerun()
-        
         # Handle clarification response (during active clarification)
         elif st.session_state.awaiting_clarification:
             st.session_state.conversation_history.append(f"User: {user_input}")
@@ -1466,7 +1459,7 @@ def collect_query_feedback(query_index, query_text, predicted_intent, is_correct
         st.markdown("---")
         st.markdown("You can now ask why this intent was predicted.")
 
-        col_btn, col_txt = st.columns([1, 2])
+        col_btn, col_txt, col_next = st.columns([1, 2, 1])
         with col_btn:
             if st.button("Why was this predicted?", type="primary", key=f"why_btn_{query_index}"):
                 st.session_state.feedback_stage = 'explanation_requested'
@@ -1481,6 +1474,10 @@ def collect_query_feedback(query_index, query_text, predicted_intent, is_correct
             if why_text:
                 st.session_state[f'why_question_{query_index}'] = why_text
                 st.session_state.feedback_stage = 'explanation_requested'
+                st.rerun()
+        with col_next:
+            if st.button("Next →", key=f"skip_why_{query_index}", use_container_width=True):
+                st.session_state.feedback_stage = 'ranking'
                 st.rerun()
         return False
 
