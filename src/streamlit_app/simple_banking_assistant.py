@@ -741,12 +741,7 @@ def process_query(query_text, ds_system, is_initial=True, previous_mass=None):
             st.session_state.last_belief_plot = None
             st.session_state.show_belief_chart = False
 
-        response = f"I believe you need help with **{pred_intent}**."
-        response = _humanize_response(
-            response,
-            response_type="prediction",
-            context={"intent": pred_intent}
-        )
+        response = "Thank you for the information. I have now reviewed your request and made a prediction."
         return response, False, combined_mass
 
     except Exception as e:
@@ -810,6 +805,7 @@ def _init_session_defaults():
         'llm_max_tokens': int(os.getenv("MAX_TOKENS", "400")),
         'llm_warning_shown': False,
         'clarification_turns': 0,
+        'feedback_stage': 'ranking',
     }
     for key, value in defaults.items():
         if key not in st.session_state:
@@ -1129,8 +1125,9 @@ def main():
     if st.session_state.get('_viz_error'):
         st.error(st.session_state.pop('_viz_error'))
 
-    # Display belief progression (only shown when clarification happened → 2+ turns)
-    if st.session_state.get('last_belief_plot'):
+    # Belief progression chart is shown inside the feedback stages (after user asks why)
+    # Only show it during active clarification turns (not once resolved)
+    if st.session_state.get('last_belief_plot') and not st.session_state.get('query_resolved', False):
         st.markdown("### Belief Progression")
         _img_bytes = st.session_state['last_belief_plot']
         st.image(BytesIO(_img_bytes), caption="Top 5 Intents Over Time", width=520)
@@ -1148,31 +1145,21 @@ def main():
         true_intent = current_query.get('true_intent', '')
         is_correct = (predicted_intent == true_intent)
 
-        # Count how many clarification turns actually happened
-        _turns = len([m for m in st.session_state.conversation_history
-                      if m.startswith('Assistant:')]) - 1  # subtract the final prediction
-        if _turns <= 0:
-            # Immediately confident — make the prediction visible
-            st.info(
-                f"The assistant was immediately confident: "
-                f"**{predicted_intent.replace('_', ' ')}**. "
-                f"No clarification was needed."
-            )
-        
         # Save result to session_results ONCE when query first resolves
         if not st.session_state.get('result_saved', False):
             save_result_to_session(current_query, ds_system, predicted_intent, is_correct)
             st.session_state.result_saved = True
-        
+
         # Show feedback form on every render (until feedback is submitted)
         if not st.session_state.get('feedback_submitted', False):
             feedback_submitted = collect_query_feedback(
                 st.session_state.current_query_index,
                 current_query['query'],
                 predicted_intent,
-                is_correct
+                is_correct,
+                ds_system
             )
-            
+
             if feedback_submitted:
                 # Move to next query
                 st.session_state.current_query_index += 1
@@ -1183,18 +1170,19 @@ def main():
                 st.session_state.current_mass = None
                 st.session_state.query_resolved = False
                 st.session_state.query_start_time = None
-                st.session_state.result_saved = False  # Reset for next query
-                st.session_state.feedback_submitted = False  # Reset for next query
+                st.session_state.result_saved = False
+                st.session_state.feedback_submitted = False
                 st.session_state.last_belief_plot = None
-                st.session_state.clarification_turns = 0  # Reset turn counter
-                gc.collect()  # Free belief plots and mass function objects
+                st.session_state.clarification_turns = 0
+                st.session_state.feedback_stage = 'ranking'  # Reset for next query
+                gc.collect()
                 st.rerun()
     elif st.session_state.awaiting_clarification:
         st.info("Please provide more information or type 'why' to understand my question.")
     
     # Chat input - for clarifications, explanations, and "why" questions
     if st.session_state.query_resolved:
-        placeholder = "Type 'why' to see my reasoning, then submit feedback below..."
+        placeholder = "Type here (use the feedback form below to proceed)"
     else:
         placeholder = "Type your response or ask 'why?'"
     
@@ -1205,28 +1193,25 @@ def main():
         
         # Handle "why" questions (allowed during clarification AND after resolution)
         if 'why' in user_input_lower or 'how did you' in user_input_lower or 'explain' in user_input_lower:
-            st.session_state.conversation_history.append(f"User: {user_input}")
-            
-            # Log why question
-            if 'data_logger' in st.session_state and st.session_state.data_logger:
-                st.session_state.data_logger.log_why_question()
-            
+            # During active clarification: explain inline as before
             if st.session_state.awaiting_clarification:
-                explanation, belief_plot, confidence_plot = get_ds_explanation(ds_system, "clarification")
+                st.session_state.conversation_history.append(f"User: {user_input}")
+                if 'data_logger' in st.session_state and st.session_state.data_logger:
+                    st.session_state.data_logger.log_why_question()
+                explanation, belief_plot, _ = get_ds_explanation(ds_system, "clarification")
+                explanation = _humanize_response(explanation, response_type="explanation",
+                                                  context={"explanation_type": "clarification"})
+                st.session_state.conversation_history.append(f"Assistant: {explanation}")
+                st.session_state.last_belief_plot = belief_plot
+                st.rerun()
             else:
-                explanation, belief_plot, confidence_plot = get_ds_explanation(ds_system, "decision")
-            explanation = _humanize_response(
-                explanation,
-                response_type="explanation",
-                context={"explanation_type": "clarification" if st.session_state.awaiting_clarification else "decision"}
-            )
-            st.session_state.conversation_history.append(f"Assistant: {explanation}")
-            st.session_state.last_belief_plot = belief_plot
-            st.rerun()
+                # Query resolved — explanation is handled in feedback stage 3
+                st.info("Use the 'Why was this predicted?' button in the feedback section below.")
+                st.rerun()
 
-        # When resolved, only "why" is allowed (feedback form handles advancing)
+        # When resolved, all non-why input is ignored (feedback form handles advancing)
         elif st.session_state.query_resolved:
-            st.info("Query is resolved. Type 'why' to see reasoning, then use the feedback form below to continue.")
+            st.info("Please use the feedback form below to continue.")
             st.rerun()
         
         # Handle clarification response (during active clarification)
@@ -1258,121 +1243,231 @@ def main():
                 st.session_state.query_resolved = not needs_clarification
             st.rerun()
 
-def collect_query_feedback(query_index, query_text, predicted_intent, is_correct):
-    """Collect per-query feedback after resolution - includes user intent validation"""
-    st.markdown("---")
-    st.markdown(f"### Session Feedback - Query {query_index + 1}")
-    
-    # Get true intent from query data
+def _build_ranked_options(query_index, predicted_intent, true_intent, ds_system):
+    """Build the 4 intent options from DS belief ranking, shuffled once per query.
+
+    Case A (predicted == oracle): top 4 by belief score.
+    Case B (predicted != oracle):  predicted + oracle + next 2 by belief score.
+    Returns a stable shuffled list of 4 intent strings (no Neither — appended at display time).
+    """
+    _key = f"ranked_options_{query_index}"
+    if _key in st.session_state:
+        return st.session_state[_key]
+
+    # Derive full belief ranking from the accumulated mass function
+    ranked = []
+    combined_mass = st.session_state.get('current_mass')
+    if combined_mass is not None and ds_system is not None:
+        try:
+            belief = ds_system.compute_belief(combined_mass)
+            leaf_beliefs = [
+                (intent, score) for intent, score in belief.items()
+                if ds_system.is_leaf(intent)
+            ]
+            leaf_beliefs.sort(key=lambda x: x[1], reverse=True)
+            ranked = [intent for intent, _ in leaf_beliefs]
+        except Exception:
+            pass
+
+    # Fallback: if belief ranking unavailable, use predicted + oracle only
+    if not ranked:
+        ranked = [predicted_intent] if predicted_intent != 'unknown' else []
+
+    if predicted_intent != 'unknown' and predicted_intent == true_intent:
+        # Case A: top 4 from belief ranking
+        options = [r for r in ranked if r][:4]
+    else:
+        # Case B: predicted + oracle, then fill to 4 from remaining ranked
+        fixed = []
+        if predicted_intent != 'unknown':
+            fixed.append(predicted_intent)
+        if true_intent not in ('unknown', '') and true_intent != predicted_intent:
+            fixed.append(true_intent)
+        extras = [r for r in ranked if r not in fixed]
+        options = (fixed + extras)[:4]
+
+    # Pad with intent names from hierarchy if we still have fewer than 4
+    if len(options) < 4 and ds_system is not None:
+        try:
+            leaves = [i for i in ds_system.hierarchy if ds_system.is_leaf(i) and i not in options]
+            options += leaves[:4 - len(options)]
+        except Exception:
+            pass
+
+    # Shuffle once per query for unbiased display
+    shuffled = options[:]
+    random.shuffle(shuffled)
+    st.session_state[_key] = shuffled
+    return shuffled
+
+
+def collect_query_feedback(query_index, query_text, predicted_intent, is_correct, ds_system):
+    """Collect per-query feedback in 3 sequential stages.
+
+    Stage 1 — ranking:             User ranks 4 intents (blind — no prediction revealed)
+    Stage 2 — reveal_prediction:   System prediction shown; user can ask why
+    Stage 3 — explanation_requested: Explanation + belief chart + ratings form → Submit & Continue
+    """
     queries_df = load_study_queries()
     true_intent = queries_df.iloc[query_index]['true_intent'] if query_index < len(queries_df) else 'unknown'
-    
-    st.markdown(f"**Your query was:** \"{query_text}\"")
-    st.markdown("")
-    
-    with st.form(f"feedback_query_{query_index}", clear_on_submit=True):
-        # H7 Testing: User validates their actual intent (unbiased)
-        st.markdown("##### Which option best matches what you wanted (intent)?")
-        
-        # Create unbiased options without system labels
-        options = []
-        option_labels = []
-        
-        # Check if system and oracle agree
-        if predicted_intent != 'unknown' and predicted_intent == true_intent:
-            # Both systems agree - show single option
-            options.append(predicted_intent)
-            option_labels.append(predicted_intent)
-        else:
-            # Different intents - show both without identifying source
-            if predicted_intent != 'unknown':
-                options.append(predicted_intent)
-                option_labels.append(predicted_intent)
-            
-            if true_intent != 'unknown' and true_intent != predicted_intent:
-                options.append(true_intent)
-                option_labels.append(true_intent)
-        
-        # Add "Neither" option
-        options.append("Neither/Other")
-        option_labels.append("Neither of the above / Something else")
-        
-        # Randomize the intent options once per query (stable across rerenders)
-        _shuffle_key = f"intent_order_{query_index}"
-        if _shuffle_key not in st.session_state:
-            _intent_options = list(zip(options[:-1], option_labels[:-1]))
-            random.shuffle(_intent_options)
-            st.session_state[_shuffle_key] = _intent_options
-        _shuffled = st.session_state[_shuffle_key]
-        options      = [o for o, _ in _shuffled] + ["Neither/Other"]
-        option_labels = [l for _, l in _shuffled] + ["Neither of the above / Something else"]
 
-        # User selects their actual intent — no pre-selection
-        user_selected_intent = st.radio(
-            "Select the option that best matches your intent:",
-            options=options,
-            format_func=lambda x: option_labels[options.index(x)],
-            index=None,
-            key=f"user_intent_{query_index}"
+    stage = st.session_state.get('feedback_stage', 'ranking')
+
+    # ── STAGE 1: RANKING ────────────────────────────────────────────────────
+    if stage == 'ranking':
+        st.markdown("---")
+        st.info(
+            "This conversation has now ended. "
+            "The assistant has made a prediction about your intended customer issue. "
+            "Please rank the intent options below based on how closely they match what you meant."
         )
-        
+
+        st.markdown("### Rank the intent options")
+        st.markdown(
+            "Rank the four options from **best match** to **least match** "
+            "based on your intended meaning in the conversation."
+        )
+        st.caption("Please base your ranking on what you meant, not on what you think the system selected.")
+
+        intent_options = _build_ranked_options(query_index, predicted_intent, true_intent, ds_system)
+        display_options = [o.replace('_', ' ') for o in intent_options]
+        neither_label = "None of the above / Something else"
+
+        with st.form(f"ranking_form_{query_index}", clear_on_submit=False):
+            st.markdown("**Rank 1 — Best match to your intent:**")
+            rank1 = st.selectbox("Rank 1", options=display_options + [neither_label], index=None,
+                                  placeholder="Select…", key=f"rank1_{query_index}", label_visibility="collapsed")
+            st.markdown("**Rank 2:**")
+            rank2 = st.selectbox("Rank 2", options=display_options + [neither_label], index=None,
+                                  placeholder="Select…", key=f"rank2_{query_index}", label_visibility="collapsed")
+            st.markdown("**Rank 3:**")
+            rank3 = st.selectbox("Rank 3", options=display_options + [neither_label], index=None,
+                                  placeholder="Select…", key=f"rank3_{query_index}", label_visibility="collapsed")
+            st.markdown("**Rank 4 — Least match:**")
+            rank4 = st.selectbox("Rank 4", options=display_options + [neither_label], index=None,
+                                  placeholder="Select…", key=f"rank4_{query_index}", label_visibility="collapsed")
+
+            submitted = st.form_submit_button("Submit Ranking", type="primary", use_container_width=True)
+
+            if submitted:
+                ranks = [rank1, rank2, rank3, rank4]
+                if None in ranks:
+                    st.warning("Please select an option for every rank before submitting.")
+                else:
+                    # Store ranking in session state for later saving
+                    st.session_state[f'user_ranking_{query_index}'] = ranks
+                    # Advance stage
+                    st.session_state.feedback_stage = 'reveal_prediction'
+                    st.rerun()
+        return False
+
+    # ── STAGE 2: REVEAL PREDICTION ──────────────────────────────────────────
+    if stage == 'reveal_prediction':
+        st.markdown("---")
+        st.markdown("### System prediction")
+        st.markdown("Thank you. Based on the conversation, the system predicted the following intent:")
+        st.markdown(
+            f"**Predicted intent:** `{predicted_intent.replace('_', ' ')}`"
+        )
+        st.markdown("---")
+        st.markdown("You can now ask why this intent was predicted.")
+
+        col_btn, col_txt = st.columns([1, 2])
+        with col_btn:
+            if st.button("Why was this predicted?", type="primary", key=f"why_btn_{query_index}"):
+                st.session_state.feedback_stage = 'explanation_requested'
+                st.rerun()
+        with col_txt:
+            why_text = st.text_input(
+                "Or type a question about the prediction",
+                placeholder="e.g. Why was this intent chosen?",
+                key=f"why_text_{query_index}",
+                label_visibility="collapsed"
+            )
+            if why_text:
+                st.session_state[f'why_question_{query_index}'] = why_text
+                st.session_state.feedback_stage = 'explanation_requested'
+                st.rerun()
+        return False
+
+    # ── STAGE 3: EXPLANATION + RATINGS ──────────────────────────────────────
+    if stage == 'explanation_requested':
+        st.markdown("---")
+        st.markdown("### Explanation of the prediction")
+
+        # Generate and show explanation
+        explanation, belief_plot, _ = get_ds_explanation(ds_system, "decision")
+        explanation = _humanize_response(
+            explanation,
+            response_type="explanation",
+            context={"explanation_type": "decision"}
+        )
+        st.markdown(explanation)
+
+        # Belief progression chart
+        if belief_plot is None:
+            belief_plot = st.session_state.get('last_belief_plot')
+        if belief_plot is None:
+            belief_plot = generate_belief_visualization(ds_system, "Belief Progression")
+        if belief_plot:
+            st.markdown("The chart below shows how the system's confidence changed during the interaction.")
+            st.image(BytesIO(belief_plot), caption="Belief Progression", width=520)
+            with st.expander("View large chart", expanded=False):
+                st.image(BytesIO(belief_plot), caption="Belief Progression (Large)", width=1100)
+
         st.markdown("---")
         st.markdown("##### Rate the interaction:")
-        
-        col1, col2 = st.columns(2)
-        
-        with col1:
-            clarity = st.select_slider(
-                "Was the assistant's response clear?",
-                options=[1, 2, 3, 4, 5],
-                value=3,
-                format_func=lambda x: "⭐" * x,
-                key=f"clarity_{query_index}",
-                help="1=Very unclear, 5=Very clear"
+
+        with st.form(f"ratings_form_{query_index}", clear_on_submit=True):
+            col1, col2 = st.columns(2)
+            with col1:
+                clarity = st.select_slider(
+                    "Was the assistant's response clear?",
+                    options=[1, 2, 3, 4, 5],
+                    value=3,
+                    format_func=lambda x: "⭐" * x,
+                    key=f"clarity_{query_index}",
+                    help="1=Very unclear, 5=Very clear"
+                )
+            with col2:
+                confidence_rating = st.select_slider(
+                    "How confident are you in the result?",
+                    options=[1, 2, 3, 4, 5],
+                    value=3,
+                    format_func=lambda x: "⭐" * x,
+                    key=f"confidence_rating_{query_index}",
+                    help="1=Not confident, 5=Very confident"
+                )
+            comment = st.text_input(
+                "Any comments or suggestions? (optional)",
+                placeholder="e.g. 'Too many clarifying questions' or 'The response was spot on'",
+                key=f"comment_{query_index}"
             )
-        
-        with col2:
-            confidence_rating = st.select_slider(
-                "How confident are you in the result?",
-                options=[1, 2, 3, 4, 5],
-                value=3,
-                format_func=lambda x: "⭐" * x,
-                key=f"confidence_rating_{query_index}",
-                help="1=Not confident, 5=Very confident"
-            )
-        
-        # Optional comment
-        comment = st.text_input(
-            "Help us improve — share any concerns or suggestions: (optional)",
-            placeholder="e.g., 'Too many clarifying questions' or 'The response was spot on'",
-            key=f"comment_{query_index}"
-        )
-        
-        submitted = st.form_submit_button("Submit Feedback & Continue", type="primary", use_container_width=True)
-        
-        if submitted:
-            if user_selected_intent is None:
-                st.warning("Please select an option before submitting.")
-            else:
-                # Save feedback to the most recent result
+            submitted = st.form_submit_button("Submit & Continue", type="primary", use_container_width=True)
+
+            if submitted:
+                ranks = st.session_state.get(f'user_ranking_{query_index}', [None, None, None, None])
+                # top-ranked intent (rank 1) is the user's best match
+                user_top_intent_display = ranks[0] if ranks else None
+                # convert display label back to underscore form for matching
+                user_top_intent = user_top_intent_display.replace(' ', '_') if user_top_intent_display else None
+
                 if 'session_results' in st.session_state and st.session_state.session_results:
-                    # Update the last result with feedback
-                    st.session_state.session_results[-1]['user_validated_intent'] = user_selected_intent
-                    st.session_state.session_results[-1]['user_agrees_with_system'] = (user_selected_intent == predicted_intent)
-                    st.session_state.session_results[-1]['user_agrees_with_oracle'] = (user_selected_intent == true_intent)
-                    st.session_state.session_results[-1]['feedback_clarity'] = clarity
-                    st.session_state.session_results[-1]['feedback_confidence'] = confidence_rating
-                    st.session_state.session_results[-1]['feedback_comment'] = comment
-                    st.session_state.session_results[-1]['feedback_submitted'] = True
-                    
-                    # Log to data logger
+                    last = st.session_state.session_results[-1]
+                    last['user_ranking'] = ranks
+                    last['user_validated_intent'] = user_top_intent
+                    last['user_agrees_with_system'] = (user_top_intent == predicted_intent)
+                    last['user_agrees_with_oracle'] = (user_top_intent == true_intent)
+                    last['feedback_clarity'] = clarity
+                    last['feedback_confidence'] = confidence_rating
+                    last['feedback_comment'] = comment
+                    last['feedback_submitted'] = True
                     if 'data_logger' in st.session_state and st.session_state.data_logger:
-                        st.session_state.data_logger.log_query_result(st.session_state.session_results[-1])
-                
-                # Mark feedback as complete to prevent re-showing form
+                        st.session_state.data_logger.log_query_result(last)
+
                 st.session_state.feedback_submitted = True
                 return True
-    
+
     return False
 
 def save_result_to_session(query_row, ds_system, predicted_intent, is_correct):
@@ -1431,6 +1526,7 @@ def _create_result_dict(
         'llm_confidence': query_row.get('confidence', 0.0),
         'llm_was_correct': query_row.get('is_correct', False),
         'user_validated_intent': None,
+        'user_ranking': None,
         'user_agrees_with_system': None,
         'user_agrees_with_oracle': None,
         'feedback_clarity': None,
