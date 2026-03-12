@@ -551,7 +551,7 @@ class DSMassFunction:
         else:
             logger.warning("Belief tracking is not enabled")
     
-    def get_clarification_step(self, mass_function: Dict[str, float]) -> Tuple[Optional[str], Optional[str], float]:
+    def get_clarification_step(self, mass_function: Dict[str, float]) -> Tuple[Optional[str], List[str], Optional[str], float]:
         """Single non-blocking step that exactly mirrors the notebook's evaluate_from_leaves() logic.
 
         evaluate_from_leaves() in logistic_DS_B77.ipynb evaluates ONLY leaf nodes, so:
@@ -561,8 +561,8 @@ class DSMassFunction:
           Case 3 — no confident leaf nodes → return rephrase request
 
         Returns:
-            (None, intent, confidence) — single confident leaf: predict now
-            (question, None, 0.0)     — ask this clarification question
+            (None, [], intent, confidence)       — single confident leaf: predict now
+            (question, options_list, None, 0.0)  — ask this clarification question
         """
         belief = self.compute_belief(mass_function)
         leaf_nodes = [intent for intent in self.hierarchy if self.is_leaf(intent)]
@@ -575,7 +575,7 @@ class DSMassFunction:
             if len(confident_leaf_nodes) == 1:
                 intent, confidence = confident_leaf_nodes[0]
                 logger.info(f"get_clarification_step: single confident leaf {intent} ({confidence:.3f})")
-                return None, intent, confidence
+                return None, [], intent, confidence
 
             if len(confident_leaf_nodes) > 1:
                 lca = self.find_lowest_common_ancestor([i for i, _ in confident_leaf_nodes])
@@ -585,16 +585,15 @@ class DSMassFunction:
                     for parent, children in clarification_queries:
                         return (
                             f"It seems like you're looking for something related to {parent}. "
-                            f"Could you clarify which specific thing you're interested in? "
-                            f"Here are a few suggestions: ({children})"
-                        ), None, 0.0
+                            f"Could you clarify which specific thing you're interested in?"
+                        ), children, None, 0.0
                 else:
                     top_nodes = sorted(confident_leaf_nodes, key=lambda x: x[1], reverse=True)[:3]
                     options = [i for i, _ in top_nodes]
                     return (
-                        f"There are a few things that might match: ({options}). "
+                        f"There are a few things that might match. "
                         f"Could you clarify a bit more?"
-                    ), None, 0.0
+                    ), options, None, 0.0
 
         else:
             # --- CASE 3: No confident leaf nodes → ask to rephrase ---
@@ -602,13 +601,13 @@ class DSMassFunction:
             return (
                 "I'm not entirely sure what you're asking. "
                 "Could you rephrase your question a bit?"
-            ), None, 0.0
+            ), [], None, 0.0
 
         # Fallback (should not be reached in normal operation)
         return (
             "I'm not entirely sure what you're asking. "
             "Could you rephrase your question a bit?"
-        ), None, 0.0
+        ), [], None, 0.0
 
     def should_ask_clarification(self, mass_function: Dict[str, float]) -> bool:
         """
@@ -633,7 +632,7 @@ class DSMassFunction:
         
         return True  # Need clarification
     
-    def generate_clarification_question(self, mass_function: Dict[str, float]) -> str:
+    def generate_clarification_question(self, mass_function: Dict[str, float]) -> Tuple[str, List[str]]:
         """Generate a clarification question, exactly mirroring the notebook's evaluate_from_leaves() logic.
 
         evaluate_from_leaves() evaluates ONLY leaf nodes, so:
@@ -644,7 +643,7 @@ class DSMassFunction:
             mass_function: Current mass function
 
         Returns:
-            Clarification question string
+            (question_str, options_list) where options_list is empty for rephrase requests
         """
         belief = self.compute_belief(mass_function)
         leaf_nodes = [intent for intent in self.hierarchy if self.is_leaf(intent)]
@@ -660,21 +659,20 @@ class DSMassFunction:
                     for parent, children in clarification_queries:
                         return (
                             f"It seems like you're looking for something related to {parent}. "
-                            f"Could you clarify which specific thing you're interested in? "
-                            f"Here are a few suggestions: ({children})"
-                        )
+                            f"Could you clarify which specific thing you're interested in?"
+                        ), children
                 top_nodes = sorted(confident_leaf_nodes, key=lambda x: x[1], reverse=True)[:3]
                 options = [i for i, _ in top_nodes]
                 return (
-                    f"There are a few things that might match: ({options}). "
+                    f"There are a few things that might match. "
                     f"Could you clarify a bit more?"
-                )
+                ), options
 
         # --- CASE 3: No confident leaf nodes → ask to rephrase ---
         return (
             "I'm not entirely sure what you're asking. "
             "Could you rephrase your question a bit?"
-        )
+        ), []
     
     def update_mass_with_clarification(self, current_mass: Dict[str, float], user_response: str) -> Dict[str, float]:
         """

@@ -216,24 +216,8 @@ def _test_llm_connection() -> Tuple[bool, str]:
         return False, f"LLM test failed: {str(e)}"
 
 
-def _extract_raw_options(text: str) -> list:
-    """Extract the raw intent option names from a DS clarification string.
 
-    E.g. "There are a few things: (['card_linking', 'getting_spare_card']). Could you clarify?"
-    → ['card_linking', 'getting_spare_card']
-    """
-    import re
-    # Match content inside ([ ... ]) or [ ... ]
-    m = re.search(r"\[([^\]]+)\]", text)
-    if not m:
-        return []
-    raw = m.group(1)
-    # Extract individual quoted strings or bare words
-    items = re.findall(r"['\"]?([a-zA-Z0-9_]+)['\"]?", raw)
-    return [i for i in items if i]
-
-
-def _humanize_response(text: str, response_type: str, context: Optional[Dict[str, str]] = None) -> str:
+def _humanize_response(text: str, response_type: str, context: Optional[Dict[str, str]] = None, options: list = None) -> str:
     """Optionally rewrite responses with LLM for a more natural tone."""
     if not text:
         return text
@@ -256,10 +240,9 @@ def _humanize_response(text: str, response_type: str, context: Optional[Dict[str
     )
 
     if response_type == "clarification":
-        # Extract the intent options before sending anything to the LLM.
-        # The LLM only writes the intro sentence; we always append the options
-        # ourselves so they can never be dropped or rewritten.
-        options = _extract_raw_options(text)
+        # Options are passed in directly as a structured list — never parsed from text.
+        if options is None:
+            options = []
 
         if not options:
             # CASE 3: no confident nodes — DS asked user to rephrase, no option list.
@@ -771,14 +754,14 @@ def process_query(query_text, ds_system, is_initial=True, previous_mass=None):
         # Case 1a (single confident leaf)  → (None, intent, confidence) → predict
         # Case 1b (multiple confident)     → (question, None, 0.0)      → ask
         # Case 3  (no confident nodes)     → (question, None, 0.0)      → rephrase
-        clarification_q, pred_intent_direct, confidence_direct = ds_system.get_clarification_step(combined_mass)
+        clarification_q, options, pred_intent_direct, confidence_direct = ds_system.get_clarification_step(combined_mass)
 
         if clarification_q is not None:
             clarification = clarification_q
             if not clarification.endswith("?"):
                 clarification += "?"
             clarification += " Or feel free to describe what you need in your own words."
-            clarification = _humanize_response(clarification, response_type="clarification", context={})
+            clarification = _humanize_response(clarification, response_type="clarification", context={}, options=options)
             return clarification, True, combined_mass
 
         # Confident prediction (Case 1a) — use values already returned by get_clarification_step
