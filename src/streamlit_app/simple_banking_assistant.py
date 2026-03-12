@@ -1477,34 +1477,38 @@ def collect_query_feedback(query_index, query_text, predicted_intent, is_correct
                 st.rerun()
         with col_next:
             if st.button("Next →", key=f"skip_why_{query_index}", use_container_width=True):
-                st.session_state.feedback_stage = 'ranking'
+                st.session_state[f'skipped_explanation_{query_index}'] = True
+                st.session_state.feedback_stage = 'explanation_requested'
                 st.rerun()
         return False
 
     # ── STAGE 3: EXPLANATION + RATINGS ──────────────────────────────────────
     if stage == 'explanation_requested':
         st.markdown("---")
-        st.markdown("### Explanation of the prediction")
 
-        # Generate and show explanation
-        explanation, belief_plot, _ = get_ds_explanation(ds_system, "decision")
-        explanation = _humanize_response(
-            explanation,
-            response_type="explanation",
-            context={"explanation_type": "decision"}
-        )
-        st.markdown(explanation)
+        skipped = st.session_state.get(f'skipped_explanation_{query_index}', False)
+        if not skipped:
+            st.markdown("### Explanation of the prediction")
 
-        # Belief progression chart
-        if belief_plot is None:
-            belief_plot = st.session_state.get('last_belief_plot')
-        if belief_plot is None:
-            belief_plot = generate_belief_visualization(ds_system, "Belief Progression")
-        if belief_plot:
-            st.markdown("The chart below shows how the system's confidence changed during the interaction.")
-            st.image(BytesIO(belief_plot), caption="Belief Progression", width=520)
-            with st.expander("View large chart", expanded=False):
-                st.image(BytesIO(belief_plot), caption="Belief Progression (Large)", width=1100)
+            # Generate and show explanation
+            explanation, belief_plot, _ = get_ds_explanation(ds_system, "decision")
+            explanation = _humanize_response(
+                explanation,
+                response_type="explanation",
+                context={"explanation_type": "decision"}
+            )
+            st.markdown(explanation)
+
+            # Belief progression chart
+            if belief_plot is None:
+                belief_plot = st.session_state.get('last_belief_plot')
+            if belief_plot is None:
+                belief_plot = generate_belief_visualization(ds_system, "Belief Progression")
+            if belief_plot:
+                st.markdown("The chart below shows how the system's confidence changed during the interaction.")
+                st.image(BytesIO(belief_plot), caption="Belief Progression", width=520)
+                with st.expander("View large chart", expanded=False):
+                    st.image(BytesIO(belief_plot), caption="Belief Progression (Large)", width=1100)
 
         st.markdown("---")
         st.markdown("##### Rate the interaction:")
