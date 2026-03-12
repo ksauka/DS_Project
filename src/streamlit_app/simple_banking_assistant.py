@@ -296,17 +296,24 @@ def _humanize_response(text: str, response_type: str, context: Optional[Dict[str
             "\n" + "\n".join(f"  • {o.replace('_', ' ')}" for o in options)
         )
 
+        # Wrap options in <readonly> XML tags — signals to the LLM that these
+        # values are system-controlled and must not be reproduced or altered.
+        options_xml = "<readonly>" + ", ".join(options) + "</readonly>"
+
         system_prompt = (
             "You are a friendly customer service assistant. "
             "Write ONE short, natural-sounding sentence asking the user to clarify "
             "which of the listed options applies to their request. "
-            "Do NOT list the options yourself — they will be appended automatically. "
-            "End with a colon (:) so the options can follow. "
+            "The intent names are provided inside <readonly>...</readonly> tags. "
+            "These are system-controlled values — do NOT reproduce, paraphrase, or "
+            "include any of them in your response. They will be appended automatically. "
+            "End your sentence with a colon (:) so the options can follow. "
             "Example: 'To help you better, could you tell me which of the following applies:'"
         )
         user_prompt = (
-            f"The system needs to distinguish between these intents: {options}.\n"
-            "Write only the lead-in sentence (ending with a colon)."
+            f"The system needs to distinguish between these intents: {options_xml}.\n"
+            "Write only the lead-in sentence (ending with a colon). "
+            "Do NOT include any intent names from the <readonly> block in your response."
         )
 
         try:
@@ -710,24 +717,36 @@ def process_query(query_text, ds_system, is_initial=True, previous_mass=None):
         else:
             combined_mass = current_mass
 
-        # Record belief state for explainability charts
+        # Record belief state for explainability charts.
+        # Mirror evaluate_from_leaves(depth): depth==0 → "Initial", depth==N → "Turn N".
+        # conversation_history is unused in the Streamlit path (no blocking callback), so
+        # we derive the label from how many snapshots are already stored in the tracker.
         belief = ds_system.compute_belief(combined_mass)
         if hasattr(ds_system, 'get_belief_tracker'):
             tracker = ds_system.get_belief_tracker()
             if tracker is not None:
-                turn_num = len([m for m in ds_system.conversation_history if m.startswith("User:")])
-                tracker.record_belief(belief, f"Turn {max(turn_num, 1)}")
+                existing_records = len(tracker.get_history())
+                turn_label = "Initial" if existing_records == 0 else f"Turn {existing_records}"
+                tracker.record_belief(belief, turn_label)
 
-        if ds_system.should_ask_clarification(combined_mass):
-            clarification = ds_system.generate_clarification_question(combined_mass)
+        # Use get_clarification_step — exact mirror of notebook's evaluate_from_leaves():
+        # Case 1a (single confident leaf)  → (None, intent, confidence) → predict
+        # Case 1b (multiple confident)     → (question, None, 0.0)      → ask
+        # Case 3  (no confident nodes)     → (question, None, 0.0)      → rephrase
+        clarification_q, pred_intent_direct, confidence_direct = ds_system.get_clarification_step(combined_mass)
+
+        if clarification_q is not None:
+            # Needs clarification (Case 1b or Case 3)
+            clarification = clarification_q
             if not clarification.endswith("?"):
                 clarification += "?"
             clarification += " Or feel free to describe what you need in your own words."
             clarification = _humanize_response(clarification, response_type="clarification", context={})
             return clarification, True, combined_mass
 
-        # Confident prediction — generate belief viz if multi-turn
-        pred_intent, confidence = ds_system.get_prediction_from_mass(combined_mass)
+        # Confident prediction (Case 1a) — use values already returned by get_clarification_step
+        pred_intent = pred_intent_direct if pred_intent_direct else "unknown"
+        confidence = confidence_direct if confidence_direct else 0.0
         st.session_state.last_prediction = pred_intent
         st.session_state.last_confidence = confidence
 
