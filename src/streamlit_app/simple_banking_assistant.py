@@ -400,6 +400,45 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
+# Hide Streamlit branding (header, footer, GitHub icon, viewer badge)
+st.markdown("""
+<style>
+#MainMenu {visibility: hidden !important;}
+header {visibility: hidden !important;}
+[data-testid="stHeader"] {display: none !important;}
+[data-testid="stToolbar"] {display: none !important;}
+[data-testid="stDecoration"] {display: none !important;}
+[data-testid="stStatusWidget"] {display: none !important;}
+button[kind="header"] {display: none !important;}
+footer {visibility: hidden !important; display: none !important;}
+[data-testid="stFooter"] {display: none !important;}
+div[role="contentinfo"] {display: none !important;}
+[data-testid="manage-app-button"] {display: none !important;}
+.stAppDeployButton {display: none !important;}
+a[href*="streamlit.io"] {display: none !important;}
+a[href*="share.streamlit.io/user"] {display: none !important;}
+.viewerBadge_link__qRIco {display: none !important;}
+.viewerBadge_link__Ua7HT {display: none !important;}
+.viewerBadge_container__r5tak {display: none !important;}
+.viewerBadge_container__2QSob {display: none !important;}
+[class*="viewerBadge"] {display: none !important;}
+div:has(a[href*="streamlit.io"]) {display: none !important;}
+section.main > div {padding-bottom: 0 !important;}
+</style>
+<script>
+(function() {
+    function removeStreamlitBranding() {
+        document.querySelectorAll('footer, [data-testid="stFooter"]').forEach(el => el.remove());
+        document.querySelectorAll('header, [data-testid="stHeader"], #MainMenu').forEach(el => el.remove());
+        document.querySelectorAll('a[href*="streamlit.io"]').forEach(el => { const p = el.closest('div'); if (p) p.remove(); });
+        document.querySelectorAll('[class*="viewerBadge"]').forEach(el => el.remove());
+    }
+    removeStreamlitBranding();
+    setInterval(removeStreamlitBranding, 500);
+    new MutationObserver(removeStreamlitBranding).observe(document.body, {childList: true, subtree: true});
+})();
+</script>
+""", unsafe_allow_html=True)
 
 
 # Module-level handle; populated by initialize_ds_systems() at startup.
