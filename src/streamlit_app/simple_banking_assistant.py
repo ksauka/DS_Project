@@ -1087,7 +1087,7 @@ def main():
                 f"Run the workflow notebook for {_query_dataset} first."
             )
         else:
-            st.caption("Tip: Press Enter = Next | Type 'why' = Explain")
+            pass
     with col3:
         with st.popover("Settings"):
             st.checkbox(
@@ -1251,7 +1251,7 @@ def main():
     if st.session_state.query_resolved:
         placeholder = "Type here (use the feedback form below to proceed)"
     else:
-        placeholder = "Type your response or ask 'why?'"
+        placeholder = "Type your response here..."
     
     user_input = st.chat_input(placeholder, key=f"chat_{st.session_state.current_query_index}")
     
