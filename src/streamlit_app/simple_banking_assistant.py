@@ -758,6 +758,8 @@ def process_query(query_text, ds_system, is_initial=True, previous_mass=None):
             if hasattr(ds_system, 'clear_belief_history'):
                 ds_system.clear_belief_history()
             st.session_state.pop('last_clarification_options', None)
+            # Reset explanation snapshots so stale data from the previous query is never shown
+            st.session_state.pop('initial_leaf_candidates', None)
 
         current_mass = ds_system.compute_mass_function(query_text)
 
@@ -777,6 +779,19 @@ def process_query(query_text, ds_system, is_initial=True, previous_mass=None):
                 existing_records = len(tracker.get_history())
                 turn_label = "Initial" if existing_records == 0 else f"Turn {existing_records}"
                 tracker.record_belief(belief, turn_label)
+
+        # Snapshot the initial leaf-level candidates into session_state on the very first turn.
+        # The belief tracker lives on a @st.cache_resource object and may carry stale history
+        # from the previous query at explanation-render time.  session_state is per-query.
+        if is_initial:
+            leaf_candidates = [
+                intent.replace('_', ' ')
+                for intent, _ in sorted(
+                    [(k, v) for k, v in belief.items() if ds_system.is_leaf(k)],
+                    key=lambda x: x[1], reverse=True
+                )[:3]
+            ]
+            st.session_state['initial_leaf_candidates'] = leaf_candidates
 
         # Use get_clarification_step — exact mirror of notebook's evaluate_from_leaves():
         # Case 1a (single confident leaf)  → (None, intent, confidence) → predict
@@ -1689,14 +1704,10 @@ def get_ds_explanation(ds_system, explanation_type):
                 had_clarification = st.session_state.get('show_belief_chart', False)
                 
                 if had_clarification:
-                    # Clarification happened - tell the story of the conversation
-                    # Get the leaf-level candidates that were unclear initially.
-                    # compute_belief() returns values for ALL nodes (parents accumulate children),
-                    # so filtering to leaves ensures we show real competing intents, not categories.
-                    initial_belief = history[0][0] if history else {}
-                    initial_leaves = {k: v for k, v in initial_belief.items() if ds_system.is_leaf(k)}
-                    sorted_initial = sorted(initial_leaves.items(), key=lambda x: x[1], reverse=True)[:3]
-                    candidate_names = [intent.replace('_', ' ') for intent, _ in sorted_initial]
+                    # Clarification happened - tell the story of the conversation.
+                    # Use the session_state snapshot captured at initial query time — it is
+                    # always correct for the current query and never stale.
+                    candidate_names = st.session_state.get('initial_leaf_candidates', [])
                     candidates_text = ", ".join(candidate_names)
 
                     # Extract actual user clarification response(s) from conversation history
