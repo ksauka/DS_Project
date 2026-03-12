@@ -525,9 +525,20 @@ def load_study_queries():
     CSVs are stored in Dropbox and downloaded on first use.
     Dropbox path mirrors the local dir name: /ds_project_queries/<dir_basename>/
     """
-    _base = os.getenv('STUDY_SET_DIR', 'outputs/user_study/workflow_demo').rstrip('/')
+    # Resolve STUDY_SET_DIR — check os.environ first, then st.secrets (Streamlit Cloud).
+    _dir_default = 'outputs/user_study/workflow_demo'
+    _base = (
+        os.getenv('STUDY_SET_DIR')
+        or (st.secrets.get('STUDY_SET_DIR') if hasattr(st, 'secrets') else None)
+        or _dir_default
+    ).rstrip('/')
     _dropbox_folder = '/ds_project_queries/' + os.path.basename(_base)
-    _set_name = os.getenv('STUDY_SET', 'small').strip().lower()
+    # Resolve STUDY_SET — same priority: os.environ → st.secrets → 'small'
+    _set_name = (
+        os.getenv('STUDY_SET')
+        or (st.secrets.get('STUDY_SET') if hasattr(st, 'secrets') else None)
+        or 'small'
+    ).strip().lower()
 
     # Map set name → (local path, Dropbox path)
     _candidates = {
