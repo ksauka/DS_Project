@@ -1,8 +1,6 @@
 """Customer Service Assistant - Sequential Query Processing
 
 """
-
-# Standard library imports
 import datetime
 import gc
 import html
@@ -32,30 +30,25 @@ from dotenv import load_dotenv
 # Load environment variables from .env (for local development)
 load_dotenv()
 
-# Local application imports (sys.path configured by app_main_hicxai.py)
-try:
-    from config.hierarchy_loader import (
-        load_hierarchical_intents_from_json,
-        load_hierarchy_from_json,
-    )
-    from config.threshold_loader import load_thresholds_from_json
-    from src.models.classifier import IntentClassifier
-    from src.models.ds_mass_function import DSMassFunction
-    from src.models.embeddings import IntentEmbeddings, SentenceEmbedder
-    from src.utils.data_logger import init_logger, save_session_to_github
-    from src.utils.explainability import BeliefTracker, BeliefVisualizer
-except ImportError:
-    # Fallback: try relative imports if absolute imports fail
-    from ...config.hierarchy_loader import (
-        load_hierarchical_intents_from_json,
-        load_hierarchy_from_json,
-    )
-    from ...config.threshold_loader import load_thresholds_from_json
-    from ...src.models.classifier import IntentClassifier
-    from ...src.models.ds_mass_function import DSMassFunction
-    from ...src.models.embeddings import IntentEmbeddings, SentenceEmbedder
-    from ...src.utils.data_logger import init_logger, save_session_to_github
-    from ...src.utils.explainability import BeliefTracker, BeliefVisualizer
+# Ensure project root is in sys.path regardless of how this module is loaded.
+# This file lives at <project_root>/src/streamlit_app/simple_banking_assistant.py
+# so three .parent calls give us the project root.
+import sys as _sys
+_project_root = Path(__file__).resolve().parent.parent.parent
+if str(_project_root) not in _sys.path:
+    _sys.path.insert(0, str(_project_root))
+
+# Local application imports
+from config.hierarchy_loader import (
+    load_hierarchical_intents_from_json,
+    load_hierarchy_from_json,
+)
+from config.threshold_loader import load_thresholds_from_json
+from src.models.classifier import IntentClassifier
+from src.models.ds_mass_function import DSMassFunction
+from src.models.embeddings import IntentEmbeddings, SentenceEmbedder
+from src.utils.data_logger import init_logger, save_session_to_github
+from src.utils.explainability import BeliefTracker, BeliefVisualizer
 
 
 # ===== QUALTRICS/PROLIFIC INTEGRATION =====
