@@ -1357,7 +1357,6 @@ def collect_query_feedback(query_index, query_text, predicted_intent, is_correct
             "Rank the four options from **best match** to **least match** "
             "based on your intended meaning in the conversation."
         )
-        st.caption("Please base your ranking on what you meant, not on what you think the system selected.")
 
         intent_options = _build_ranked_options(query_index, predicted_intent, true_intent, ds_system)
         display_options = [o.replace('_', ' ') for o in intent_options]
