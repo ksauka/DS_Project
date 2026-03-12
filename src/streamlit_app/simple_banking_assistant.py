@@ -400,41 +400,116 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-# Hide Streamlit branding (header, footer, GitHub icon, viewer badge)
+# Hide Streamlit branding (header, footer, GitHub icon, viewer badge, fork button)
 st.markdown("""
 <style>
-#MainMenu {visibility: hidden !important;}
-header {visibility: hidden !important;}
+/* Header — display:none removes space entirely */
+#MainMenu {display: none !important;}
+header {display: none !important;}
 [data-testid="stHeader"] {display: none !important;}
+[data-testid="stAppHeader"] {display: none !important;}
 [data-testid="stToolbar"] {display: none !important;}
+[data-testid="stToolbarActions"] {display: none !important;}
 [data-testid="stDecoration"] {display: none !important;}
 [data-testid="stStatusWidget"] {display: none !important;}
+[data-testid="stAppToolbar"] {display: none !important;}
 button[kind="header"] {display: none !important;}
-footer {visibility: hidden !important; display: none !important;}
+.stAppHeader {display: none !important;}
+
+/* Footer */
+footer {display: none !important;}
 [data-testid="stFooter"] {display: none !important;}
+[data-testid="stBottom"] {display: none !important;}
+[data-testid="stBottomBlockContainer"] {display: none !important;}
 div[role="contentinfo"] {display: none !important;}
+
+/* Deploy / manage buttons */
 [data-testid="manage-app-button"] {display: none !important;}
+[data-testid="stAppDeployButton"] {display: none !important;}
 .stAppDeployButton {display: none !important;}
+.stDeployButton {display: none !important;}
+
+/* Top padding fix after header removal */
+.stMainBlockContainer {padding-top: 1rem !important;}
+.main .block-container {padding-top: 1rem !important;}
+section.main > div.block-container {padding-top: 1rem !important;}
+
+/* Attribution / viewer badge */
 a[href*="streamlit.io"] {display: none !important;}
 a[href*="share.streamlit.io/user"] {display: none !important;}
+a[target="_blank"][href^="https://share.streamlit.io"] {display: none !important;}
 .viewerBadge_link__qRIco {display: none !important;}
 .viewerBadge_link__Ua7HT {display: none !important;}
 .viewerBadge_container__r5tak {display: none !important;}
 .viewerBadge_container__2QSob {display: none !important;}
 [class*="viewerBadge"] {display: none !important;}
+[class*="ViewerBadge"] {display: none !important;}
+[data-testid="AppViewerBadge"] {display: none !important;}
+[data-testid="appViewerBadge"] {display: none !important;}
+[class*="appViewerBadge"] {display: none !important;}
+
+/* Fork button injected by Streamlit Cloud */
+[data-testid="fork-button"] {display: none !important;}
+button[aria-label*="Fork"] {display: none !important;}
+button[aria-label*="fork"] {display: none !important;}
+[class*="forkButton"] {display: none !important;}
+[class*="ForkButton"] {display: none !important;}
+
+/* "Made with Streamlit" / cloud hosting footer */
+[data-testid="stHostingMenuButton"] {display: none !important;}
+[data-testid="stCloudFooter"] {display: none !important;}
+[class*="hostingMenu"] {display: none !important;}
+[class*="cloudFooter"] {display: none !important;}
+
+/* Nuclear: hide any container div holding a streamlit.io link */
 div:has(a[href*="streamlit.io"]) {display: none !important;}
 section.main > div {padding-bottom: 0 !important;}
 </style>
 <script>
 (function() {
     function removeStreamlitBranding() {
-        document.querySelectorAll('footer, [data-testid="stFooter"]').forEach(el => el.remove());
-        document.querySelectorAll('header, [data-testid="stHeader"], #MainMenu').forEach(el => el.remove());
-        document.querySelectorAll('a[href*="streamlit.io"]').forEach(el => { const p = el.closest('div'); if (p) p.remove(); });
-        document.querySelectorAll('[class*="viewerBadge"]').forEach(el => el.remove());
+        // Header + toolbar
+        document.querySelectorAll(
+            'header, [data-testid="stHeader"], [data-testid="stAppHeader"], ' +
+            '[data-testid="stToolbar"], [data-testid="stToolbarActions"], ' +
+            '[data-testid="stAppToolbar"], #MainMenu, .stAppHeader'
+        ).forEach(el => el.remove());
+
+        // Footer + bottom bar
+        document.querySelectorAll(
+            'footer, [data-testid="stFooter"], [data-testid="stBottom"], ' +
+            '[data-testid="stBottomBlockContainer"]'
+        ).forEach(el => el.remove());
+
+        // Viewer badge
+        document.querySelectorAll(
+            '[data-testid="AppViewerBadge"], [data-testid="appViewerBadge"], ' +
+            '[class*="viewerBadge"], [class*="ViewerBadge"], ' +
+            '[class*="appViewerBadge"], [class*="AppViewerBadge"]'
+        ).forEach(el => el.remove());
+
+        // Fork button (Streamlit Cloud hosting chrome)
+        document.querySelectorAll(
+            '[data-testid="fork-button"], [class*="forkButton"], [class*="ForkButton"]'
+        ).forEach(el => el.remove());
+        document.querySelectorAll('button').forEach(btn => {
+            const label = btn.getAttribute('aria-label') || '';
+            if (label.toLowerCase().includes('fork')) btn.remove();
+        });
+
+        // "Made with Streamlit" cloud footer
+        document.querySelectorAll(
+            '[data-testid="stHostingMenuButton"], [data-testid="stCloudFooter"], ' +
+            '[class*="hostingMenu"], [class*="cloudFooter"]'
+        ).forEach(el => el.remove());
+
+        // Streamlit.io links — remove container div
+        document.querySelectorAll('a[href*="streamlit.io"]').forEach(link => {
+            (link.closest('div') || link).remove();
+        });
     }
     removeStreamlitBranding();
-    setInterval(removeStreamlitBranding, 500);
+    setInterval(removeStreamlitBranding, 300);
     new MutationObserver(removeStreamlitBranding).observe(document.body, {childList: true, subtree: true});
 })();
 </script>
