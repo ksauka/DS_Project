@@ -757,6 +757,7 @@ def process_query(query_text, ds_system, is_initial=True, previous_mass=None):
             ds_system.user_response = None
             if hasattr(ds_system, 'clear_belief_history'):
                 ds_system.clear_belief_history()
+            st.session_state.pop('last_clarification_options', None)
 
         current_mass = ds_system.compute_mass_function(query_text)
 
@@ -784,7 +785,6 @@ def process_query(query_text, ds_system, is_initial=True, previous_mass=None):
         clarification_q, pred_intent_direct, confidence_direct = ds_system.get_clarification_step(combined_mass)
 
         if clarification_q is not None:
-            # Needs clarification (Case 1b or Case 3)
             clarification = clarification_q
             if not clarification.endswith("?"):
                 clarification += "?"
