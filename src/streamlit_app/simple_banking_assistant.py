@@ -427,6 +427,9 @@ div[role="contentinfo"] {display: none !important;}
 .stAppDeployButton {display: none !important;}
 .stDeployButton {display: none !important;}
 
+/* GitHub icon */
+#GithubIcon {visibility: hidden !important;}
+
 /* ===== HIDE ALL CREATOR ATTRIBUTION ===== */
 
 /* Text links to creator profile */
