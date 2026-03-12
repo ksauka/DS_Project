@@ -1689,11 +1689,25 @@ def get_ds_explanation(ds_system, explanation_type):
                     candidate_names = [intent for intent, _ in sorted_initial]
                     candidates_text = ", ".join(candidate_names)
 
-                    text_explanation = (
-                        f"I was a bit unsure at first — your query could have matched a few things: {candidates_text}. "
-                        f"I asked you to clarify, and your reply helped me understand that you want: **{top_intent.replace('_', ' ')}**. "
-                        f"You can see in the chart below how my confidence built up as we talked."
-                    )
+                    # Extract actual user clarification response(s) from conversation history
+                    conv_history = st.session_state.get('conversation_history', [])
+                    user_messages = [msg[len("User: "):] for msg in conv_history if msg.startswith("User:")]
+                    # First user message is the original query; rest are clarification responses
+                    clarification_responses = user_messages[1:] if len(user_messages) > 1 else []
+
+                    if clarification_responses:
+                        response_text = " and ".join(f'"{r}"' for r in clarification_responses)
+                        text_explanation = (
+                            f"I was a bit unsure at first — your query could have matched a few things: {candidates_text}. "
+                            f"I asked you to clarify, and your response — {response_text} — helped me understand that you want: **{top_intent.replace('_', ' ')}**. "
+                            f"You can see in the chart below how my confidence built up as we talked."
+                        )
+                    else:
+                        text_explanation = (
+                            f"I was a bit unsure at first — your query could have matched a few things: {candidates_text}. "
+                            f"I asked you to clarify, and your reply helped me understand that you want: **{top_intent.replace('_', ' ')}**. "
+                            f"You can see in the chart below how my confidence built up as we talked."
+                        )
                 else:
                     # No clarification - immediate decision, no graph to show
                     text_explanation = (
