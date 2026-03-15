@@ -444,18 +444,19 @@ _shared_embedder = None
 
 def _load_ds_model_for_dataset(dataset_name: str):
     """Load DS model for a specific dataset. Returns None if not available."""
+    _root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
     configs = {
         'banking77': {
-            'hierarchy':   'config/hierarchies/banking77_hierarchy.json',
-            'intents':     'config/hierarchies/banking77_intents.json',
-            'thresholds':  'results/banking77/workflow_demo/banking77_optimal_thresholds.json',
-            'classifier':  'experiments/banking77/banking77_logistic_model.pkl',
+            'hierarchy':   os.path.join(_root, 'config/hierarchies/banking77_hierarchy.json'),
+            'intents':     os.path.join(_root, 'config/hierarchies/banking77_intents.json'),
+            'thresholds':  os.path.join(_root, 'results/banking77/workflow_demo/banking77_optimal_thresholds.json'),
+            'classifier':  os.path.join(_root, 'experiments/banking77/banking77_logistic_model.pkl'),
         },
         'clinc150': {
-            'hierarchy':   'config/hierarchies/clinc150_hierarchy.json',
-            'intents':     'config/hierarchies/clinc150_intents.json',
-            'thresholds':  'results/clinc150/workflow_demo/clinc150_optimal_thresholds.json',
-            'classifier':  'experiments/clinc150/clinc150_logistic_model.pkl',
+            'hierarchy':   os.path.join(_root, 'config/hierarchies/clinc150_hierarchy.json'),
+            'intents':     os.path.join(_root, 'config/hierarchies/clinc150_intents.json'),
+            'thresholds':  os.path.join(_root, 'results/clinc150/workflow_demo/clinc150_optimal_thresholds.json'),
+            'classifier':  os.path.join(_root, 'experiments/clinc150/clinc150_logistic_model.pkl'),
         },
     }
     cfg = configs.get(dataset_name)
@@ -472,6 +473,18 @@ def _load_ds_model_for_dataset(dataset_name: str):
             download_from_dropbox(dropbox_path, cfg['classifier'])
         except Exception as _e:
             print(f"⚠️ Dropbox download failed for {dataset_name}: {_e}")
+
+    # If thresholds are missing locally, download from Dropbox
+    if not os.path.exists(cfg['thresholds']):
+        try:
+            from src.utils.dropbox_saver import download_from_dropbox
+            threshold_filename = os.path.basename(cfg['thresholds'])
+            dropbox_path = f"/ds_project_models/{threshold_filename}"
+            print(f"⬇️ {dataset_name} thresholds not found locally — downloading from Dropbox...")
+            os.makedirs(os.path.dirname(cfg['thresholds']), exist_ok=True)
+            download_from_dropbox(dropbox_path, cfg['thresholds'])
+        except Exception as _e:
+            print(f"⚠️ Dropbox threshold download failed for {dataset_name}: {_e}")
 
     # Require at minimum the hierarchy and classifier
     missing = [p for p in [cfg['hierarchy'], cfg['classifier']] if not os.path.exists(p)]
