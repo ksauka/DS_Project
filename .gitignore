@@ -14,7 +14,7 @@ test_stolen_wallet.py
 setup.sh
 setup_conda.sh
 sample_study_queries.csv
-.python-version
+# .python-version — intentionally tracked for Streamlit Cloud Python version pinning
 .gitattributes
 
 # Environment variables - NEVER commit this file
