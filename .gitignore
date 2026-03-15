@@ -100,6 +100,10 @@ outputs/
 !outputs/user_study/
 !outputs/user_study/workflow_demo/
 !outputs/user_study/workflow_demo/selected_queries_for_user_study.csv
+!outputs/user_study/study_b77only/
+!outputs/user_study/study_b77only/*.csv
+!outputs/user_study/study_clinc150only/
+!outputs/user_study/study_clinc150only/*.csv
 logs/
 *.log
 # Results (but keep optimal thresholds for Streamlit)

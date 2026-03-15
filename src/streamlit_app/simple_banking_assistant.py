@@ -561,6 +561,14 @@ def load_study_queries():
             print(f"[load_study_queries] Dropbox download failed for '{key}': {_e}")
         return None
 
+    # Resolve QUERY_SLICE — splits the full set into 4 equal parts (0-indexed).
+    # Unset / -1 → return the full set unchanged.
+    _slice_raw = (
+        os.getenv('QUERY_SLICE')
+        or (st.secrets.get('QUERY_SLICE') if hasattr(st, 'secrets') else None)
+    )
+    _query_slice = int(_slice_raw) if _slice_raw is not None else -1
+
     # Try requested set first, then fall back through the others
     _order = [_set_name] + [k for k in ('small', 'medium', 'large', 'full') if k != _set_name]
     for _key in _order:
@@ -572,7 +580,14 @@ def load_study_queries():
                     f"Upload the CSV to Dropbox ({_dropbox_folder}/study_set_{_set_name}.csv) or "
                     f"run the EXPERIMENT SETS (B77-ONLY) cell in the workflow notebook."
                 )
-            print(f"[load_study_queries] Using set='{_key}' ({len(df)} queries)")
+            # Apply slice if requested (splits full CSV into 4 non-overlapping chunks)
+            if 0 <= _query_slice <= 3:
+                import numpy as np
+                _slices = np.array_split(df, 4)
+                df = _slices[_query_slice].reset_index(drop=True)
+                print(f"[load_study_queries] Using set='{_key}' slice {_query_slice} ({len(df)} queries)")
+            else:
+                print(f"[load_study_queries] Using set='{_key}' ({len(df)} queries)")
             return df
 
     st.error(

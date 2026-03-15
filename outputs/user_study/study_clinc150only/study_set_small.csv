@@ -1,0 +1,113 @@
+query,true_intent,predicted_intent,confidence,interaction,num_interactions,is_correct,selection_category,dataset
+there is no way in heck that is true,no,maybe,0.9291502896418148,"User: there is no way in heck that is true
+Chatbot: It seems like you're looking for something related to meta. Could you clarify which specific thing you're interested in? Here are a few suggestions: (['no', 'maybe', 'yes'])
+User: Uh, I think you might be misunderstanding me. I'm not looking for suggestions like that. I just want to talk about something specific, but I’m not sure how to explain it. Can you help me out with that?
+Chatbot: It seems like you're looking for something related to meta. Could you clarify which specific thing you're interested in? Here are a few suggestions: (['maybe', 'no', 'repeat'])
+User: Okay, this is getting a bit frustrating. I’m not looking for suggestions or options. I just want to talk about something specific, but I’m having a hard time explaining it. Can you just help me figure out how to express what I mean?",2,False,problematic_level1,clinc150
+am i in charge of you,who_do_you_work_for,what_can_i_ask_you,0.8096535251274092,"User: am i in charge of you
+Chatbot: I'm not entirely sure what you're asking. Could you rephrase your question a bit?
+User: I think you might be confused. I was asking if I have control over you, like if I can give you commands or something. Can you help me understand how this works?
+Chatbot: It seems like you're looking for something related to small_talk. Could you clarify which specific thing you're interested in? Here are a few suggestions: (['who_do_you_work_for', 'what_can_i_ask_you', 'are_you_a_bot'])
+User: I guess I'm just trying to figure out what I can actually ask you. Like, what kind of things can you help me with?",2,False,problematic_level1,clinc150
+how do i ask the ai to help me with math problem,calculator,what_can_i_ask_you,0.8001801893648641,"User: how do i ask the ai to help me with math problem
+Chatbot: I'm not entirely sure what you're asking. Could you rephrase your question a bit?
+User: I think there was a misunderstanding. I was just trying to figure out how to get help with a math problem using AI. Like, do I just type out the problem, or is there a specific way I should ask?
+Chatbot: There are a few things that might match: (['calculator', 'what_can_i_ask_you']). Could you clarify a bit more?
+User: Sure! I guess I'm just trying to figure out the best way to ask for help with a math problem. Like, if I have a specific equation or concept I'm struggling with, should I just type it out as is? Or is there a better format or way to phrase it to get the best help?
+Chatbot: There are a few things that might match: (['what_can_i_ask_you', 'calculator', 'maybe']). Could you clarify a bit more?
+User: I’m not really sure what those options mean in this context. I just want to know how to ask for help with a math problem. Like, if I have a specific equation, should I just type it out directly? Or is there a better way to phrase it to get the most useful response?",3,False,problematic_level2,clinc150
+can you tell me where my item is,order_status,order_status,0.8884704837817111,"User: can you tell me where my item is
+Chatbot: I'm not entirely sure what you're asking. Could you rephrase your question a bit?
+User: I think there’s been a mix-up. I was asking about the location of my item. Can you help me track it down?
+Chatbot: There are a few things that might match: (['current_location', 'find_phone', 'lost_luggage']). Could you clarify a bit more?
+User: Sure! I'm actually looking for the current location of my order. I think it might have gotten delayed or something. Can you help me with that?
+Chatbot: There are a few things that might match: (['order_status', 'current_location', 'find_phone']). Could you clarify a bit more?
+User: I just want to know the current location of my order. It feels like it’s taking longer than expected, and I’m a bit worried it might be lost or delayed. Can you give me an update on that?
+Chatbot: There are a few things that might match: (['order_status', 'current_location']). Could you clarify a bit more?
+User: I just want to know the current location of my order. I’m really anxious about it since it seems to be taking longer than I expected. Can you give me the latest update on where it is?",4,True,successful_level2,clinc150
+i want to know how many vacation days i have used,pto_used,pto_used,0.8966039844442608,"User: i want to know how many vacation days i have used
+Chatbot: It seems like you're looking for something related to work. Could you clarify which specific thing you're interested in? Here are a few suggestions: (['pto_used', 'pto_balance', 'pto_request_status'])
+User: I just want to know how many vacation days I've used so far. So I guess that would be the 'pto_used' option? Can you help me with that?
+Chatbot: It seems like you're looking for something related to work. Could you clarify which specific thing you're interested in? Here are a few suggestions: (['pto_used', 'pto_balance', 'pto_request'])
+User: I already mentioned that I want to know how many vacation days I've used, which I think is the 'pto_used' option. Can you just give me that info? It's a bit frustrating to keep going in circles here.
+Chatbot: It seems like you're looking for something related to work. Could you clarify which specific thing you're interested in? Here are a few suggestions: (['pto_used', 'pto_balance', 'pto_request'])
+User: Okay, I get that you're trying to help, but I've already told you I want to know how many vacation days I've used, which is 'pto_used.' Can you just give me that info? It's really frustrating to keep going in circles here.",3,True,successful_level2,clinc150
+thanks for that response,thank_you,thank_you,0.8950475797618394,"User: thanks for that response
+Chatbot: There are a few things that might match: (['thank_you', 'yes']). Could you clarify a bit more?
+User: I'm not sure what you mean by that. Can you help me out? I was just thanking you for your previous response. What do you need me to clarify?
+Chatbot: There are a few things that might match: (['thank_you', 'repeat']). Could you clarify a bit more?
+User: I feel like we're going in circles here. I was just trying to express my gratitude for your help earlier. I don't really need to clarify anything more. Can we move on?",2,True,successful_level1,clinc150
+when is the milk date before used,food_last,food_last,0.8922703586309167,"User: when is the milk date before used
+Chatbot: I'm not entirely sure what you're asking. Could you rephrase your question a bit?
+User: I think there was a misunderstanding. I was asking about the expiration date on milk. Like, how do I know when it’s still good to use?
+Chatbot: It seems like you're looking for something related to kitchen_and_dining. Could you clarify which specific thing you're interested in? Here are a few suggestions: (['food_last', 'ingredient_substitution', 'nutrition_info'])
+User: I appreciate the suggestions, but I'm really just trying to figure out how to tell if milk is still good to use. Can you help me with that? Like, what should I look for on the carton or how long it usually lasts?",2,True,successful_level1,clinc150
+can you place an order for the olive oil i just finished,order,order,0.6583242848378638,"User: can you place an order for the olive oil i just finished
+Chatbot: I'm not entirely sure what you're asking. Could you rephrase your question a bit?
+User: I think there’s been a mix-up! I was just trying to ask if you could help me reorder the olive oil I just finished. Can you help me with that?
+Chatbot: It seems like you're looking for something related to home. Could you clarify which specific thing you're interested in? Here are a few suggestions: (['order', 'order_status', 'shopping_list_update'])
+User: I just want to reorder the olive oil, so I guess I’d choose ""order."" Can you help me with that?",2,True,successful_level1,clinc150
+speak up,change_volume,what_can_i_ask_you,0.6635030768592273,"User: speak up
+Chatbot: I'm not entirely sure what you're asking. Could you rephrase your question a bit?
+User: I think you might be confused. I was just trying to get you to understand me better. Can you help me with something specific? Like, maybe I need help with a product or service?
+Chatbot: There are a few things that might match: (['what_can_i_ask_you', 'repeat']). Could you clarify a bit more?
+User: Sure! I’m looking for help with a specific product or service. Can you tell me more about what you can assist me with? Like, maybe troubleshooting an issue or finding information about a product?",2,False,problematic_level1,clinc150
+i need eggs; add them to my shopping list,shopping_list_update,shopping_list_update,0.9420443582815772,"User: i need eggs; add them to my shopping list
+Chatbot: It seems like you're looking for something related to home. Could you clarify which specific thing you're interested in? Here are a few suggestions: (['shopping_list_update', 'order', 'shopping_list'])
+User: I just want to add eggs to my shopping list. Can you help me with that?
+Chatbot: It seems like you're looking for something related to home. Could you clarify which specific thing you're interested in? Here are a few suggestions: (['shopping_list_update', 'order', 'shopping_list'])
+User: I just want to add eggs to my shopping list. Can you please help me with that? Just eggs, nothing else!
+Chatbot: It seems like you're looking for something related to home. Could you clarify which specific thing you're interested in? Here are a few suggestions: (['shopping_list_update', 'order', 'shopping_list'])
+User: Okay, this is getting a bit frustrating. I just want to add eggs to my shopping list. Can you please help me with that? Just eggs, nothing else!
+Chatbot: It seems like you're looking for something related to home. Could you clarify which specific thing you're interested in? Here are a few suggestions: (['shopping_list_update', 'order', 'shopping_list'])
+User: Okay, this is getting really frustrating. I just want to add eggs to my shopping list, that's it! Can you please just help me with that? I don't need any suggestions or options, just add eggs!",4,True,successful_level2,clinc150
+can you buy something,order,unknown,0.0,"User: can you buy something
+Chatbot: I'm not entirely sure what you're asking. Could you rephrase your question a bit?
+User: I think there’s been a mix-up! I was asking if you can help me buy something. Like, can you assist with making a purchase or finding a product?
+Chatbot: There are a few things that might match: (['order', 'what_can_i_ask_you']). Could you clarify a bit more?
+User: Sure! I’m looking to buy something online, but I’m not sure where to start. Can you help me find a specific product or guide me through the ordering process?
+Chatbot: There are a few things that might match: (['order', 'what_can_i_ask_you']). Could you clarify a bit more?
+User: I’m not really sure what those options mean. I just want help finding a product online and maybe some guidance on how to order it. Can you help me with that? Like, maybe suggest some websites or tips for making a purchase?
+Chatbot: There are a few things that might match: (['order', 'what_can_i_ask_you']). Could you clarify a bit more?
+User: I’m not really sure what those options mean. I just want to find a product online and get some help with the ordering process. Can you suggest some websites where I can look for products or give me tips on how to make a purchase?
+Chatbot: There are a few things that might match: (['order', 'what_can_i_ask_you']). Could you clarify a bit more?
+User: I feel like we're going in circles here! I just want some help finding a product online and figuring out how to order it. Can you suggest some websites where I can look for stuff or give me some tips on making a purchase?",5,False,problematic_level2,clinc150
+what's the way you refer to me,user_name,what_is_your_name,0.8356317464232865,"User: what's the way you refer to me
+Chatbot: I'm not entirely sure what you're asking. Could you rephrase your question a bit?
+User: I think there might be some confusion here. I was just asking how you refer to me, like do you have a specific name or title you use?
+Chatbot: There are a few things that might match: (['user_name', 'what_is_your_name']). Could you clarify a bit more?
+User: Sure! I guess I was just wondering if you have a specific way of addressing me, like if you call me ""user,"" ""friend,"" or something else. Do you have a preferred name or title you use for people you chat with?
+Chatbot: There are a few things that might match: (['what_is_your_name', 'user_name']). Could you clarify a bit more?
+User: I think there’s still some confusion. I’m just asking if you have a specific way of addressing me when we chat. Like, do you just call me ""user,"" or do you have a more friendly title like ""friend"" or something else? It would be nice to know how you refer to me!
+Chatbot: There are a few things that might match: (['what_is_your_name', 'user_name']). Could you clarify a bit more?
+User: I feel like we're going in circles here! I'm just trying to find out how you address me during our chat. Do you call me ""user,"" ""friend,"" or something else? It would be nice to know if there's a specific name or title you use. Can you help me with that?",4,False,problematic_level2,clinc150
+what time is it in the greenwich timezone,time,time,0.7914639734178581,"User: what time is it in the greenwich timezone
+Chatbot: There are a few things that might match: (['timezone', 'time']). Could you clarify a bit more?
+User: Sure! I just want to know what the current time is in the Greenwich timezone. Can you help me with that?
+Chatbot: There are a few things that might match: (['time', 'timezone']). Could you clarify a bit more?
+User: I just want to know the current time in the Greenwich timezone, like right now. Can you give me that info?",2,True,successful_level1,clinc150
+what will tomorrow be on the calendar,date,date,0.9501943974305732,"User: what will tomorrow be on the calendar
+Chatbot: There are a few things that might match: (['date', 'calendar']). Could you clarify a bit more?
+User: Sure! I just want to know what day tomorrow is on the calendar. Like, is it a weekday or weekend, and what’s the date?
+Chatbot: There are a few things that might match: (['date', 'calendar']). Could you clarify a bit more?
+User: I just want to know what day it is tomorrow. Like, is it a weekday or a weekend, and what’s the actual date? Can you help me with that?
+Chatbot: There are a few things that might match: (['date', 'calendar']). Could you clarify a bit more?
+User: I feel like I've already explained what I'm looking for. I just want to know what day it is tomorrow—like, is it a weekday or a weekend, and what’s the date? Can you help me with that?
+Chatbot: There are a few things that might match: (['date', 'calendar']). Could you clarify a bit more?
+User: I feel like I've already explained what I'm looking for. I just want to know what day it is tomorrow—like, is it a weekday or a weekend, and what’s the actual date? Can you help me with that?",4,True,successful_level2,clinc150
+can you cancel improv class from my calendar for may 7th,calendar_update,cancel_reservation,0.6315195402603442,"User: can you cancel improv class from my calendar for may 7th
+Chatbot: I'm not entirely sure what you're asking. Could you rephrase your question a bit?
+User: I think there’s been a mix-up. I was just trying to cancel my improv class on May 7th. Can you help me with that?
+Chatbot: There are a few things that might match: (['calendar_update', 'cancel_reservation', 'calendar']). Could you clarify a bit more?
+User: Sure! I just want to cancel my improv class reservation for May 7th. So I guess ""cancel_reservation"" would be the right option? Can you help me with that?",2,False,problematic_level1,clinc150
+regards,goodbye,unknown,0.0,"User: regards
+Chatbot: I'm not entirely sure what you're asking. Could you rephrase your question a bit?
+User: I think there might be some confusion here. I was just saying ""regards"" as a greeting. I didn't have a specific question. Can you help me with something?
+Chatbot: There are a few things that might match: (['maybe', 'greeting']). Could you clarify a bit more?
+User: I think there’s still a bit of confusion here. I was just saying ""regards"" as a friendly greeting, not looking for options or anything. I’m just trying to see if you can help me with something specific. Can we start over?
+Chatbot: There are a few things that might match: (['maybe', 'greeting']). Could you clarify a bit more?
+User: I think there's still a misunderstanding here. I was just trying to say hello with ""regards."" I don't need options or anything like that. I just want to see if you can help me with something specific. Can we just start fresh?
+Chatbot: There are a few things that might match: (['maybe', 'greeting']). Could you clarify a bit more?
+User: I think there's still a misunderstanding. I'm just trying to say hello with ""regards."" I don't need options or anything like that. Can we just start fresh? I have a specific question I’d like to ask.
+Chatbot: It seems like you're looking for something related to meta. Could you clarify which specific thing you're interested in? Here are a few suggestions: (['maybe', 'repeat', 'change_language'])
+User: I think there's still some confusion here. I'm not looking for suggestions or options. I just want to ask a specific question. Can we skip the options and just get to it? I really need some help with something.",5,False,problematic_level2,clinc150
