@@ -935,50 +935,68 @@ def main():
     if st.session_state.current_query_index >= len(queries_df):
         st.success(f"🎉 Completed all {len(queries_df)} queries!")
         st.balloons()
-        
-        # Calculate session statistics (not shown to participant)
-        if st.session_state.session_results:
-            completed = len(st.session_state.session_results)
-            correct = sum(1 for r in st.session_state.session_results if r.get('is_correct', False))
-            avg_interactions = float(np.mean([r.get('num_clarification_turns', 0)
-                                       for r in st.session_state.session_results]))
-            avg_time = float(np.mean([r.get('interaction_time_seconds', 0)
-                               for r in st.session_state.session_results]))
-            total_session_time = (datetime.datetime.now() - st.session_state.get(
-                'session_start_time', datetime.datetime.now())).total_seconds()
-        else:
-            completed = 0
-            correct = 0
-            avg_interactions = 0.0
-            avg_time = 0.0
-            total_session_time = 0.0
-        
-        # Auto-save session data to GitHub once (silently)
-        if not st.session_state.get('session_saved', False):
-            session_data = {
-                "session_id": st.session_state.session_id,
-                "participant_id": st.session_state.get("pid", ""),
-                "condition": st.session_state.get("cond", ""),
-                "prolific_pid": st.session_state.get("prolific_pid", ""),
-                "timestamp": datetime.datetime.now().isoformat(),
-                "num_queries_completed": completed,
-                "accuracy": correct / completed if completed > 0 else 0,
-                "avg_clarifications": avg_interactions,
-                "avg_time_per_query_seconds": avg_time,
-                "total_session_time_seconds": total_session_time,
-                "query_results": st.session_state.session_results
-            }
-            if 'data_logger' in st.session_state and st.session_state.data_logger:
-                st.session_state.data_logger.set_final_feedback(session_data)
-                save_session_to_github()
-            st.session_state.session_saved = True
 
         st.markdown("---")
         st.markdown("### ✅ You're all done!")
-        st.info("Please click the button below to return to the survey and continue.")
-        if st.button("🔙 Return to Survey", type="primary", use_container_width=True):
-            back_to_survey(done_flag=True)
-        
+
+        # --- Prolific ID confirmation gate ---
+        if not st.session_state.get('session_saved', False):
+            st.markdown("**Please confirm your Prolific ID before we save your responses:**")
+            existing_pid = st.session_state.get("prolific_pid", "") or st.session_state.get("pid", "")
+            pid_confirm = st.text_input(
+                "Prolific ID:",
+                value=existing_pid,
+                placeholder="e.g., 5f8e3c2a1b9d4e6f7a8b9c0d",
+                key="final_prolific_id_input"
+            )
+            if st.button("✅ Confirm & Save", type="primary"):
+                if pid_confirm.strip():
+                    # Update session state with confirmed ID
+                    st.session_state.prolific_pid = pid_confirm.strip()
+                    st.session_state.pid = pid_confirm.strip()
+
+                    # Calculate session statistics
+                    if st.session_state.session_results:
+                        completed = len(st.session_state.session_results)
+                        correct = sum(1 for r in st.session_state.session_results if r.get('is_correct', False))
+                        avg_interactions = float(np.mean([r.get('num_clarification_turns', 0)
+                                                   for r in st.session_state.session_results]))
+                        avg_time = float(np.mean([r.get('interaction_time_seconds', 0)
+                                           for r in st.session_state.session_results]))
+                        total_session_time = (datetime.datetime.now() - st.session_state.get(
+                            'session_start_time', datetime.datetime.now())).total_seconds()
+                    else:
+                        completed = 0
+                        correct = 0
+                        avg_interactions = 0.0
+                        avg_time = 0.0
+                        total_session_time = 0.0
+
+                    session_data = {
+                        "session_id": st.session_state.session_id,
+                        "participant_id": pid_confirm.strip(),
+                        "condition": st.session_state.get("cond", ""),
+                        "prolific_pid": pid_confirm.strip(),
+                        "timestamp": datetime.datetime.now().isoformat(),
+                        "num_queries_completed": completed,
+                        "accuracy": correct / completed if completed > 0 else 0,
+                        "avg_clarifications": avg_interactions,
+                        "avg_time_per_query_seconds": avg_time,
+                        "total_session_time_seconds": total_session_time,
+                        "query_results": st.session_state.session_results
+                    }
+                    if 'data_logger' in st.session_state and st.session_state.data_logger:
+                        st.session_state.data_logger.set_final_feedback(session_data)
+                        save_session_to_github()
+                    st.session_state.session_saved = True
+                    st.rerun()
+                else:
+                    st.error("Please enter your Prolific ID before saving.")
+            return
+
+        # Already saved — show completion message
+        st.success("Your responses have been saved. Please press the **red Next arrow ▶** in Qualtrics to return to the survey and continue.")
+
         return
     
     # Get current query and lazily load the matching DS model
