@@ -129,20 +129,14 @@ def back_to_survey(done_flag=True):
         return
     final = _build_final_return(done=done_flag)
     if not final:
-        msg = (
-            "WARNING: Return link missing or invalid. Please close this "
-            "window and return to the survey manually."
-        )
-        st.warning(msg)
+        st.warning("Return link missing or invalid. Please use your browser Back button.")
         return
     st.session_state._returned = True
-    # Immediate redirect using meta refresh
     st.markdown(f'<meta http-equiv="refresh" content="0;url={final}">',
                 unsafe_allow_html=True)
-    st.info("Redirecting you back to the survey...")
     st.stop()
 
-# Persist URL parameters once at session start
+# -------------- read & persist params once --------------
 _qs = _get_query_params()
 _pid_in = _as_str(_qs.get("pid", ""))
 _cond_in = _as_str(_qs.get("cond", ""))
@@ -155,18 +149,48 @@ if "cond" not in st.session_state and _cond_in:
     st.session_state.cond = _cond_in
 if "return_raw" not in st.session_state and _ret_in:
     st.session_state.return_raw = _ret_in
-if "prolific_pid" not in st.session_state and _prolific_pid:
-    st.session_state.prolific_pid = _prolific_pid
 
-# Also try pid param as prolific_pid fallback
-if "prolific_pid" not in st.session_state and _pid_in:
-    st.session_state.prolific_pid = _pid_in
+# Priority: 1) PROLIFIC_PID param, 2) pid param, 3) manual input
+if "prolific_pid" not in st.session_state:
+    if _prolific_pid:
+        st.session_state.prolific_pid = _prolific_pid
+    elif _pid_in:
+        st.session_state.prolific_pid = _pid_in
 
 # One-shot redirect latch
 if "_returned" not in st.session_state:
     st.session_state._returned = False
 
-# Store back_to_survey function in session state for access from UI
+# Re-apply redirect if already latched (survives Streamlit re-renders)
+if st.session_state.get("_returned"):
+    final = _build_final_return(done=True)
+    if final:
+        st.markdown(f'<meta http-equiv="refresh" content="0;url={final}">',
+                    unsafe_allow_html=True)
+        st.stop()
+
+# Gate: block app until Prolific ID is available
+if not st.session_state.get("prolific_pid"):
+    if st.session_state.get("return_raw"):
+        st.warning("No participant ID detected. Please enter it manually to continue:")
+    else:
+        st.info("Please enter your Prolific ID to begin.")
+    prolific_input = st.text_input(
+        "Prolific ID:",
+        placeholder="e.g., 5f8e3c2a1b9d4e6f7a8b9c0d",
+        help="This connects your interactions to your survey responses.",
+        key="prolific_id_input"
+    )
+    if st.button("Continue", type="primary"):
+        if prolific_input.strip():
+            st.session_state.prolific_pid = prolific_input.strip()
+            st.session_state.pid = prolific_input.strip()
+            st.rerun()
+        else:
+            st.error("Please enter your Prolific ID to continue.")
+    st.stop()
+
+st.session_state.has_return_url = bool(st.session_state.get("return_raw", ""))
 st.session_state.back_to_survey = back_to_survey
 # ===== END QUALTRICS/PROLIFIC INTEGRATION =====
 
@@ -950,20 +974,10 @@ def main():
             st.session_state.session_saved = True
 
         st.markdown("---")
-
-        # Qualtrics return button (if return URL provided)
-        if st.session_state.get("return_raw"):
-            st.markdown("### ✅ You're all done!")
-            st.info("Please click the button below to return to the survey and continue.")
-            if st.button("🔙 Return to Survey", type="primary", use_container_width=True):
-                back_to_survey(done_flag=True)
-        else:
-            # No return URL — dev/test mode
-            st.markdown("---")
-            if st.button("🔄 Start New Session"):
-                for key in list(st.session_state.keys()):
-                    del st.session_state[key]
-                st.rerun()
+        st.markdown("### ✅ You're all done!")
+        st.info("Please click the button below to return to the survey and continue.")
+        if st.button("🔙 Return to Survey", type="primary", use_container_width=True):
+            back_to_survey(done_flag=True)
         
         return
     
