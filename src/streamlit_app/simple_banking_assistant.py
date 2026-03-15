@@ -6,6 +6,22 @@ import gc
 import html
 import json
 import os
+
+
+class _SafeEncoder(json.JSONEncoder):
+    """JSON encoder that handles numpy scalars, datetimes, and other common non-serializable types."""
+    def default(self, obj):
+        import numpy as np
+        if isinstance(obj, (np.integer,)):
+            return int(obj)
+        if isinstance(obj, (np.floating,)):
+            return float(obj)
+        if isinstance(obj, np.ndarray):
+            return obj.tolist()
+        if isinstance(obj, (datetime.datetime, datetime.date)):
+            return obj.isoformat()
+        return super().default(obj)
+
 import random
 import re
 import tempfile
@@ -896,30 +912,16 @@ def main():
         st.success(f"🎉 Completed all {len(queries_df)} queries!")
         st.balloons()
         
-        # Calculate session statistics
+        # Calculate session statistics (not shown to participant)
         if st.session_state.session_results:
             completed = len(st.session_state.session_results)
             correct = sum(1 for r in st.session_state.session_results if r.get('is_correct', False))
-            avg_interactions = np.mean([r.get('num_clarification_turns', 0)
-                                       for r in st.session_state.session_results])
-            avg_time = np.mean([r.get('interaction_time_seconds', 0)
-                               for r in st.session_state.session_results])
+            avg_interactions = float(np.mean([r.get('num_clarification_turns', 0)
+                                       for r in st.session_state.session_results]))
+            avg_time = float(np.mean([r.get('interaction_time_seconds', 0)
+                               for r in st.session_state.session_results]))
             total_session_time = (datetime.datetime.now() - st.session_state.get(
                 'session_start_time', datetime.datetime.now())).total_seconds()
-            total_mins = int(total_session_time // 60)
-            total_secs = int(total_session_time % 60)
-            avg_mins = int(avg_time // 60)
-            avg_secs = int(avg_time % 60)
-
-            col1, col2, col3, col4 = st.columns(4)
-            with col1:
-                st.metric("Queries Completed", completed)
-            with col2:
-                st.metric("Avg Interactions", f"{avg_interactions:.1f}")
-            with col3:
-                st.metric("Avg Time / Query", f"{avg_mins}m {avg_secs}s")
-            with col4:
-                st.metric("Total Session Time", f"{total_mins}m {total_secs}s")
         else:
             completed = 0
             correct = 0
@@ -927,138 +929,38 @@ def main():
             avg_time = 0.0
             total_session_time = 0.0
         
+        # Auto-save session data to GitHub once (silently)
+        if not st.session_state.get('session_saved', False):
+            session_data = {
+                "session_id": st.session_state.session_id,
+                "participant_id": st.session_state.get("pid", ""),
+                "condition": st.session_state.get("cond", ""),
+                "prolific_pid": st.session_state.get("prolific_pid", ""),
+                "timestamp": datetime.datetime.now().isoformat(),
+                "num_queries_completed": completed,
+                "accuracy": correct / completed if completed > 0 else 0,
+                "avg_clarifications": avg_interactions,
+                "avg_time_per_query_seconds": avg_time,
+                "total_session_time_seconds": total_session_time,
+                "query_results": st.session_state.session_results
+            }
+            if 'data_logger' in st.session_state and st.session_state.data_logger:
+                st.session_state.data_logger.set_final_feedback(session_data)
+                save_session_to_github()
+            st.session_state.session_saved = True
+
         st.markdown("---")
-        
-        # Final feedback form (overall experience)
-        if not st.session_state.get('final_feedback_submitted', False):
-            st.markdown("### 📊 Final Survey")
-            st.markdown("Please share your overall experience with the system:")
-            
-            with st.form("final_feedback"):
-                col1, col2 = st.columns(2)
-                
-                with col1:
-                    overall_rating = st.select_slider(
-                        "Overall experience rating",
-                        options=[1, 2, 3, 4, 5],
-                        value=3,
-                        format_func=lambda x: ["😞 Poor", "😐 Fair", "🙂 Good", "😊 Very Good", "🤩 Excellent"][x-1]
-                    )
-                    
-                    trust = st.select_slider(
-                        "How much do you trust the system?",
-                        options=[1, 2, 3, 4, 5],
-                        value=3,
-                        format_func=lambda x: "⭐" * x
-                    )
-                
-                with col2:
-                    ease_of_use = st.select_slider(
-                        "Ease of use",
-                        options=[1, 2, 3, 4, 5],
-                        value=3,
-                        format_func=lambda x: "⭐" * x
-                    )
-                    
-                    would_recommend = st.radio(
-                        "Would you recommend this system?",
-                        ["Definitely", "Probably", "Maybe", "Probably Not", "Definitely Not"],
-                        index=2
-                    )
-                
-                additional_comments = st.text_area(
-                    "Additional comments (optional)",
-                    placeholder="What did you like? What could be improved? Any other feedback?",
-                    height=100
-                )
-                
-                submitted = st.form_submit_button("📤 Submit Final Feedback", type="primary", use_container_width=True)
-                
-                if submitted:
-                    # Save final feedback
-                    final_feedback = {
-                        "overall_rating": overall_rating,
-                        "trust": trust,
-                        "ease_of_use": ease_of_use,
-                        "would_recommend": would_recommend,
-                        "additional_comments": additional_comments,
-                        "session_id": st.session_state.session_id,
-                        "participant_id": st.session_state.get("pid", ""),
-                        "condition": st.session_state.get("cond", ""),
-                        "prolific_pid": st.session_state.get("prolific_pid", ""),
-                        "timestamp": datetime.datetime.now().isoformat(),
-                        "num_queries_completed": len(st.session_state.session_results),
-                        "accuracy": correct / completed if completed > 0 else 0,
-                        "avg_clarifications": avg_interactions,
-                        "avg_time_per_query_seconds": avg_time,
-                        "total_session_time_seconds": total_session_time
-                    }
-                    
-                    # Log to data logger before saving to GitHub
-                    if 'data_logger' in st.session_state and st.session_state.data_logger:
-                        st.session_state.data_logger.set_final_feedback(final_feedback)
-                        
-                        # Save to GitHub (with local fallback)
-                        with st.spinner("📤 Saving session data..."):
-                            save_success = save_session_to_github()
-                            if save_success:
-                                st.success("Session data saved successfully!")
-                            else:
-                                st.warning("WARNING: Data saved locally (GitHub sync may have failed)")
-                    
-                    # Also save local copies for redundancy
-                    feedback_dir = Path("outputs/user_study/feedback")
-                    feedback_dir.mkdir(parents=True, exist_ok=True)
-                    
-                    # Save final feedback as JSON
-                    feedback_file = feedback_dir / f"session_{st.session_state.session_id}_final.json"
-                    with open(feedback_file, 'w') as f:
-                        json.dump(final_feedback, f, indent=2)
-                    
-                    # Save complete session data (results + feedback)
-                    complete_data = {
-                        "final_feedback": final_feedback,
-                        "query_results": st.session_state.session_results
-                    }
-                    complete_file = feedback_dir / f"session_{st.session_state.session_id}_complete.json"
-                    with open(complete_file, 'w') as f:
-                        json.dump(complete_data, f, indent=2)
-                    
-                    st.success("Thank you! Your feedback has been saved.")
-                    st.session_state.final_feedback_submitted = True
-                    st.rerun()
-        else:
-            st.success("Final feedback already submitted. Thank you!")
-        
-        st.markdown("---")
-        
-        # Show download button for session results
-        if st.session_state.session_results:
-            results_df = pd.DataFrame(st.session_state.session_results)
-            csv_data = results_df.to_csv(index=False)
-            timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
-            filename = f"human_session_{st.session_state.session_id}_{timestamp}.csv"
-            
-            st.download_button(
-                label="📥 Download Your Session Results (CSV)",
-                data=csv_data,
-                file_name=filename,
-                mime="text/csv",
-                use_container_width=True
-            )
-        
+
         # Qualtrics return button (if return URL provided)
-        if st.session_state.get("return_raw") and st.session_state.get('final_feedback_submitted', False):
-            st.markdown("---")
-            st.markdown("### Study Complete")
-            st.info("You can now return to the survey platform.")
+        if st.session_state.get("return_raw"):
+            st.markdown("### ✅ You're all done!")
+            st.info("Please click the button below to return to the survey and continue.")
             if st.button("🔙 Return to Survey", type="primary", use_container_width=True):
                 back_to_survey(done_flag=True)
-        elif not st.session_state.get("return_raw"):
-            # No return URL, show restart option
+        else:
+            # No return URL — dev/test mode
             st.markdown("---")
             if st.button("🔄 Start New Session"):
-                # Reset for new session
                 for key in list(st.session_state.keys()):
                     del st.session_state[key]
                 st.rerun()

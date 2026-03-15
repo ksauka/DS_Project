@@ -107,6 +107,18 @@ class DataLogger:
             avg_clarity = None
             avg_confidence = None
         
+        # Derive dataset & system from STUDY_SET_DIR env var
+        study_dir = os.getenv('STUDY_SET_DIR', 'study_b77only')
+        if 'clinc150' in study_dir:
+            dataset_name = 'clinc150'
+            system_name = 'HicXAI'
+        elif 'b77' in study_dir:
+            dataset_name = 'banking77'
+            system_name = 'DS_hierarchical_intent_classification'
+        else:
+            dataset_name = 'mixed'
+            system_name = 'DS_hierarchical_intent_classification'
+
         return {
             "metadata": {
                 "participant_id": self.participant_id,
@@ -115,8 +127,8 @@ class DataLogger:
                 "session_start": self.session_start,
                 "session_end": session_end,
                 "duration_seconds": duration_seconds,
-                "dataset": "banking77",  # Could make this configurable
-                "system": "DS_hierarchical_intent_classification"
+                "dataset": dataset_name,
+                "system": system_name
             },
             "summary_statistics": {
                 "total_queries": self.behavior_metrics["total_queries"],
@@ -148,10 +160,17 @@ class DataLogger:
             True if successful, False otherwise
         """
         try:
-            # Build file path: sessions/{date}/{participant_id}_{condition}_{timestamp}.json
+            # Build file path: sessions/{study_type}/{date}/{participant_id}_{condition}_{timestamp}.json
+            study_dir = os.getenv('STUDY_SET_DIR', 'study_b77only')
+            if 'clinc150' in study_dir:
+                study_folder = 'clinc150'
+            elif 'b77' in study_dir:
+                study_folder = 'b77'
+            else:
+                study_folder = 'mixed'
             date_str = datetime.now().strftime('%Y-%m-%d')
             timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-            filename = f"sessions/{date_str}/{self.participant_id}_{self.condition}_{timestamp}.json"
+            filename = f"sessions/{study_folder}/{date_str}/{self.participant_id}_{self.condition}_{timestamp}.json"
             
             # Build data
             data = self.build_final_data()
@@ -261,7 +280,8 @@ def _normalize_github_repo(repo: str) -> str:
     # Extract from URL
     if 'github.com' in repo:
         # Remove .git suffix if present
-        repo = repo.rstrip('.git')
+        if repo.endswith('.git'):
+            repo = repo[:-4]
         # Extract username/repo from URL
         parts = repo.split('github.com/')[-1]
         return parts
