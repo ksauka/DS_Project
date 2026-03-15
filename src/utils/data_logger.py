@@ -6,8 +6,27 @@ Saves to private GitHub repository for centralized analysis.
 
 import json
 import os
-from datetime import datetime
+from datetime import datetime, date
 from typing import Optional, Dict, Any, List
+
+
+class _SafeEncoder(json.JSONEncoder):
+    """Handle numpy scalars, datetimes and other non-serializable types."""
+    def default(self, obj):
+        try:
+            import numpy as np
+            if isinstance(obj, np.integer):
+                return int(obj)
+            if isinstance(obj, np.floating):
+                return float(obj)
+            if isinstance(obj, np.ndarray):
+                return obj.tolist()
+        except ImportError:
+            pass
+        if isinstance(obj, (datetime, date)):
+            return obj.isoformat()
+        return super().default(obj)
+
 from pathlib import Path
 import streamlit as st
 
@@ -174,7 +193,7 @@ class DataLogger:
             
             # Build data
             data = self.build_final_data()
-            content = json.dumps(data, indent=2)
+            content = json.dumps(data, indent=2, cls=_SafeEncoder)
             
             # Save to GitHub
             commit_message = f"Session data: {self.participant_id} condition {self.condition} - {self.behavior_metrics['total_queries']} queries"
@@ -220,7 +239,7 @@ class DataLogger:
             # Build and save data
             data = self.build_final_data()
             with open(filename, 'w') as f:
-                json.dump(data, f, indent=2)
+                json.dump(data, f, indent=2, cls=_SafeEncoder)
             
             print(f"✅ Session saved locally: {filename}")
             return True
