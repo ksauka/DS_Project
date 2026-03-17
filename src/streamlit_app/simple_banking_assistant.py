@@ -1009,7 +1009,7 @@ def main():
                         st.session_state.session_saved = True
                         st.rerun()
                     else:
-                        st.error("⚠️ Save failed — GitHub not reachable. Please screenshot this page and contact the researcher. Error details: no GITHUB_TOKEN/GITHUB_REPO found in app secrets.")
+                        st.error("⚠️ Save failed. Please try again in a moment. If this persists, screenshot this page and contact the researcher.")
                 else:
                     st.error("Please enter your Prolific ID before saving.")
             return

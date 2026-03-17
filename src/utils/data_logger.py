@@ -325,34 +325,31 @@ def save_session_to_github():
         print("⚠️ No data logger found in session")
         return False
     
-    # Try Streamlit secrets first, then environment variables
+    # Try Streamlit secrets first (bare except mirrors anthrokit pattern that works on Cloud)
     repo = None
     github_token = None
     try:
-        for key in ("GITHUB_DATA_REPO", "GITHUB_REPO"):
-            try:
-                repo = st.secrets[key]
-                break
-            except (KeyError, AttributeError):
-                pass
-        for key in ("GITHUB_DATA_TOKEN", "GITHUB_TOKEN"):
-            try:
-                github_token = st.secrets[key]
-                break
-            except (KeyError, AttributeError):
-                pass
-    except Exception:
+        repo = st.secrets.get("GITHUB_REPO") or st.secrets.get("GITHUB_DATA_REPO")
+    except:
+        pass
+    try:
+        github_token = st.secrets.get("GITHUB_TOKEN") or st.secrets.get("GITHUB_DATA_TOKEN")
+    except:
         pass
     if not repo:
         repo = os.getenv("GITHUB_DATA_REPO") or os.getenv("GITHUB_REPO")
     if not github_token:
         github_token = os.getenv("GITHUB_DATA_TOKEN") or os.getenv("GITHUB_TOKEN")
     
+    print(f"🔑 Secrets check — repo={'SET' if repo else 'MISSING'}, token={'SET' if github_token else 'MISSING'}")
     if repo and github_token:
         # Normalize repo format
         repo = _normalize_github_repo(repo)
         print(f"📤 Attempting to save to GitHub repo: {repo}")
-        return logger.save_to_github(repo, github_token)
+        result = logger.save_to_github(repo, github_token)
+        print(f"📤 save_to_github result: {result}")
+        return result
     else:
-        print("⚠️ GitHub not configured, saving locally instead")
-        return logger._save_local()
+        print("⚠️ GitHub not configured: repo={} token={}".format(repo, 'SET' if github_token else 'MISSING'))
+        # Do NOT fall back to local - return False so caller shows the error
+        return False
