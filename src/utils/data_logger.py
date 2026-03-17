@@ -374,39 +374,27 @@ def save_session_to_github():
     
     st.session_state["github_save_error"] = None
 
-    # Try Streamlit secrets first, including nested [github] sections used on some deployments.
-    repo = _get_secret_value("GITHUB_DATA_REPO", "GITHUB_REPO", "github.repo")
+    # Match AnthroKit's simpler deployment model: the data repo is fixed.
+    repo = "ksauka/hicxai-data-private"
     github_token = _get_secret_value("GITHUB_DATA_TOKEN", "GITHUB_TOKEN", "github.token")
-    if not repo:
-        repo = os.getenv("GITHUB_DATA_REPO") or os.getenv("GITHUB_REPO")
     if not github_token:
         github_token = os.getenv("GITHUB_DATA_TOKEN") or os.getenv("GITHUB_TOKEN")
     
-    print(f"🔑 Secrets check — repo={'SET' if repo else 'MISSING'}, token={'SET' if github_token else 'MISSING'}")
-    if repo and github_token:
-        # Normalize repo format
-        repo = _normalize_github_repo(repo)
+    print(f"🔑 Secrets check — repo=SET ({repo}), token={'SET' if github_token else 'MISSING'}")
+    if github_token:
         print(f"📤 Attempting to save to GitHub repo: {repo}")
         result = logger.save_to_github(repo, github_token)
         print(f"📤 save_to_github result: {result}")
-        if not result:
+        if not result and not st.session_state.get("github_save_error"):
             st.session_state["github_save_error"] = (
-                "GitHub credentials were found, but the upload failed. "
+                f"GitHub token was found, but the upload to `{repo}` failed. "
                 "Check that the token is valid and that the repo is reachable."
             )
         return result
     else:
-        print("⚠️ GitHub not configured: repo={} token={}".format(repo, 'SET' if github_token else 'MISSING'))
-        missing = []
-        if not repo:
-            missing.append("repo")
-        if not github_token:
-            missing.append("token")
+        print("⚠️ GitHub not configured: token={}".format('SET' if github_token else 'MISSING'))
         st.session_state["github_save_error"] = (
-            "Missing GitHub configuration in Streamlit secrets. "
-            "Expected top-level `GITHUB_REPO`/`GITHUB_TOKEN` (or `GITHUB_DATA_REPO`/`GITHUB_DATA_TOKEN`), "
-            "or a `[github]` section with `repo` and `token`."
+            "Missing GitHub token in Streamlit secrets. "
+            "Expected `GITHUB_TOKEN` or `GITHUB_DATA_TOKEN`."
         )
-        if missing:
-            st.session_state["github_save_error"] += f" Missing: {', '.join(missing)}."
         return False
