@@ -1004,9 +1004,12 @@ def main():
                         "query_results": st.session_state.session_results
                     }
                     logger.set_final_feedback(session_data)
-                    save_session_to_github()
-                    st.session_state.session_saved = True
-                    st.rerun()
+                    save_ok = save_session_to_github()
+                    if save_ok:
+                        st.session_state.session_saved = True
+                        st.rerun()
+                    else:
+                        st.error("⚠️ Save failed — GitHub not reachable. Please screenshot this page and contact the researcher. Error details: no GITHUB_TOKEN/GITHUB_REPO found in app secrets.")
                 else:
                     st.error("Please enter your Prolific ID before saving.")
             return

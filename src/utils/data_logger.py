@@ -326,11 +326,26 @@ def save_session_to_github():
         return False
     
     # Try Streamlit secrets first, then environment variables
+    repo = None
+    github_token = None
     try:
-        repo = st.secrets.get("GITHUB_DATA_REPO") or st.secrets.get("GITHUB_REPO")
-        github_token = st.secrets.get("GITHUB_DATA_TOKEN") or st.secrets.get("GITHUB_TOKEN")
+        for key in ("GITHUB_DATA_REPO", "GITHUB_REPO"):
+            try:
+                repo = st.secrets[key]
+                break
+            except (KeyError, AttributeError):
+                pass
+        for key in ("GITHUB_DATA_TOKEN", "GITHUB_TOKEN"):
+            try:
+                github_token = st.secrets[key]
+                break
+            except (KeyError, AttributeError):
+                pass
     except Exception:
+        pass
+    if not repo:
         repo = os.getenv("GITHUB_DATA_REPO") or os.getenv("GITHUB_REPO")
+    if not github_token:
         github_token = os.getenv("GITHUB_DATA_TOKEN") or os.getenv("GITHUB_TOKEN")
     
     if repo and github_token:
