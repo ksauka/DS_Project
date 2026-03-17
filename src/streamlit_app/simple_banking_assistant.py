@@ -927,11 +927,6 @@ def main():
     # Nothing is pre-warmed at startup — keeps Community Cloud within memory limits.
     queries_df = load_study_queries()
     
-    # Initialize data logger (for GitHub save)
-    if 'data_logger_initialized' not in st.session_state:
-        init_logger()
-        st.session_state.data_logger_initialized = True
-    
     # Initialize session state
     _init_session_defaults()
     
@@ -985,11 +980,21 @@ def main():
                         avg_time = 0.0
                         total_session_time = 0.0
 
+                    # Create a fresh logger with the confirmed Prolific ID
+                    from src.utils.data_logger import DataLogger
+                    pid = pid_confirm.strip()
+                    logger = DataLogger(
+                        participant_id=pid,
+                        condition=st.session_state.get("cond", "default"),
+                        session_id=st.session_state.session_id,
+                    )
+                    st.session_state.data_logger = logger
+
                     session_data = {
                         "session_id": st.session_state.session_id,
-                        "participant_id": pid_confirm.strip(),
+                        "participant_id": pid,
                         "condition": st.session_state.get("cond", ""),
-                        "prolific_pid": pid_confirm.strip(),
+                        "prolific_pid": pid,
                         "timestamp": datetime.datetime.now().isoformat(),
                         "num_queries_completed": completed,
                         "accuracy": correct / completed if completed > 0 else 0,
@@ -998,9 +1003,8 @@ def main():
                         "total_session_time_seconds": total_session_time,
                         "query_results": st.session_state.session_results
                     }
-                    if 'data_logger' in st.session_state and st.session_state.data_logger:
-                        st.session_state.data_logger.set_final_feedback(session_data)
-                        save_session_to_github()
+                    logger.set_final_feedback(session_data)
+                    save_session_to_github()
                     st.session_state.session_saved = True
                     st.rerun()
                 else:
