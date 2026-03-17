@@ -15,6 +15,8 @@ class _SafeEncoder(json.JSONEncoder):
     def default(self, obj):
         try:
             import numpy as np
+            if isinstance(obj, np.bool_):
+                return bool(obj)
             if isinstance(obj, np.integer):
                 return int(obj)
             if isinstance(obj, np.floating):
