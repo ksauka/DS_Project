@@ -890,13 +890,18 @@ def generate_confidence_explanation(ds_system):
 
 def _init_session_defaults():
     """Initialize Streamlit session state defaults."""
+    pid_for_session = (
+        st.session_state.get('prolific_pid')
+        or st.session_state.get('pid')
+        or str(uuid.uuid4())[:8]
+    )
     defaults = {
         'current_query_index': 0,
         'conversation_history': [],
         'awaiting_clarification': False,
         'current_mass': None,  # accumulated DS mass function across turns
         'session_results': [],
-        'session_id': str(uuid.uuid4())[:8],
+        'session_id': pid_for_session,
         'query_start_time': None,
         'session_start_time': datetime.datetime.now(),
         'result_saved': False,
@@ -959,9 +964,11 @@ def main():
             )
             if st.button("✅ Confirm & Save", type="primary"):
                 if pid_confirm.strip():
+                    pid = pid_confirm.strip()
                     # Update session state with confirmed ID
-                    st.session_state.prolific_pid = pid_confirm.strip()
-                    st.session_state.pid = pid_confirm.strip()
+                    st.session_state.prolific_pid = pid
+                    st.session_state.pid = pid
+                    st.session_state.session_id = pid
 
                     # Calculate session statistics
                     if st.session_state.session_results:
@@ -980,18 +987,20 @@ def main():
                         avg_time = 0.0
                         total_session_time = 0.0
 
-                    # Create a fresh logger with the confirmed Prolific ID
-                    from src.utils.data_logger import DataLogger
-                    pid = pid_confirm.strip()
-                    logger = DataLogger(
-                        participant_id=pid,
-                        condition=st.session_state.get("cond", "default"),
-                        session_id=st.session_state.session_id,
-                    )
-                    st.session_state.data_logger = logger
+                    # Reuse existing logger to preserve in-memory query_results/metrics.
+                    logger = st.session_state.get("data_logger")
+                    if logger is None:
+                        logger = init_logger()
+                    if logger is None:
+                        st.error("Could not initialize session logger. Please refresh and try again.")
+                        return
+
+                    logger.participant_id = pid
+                    logger.session_id = pid
+                    logger.condition = st.session_state.get("cond", "default")
 
                     session_data = {
-                        "session_id": st.session_state.session_id,
+                        "session_id": pid,
                         "participant_id": pid,
                         "condition": st.session_state.get("cond", ""),
                         "prolific_pid": pid,
@@ -1580,10 +1589,10 @@ def _create_result_dict(
         'interaction_time_seconds': interaction_time,
         'conversation_transcript': '\n'.join(st.session_state.conversation_history)[-3000:],  # cap to save memory
         'timestamp': end_time.isoformat(),
-        'llm_predicted_intent': query_row.get('predicted_intent', ''),
-        'llm_num_interactions': query_row.get('num_interactions', 0),
-        'llm_confidence': query_row.get('confidence', 0.0),
-        'llm_was_correct': query_row.get('is_correct', False),
+        'benchmark_predicted_intent': query_row.get('predicted_intent', ''),
+        'benchmark_num_interactions': query_row.get('num_interactions', 0),
+        'benchmark_confidence': query_row.get('confidence', 0.0),
+        'benchmark_was_correct': query_row.get('is_correct', False),
         'user_validated_intent': None,
         'user_ranking': None,
         'user_agrees_with_system': None,

@@ -109,22 +109,32 @@ class DataLogger:
         end_dt = datetime.fromisoformat(session_end)
         duration_seconds = (end_dt - start_dt).total_seconds()
         
+        # Use either directly-logged query results or the ones embedded in final_feedback
+        qr = self.query_results or (self.final_feedback.get('query_results', []) if self.final_feedback else [])
+        n = len(qr)
+
         # Calculate summary statistics
-        if self.query_results:
-            accuracy = self.behavior_metrics["queries_correct"] / self.behavior_metrics["total_queries"]
-            avg_clarifications = self.behavior_metrics["total_clarifications"] / self.behavior_metrics["total_queries"]
-            avg_time = self.behavior_metrics["total_interaction_time"] / self.behavior_metrics["total_queries"]
-            
-            # Feedback statistics
-            clarity_ratings = [r.get('feedback_clarity') for r in self.query_results if r.get('feedback_clarity')]
-            confidence_ratings = [r.get('feedback_confidence') for r in self.query_results if r.get('feedback_confidence')]
-            
+        if qr:
+            queries_correct = sum(1 for r in qr if r.get('is_correct', False))
+            queries_incorrect = n - queries_correct
+            accuracy = queries_correct / n
+            avg_clarifications = sum(r.get('num_clarification_turns', 0) for r in qr) / n
+            avg_time = sum(r.get('interaction_time_seconds', 0) for r in qr) / n
+            total_clarifications = sum(r.get('num_clarification_turns', 0) for r in qr)
+            total_time = sum(r.get('interaction_time_seconds', 0) for r in qr)
+
+            clarity_ratings = [r['feedback_clarity'] for r in qr if r.get('feedback_clarity') is not None]
+            confidence_ratings = [r['feedback_confidence'] for r in qr if r.get('feedback_confidence') is not None]
             avg_clarity = sum(clarity_ratings) / len(clarity_ratings) if clarity_ratings else None
             avg_confidence = sum(confidence_ratings) / len(confidence_ratings) if confidence_ratings else None
         else:
+            queries_correct = 0
+            queries_incorrect = 0
             accuracy = 0
             avg_clarifications = 0
             avg_time = 0
+            total_clarifications = 0
+            total_time = 0.0
             avg_clarity = None
             avg_confidence = None
         
@@ -152,19 +162,19 @@ class DataLogger:
                 "system": system_name
             },
             "summary_statistics": {
-                "total_queries": self.behavior_metrics["total_queries"],
-                "queries_correct": self.behavior_metrics["queries_correct"],
-                "queries_incorrect": self.behavior_metrics["queries_incorrect"],
+                "total_queries": n,
+                "queries_correct": queries_correct,
+                "queries_incorrect": queries_incorrect,
                 "accuracy": accuracy,
-                "total_clarifications": self.behavior_metrics["total_clarifications"],
+                "total_clarifications": total_clarifications,
                 "avg_clarifications_per_query": avg_clarifications,
                 "total_why_questions": self.behavior_metrics["total_why_questions"],
-                "total_interaction_time_seconds": self.behavior_metrics["total_interaction_time"],
+                "total_interaction_time_seconds": total_time,
                 "avg_time_per_query_seconds": avg_time,
                 "avg_feedback_clarity": avg_clarity,
                 "avg_feedback_confidence": avg_confidence
             },
-            "query_results": self.query_results,
+            "query_results": qr,
             "final_feedback": self.final_feedback,
             "behavior_metrics": self.behavior_metrics
         }
