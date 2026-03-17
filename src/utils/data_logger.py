@@ -311,6 +311,50 @@ def _normalize_github_repo(repo: str) -> str:
     return repo
 
 
+def _get_secret_value(*keys: str):
+    """Look up a secret from Streamlit using common flat and sectioned layouts."""
+    try:
+        secrets = st.secrets
+    except Exception:
+        return None
+
+    for key in keys:
+        if not key:
+            continue
+
+        try:
+            value = secrets.get(key)
+            if value:
+                return value
+        except Exception:
+            pass
+
+        # Support sectioned secrets such as:
+        # [github]
+        # token = "..."
+        # repo = "owner/name"
+        if "." in key:
+            section_name, nested_key = key.split(".", 1)
+            section_names = (section_name, section_name.lower(), section_name.upper())
+            nested_names = (nested_key, nested_key.lower(), nested_key.upper())
+            for section in section_names:
+                try:
+                    section_obj = secrets.get(section)
+                except Exception:
+                    section_obj = None
+                if not section_obj:
+                    continue
+                for nested in nested_names:
+                    try:
+                        value = section_obj.get(nested)
+                    except Exception:
+                        value = None
+                    if value:
+                        return value
+
+    return None
+
+
 def save_session_to_github():
     """
     Save current session to GitHub repository.
@@ -325,17 +369,11 @@ def save_session_to_github():
         print("⚠️ No data logger found in session")
         return False
     
-    # Try Streamlit secrets first (bare except mirrors anthrokit pattern that works on Cloud)
-    repo = None
-    github_token = None
-    try:
-        repo = st.secrets.get("GITHUB_REPO") or st.secrets.get("GITHUB_DATA_REPO")
-    except:
-        pass
-    try:
-        github_token = st.secrets.get("GITHUB_TOKEN") or st.secrets.get("GITHUB_DATA_TOKEN")
-    except:
-        pass
+    st.session_state["github_save_error"] = None
+
+    # Try Streamlit secrets first, including nested [github] sections used on some deployments.
+    repo = _get_secret_value("GITHUB_DATA_REPO", "GITHUB_REPO", "github.repo")
+    github_token = _get_secret_value("GITHUB_DATA_TOKEN", "GITHUB_TOKEN", "github.token")
     if not repo:
         repo = os.getenv("GITHUB_DATA_REPO") or os.getenv("GITHUB_REPO")
     if not github_token:
@@ -348,8 +386,24 @@ def save_session_to_github():
         print(f"📤 Attempting to save to GitHub repo: {repo}")
         result = logger.save_to_github(repo, github_token)
         print(f"📤 save_to_github result: {result}")
+        if not result:
+            st.session_state["github_save_error"] = (
+                "GitHub credentials were found, but the upload failed. "
+                "Check that the token is valid and that the repo is reachable."
+            )
         return result
     else:
         print("⚠️ GitHub not configured: repo={} token={}".format(repo, 'SET' if github_token else 'MISSING'))
-        # Do NOT fall back to local - return False so caller shows the error
+        missing = []
+        if not repo:
+            missing.append("repo")
+        if not github_token:
+            missing.append("token")
+        st.session_state["github_save_error"] = (
+            "Missing GitHub configuration in Streamlit secrets. "
+            "Expected top-level `GITHUB_REPO`/`GITHUB_TOKEN` (or `GITHUB_DATA_REPO`/`GITHUB_DATA_TOKEN`), "
+            "or a `[github]` section with `repo` and `token`."
+        )
+        if missing:
+            st.session_state["github_save_error"] += f" Missing: {', '.join(missing)}."
         return False

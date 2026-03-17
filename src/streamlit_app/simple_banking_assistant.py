@@ -1009,7 +1009,14 @@ def main():
                         st.session_state.session_saved = True
                         st.rerun()
                     else:
-                        st.error("⚠️ Save failed. Please try again in a moment. If this persists, screenshot this page and contact the researcher.")
+                        error_detail = st.session_state.get(
+                            "github_save_error",
+                            "GitHub save failed for an unknown reason."
+                        )
+                        st.error(
+                            "⚠️ Save failed. Please screenshot this page and contact the researcher. "
+                            f"Error details: {error_detail}"
+                        )
                 else:
                     st.error("Please enter your Prolific ID before saving.")
             return
