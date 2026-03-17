@@ -316,6 +316,9 @@ def _humanize_response(text: str, response_type: str, context: Optional[Dict[str
         formatted_options = (
             "\n" + "\n".join(f"  • {o.replace('_', ' ')}" for o in options)
         )
+        free_text_hint = (
+            "\n\nYou can also reply in your own words if none of these options fit."
+        )
 
         # Wrap options in <readonly> XML tags — signals to the LLM that these
         # values are system-controlled and must not be reproduced or altered.
@@ -357,7 +360,7 @@ def _humanize_response(text: str, response_type: str, context: Optional[Dict[str
                 # Ensure the intro ends with a colon
                 if not intro.rstrip().endswith(":"):
                     intro = intro.rstrip().rstrip("?.,") + ":"
-                return intro + formatted_options
+                return intro + formatted_options + free_text_hint
         except Exception:
             pass
         # Fallback: return original DS text if LLM fails
