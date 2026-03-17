@@ -201,7 +201,7 @@ class DataLogger:
             # Save to GitHub
             commit_message = f"Session data: {self.participant_id} condition {self.condition} - {self.behavior_metrics['total_queries']} queries"
             
-            success = save_to_github(
+            success, error_message = save_to_github(
                 repo=repo,
                 path=filename,
                 content=content,
@@ -212,12 +212,15 @@ class DataLogger:
             if success:
                 print(f"✅ Session saved to GitHub: {filename}")
             else:
+                if error_message:
+                    st.session_state["github_save_error"] = error_message
                 # Fallback to local
                 print("⚠️ GitHub save failed, falling back to local save")
                 self._save_local()
             
             return success
         except Exception as e:
+            st.session_state["github_save_error"] = f"GitHub save error: {e}"
             print(f"❌ GitHub save error: {e}")
             return self._save_local()
     

@@ -16,7 +16,7 @@ def save_to_github(
     content: str,
     commit_message: str,
     github_token: str
-) -> bool:
+) -> tuple[bool, Optional[str]]:
     """
     Save content to a file in a GitHub repo (creates or updates the file).
     
@@ -28,7 +28,7 @@ def save_to_github(
         github_token: GitHub personal access token with repo permissions
     
     Returns:
-        True if successful, False otherwise
+        `(success, error_message)` where `error_message` is `None` on success.
     
     Example:
         >>> save_to_github(
@@ -45,16 +45,17 @@ def save_to_github(
         "Accept": "application/vnd.github.v3+json"
     }
     
+    sha = None
+
     # Check if file exists (to get SHA for update)
     try:
         r = requests.get(api_url, headers=headers, timeout=10)
         if r.status_code == 200:
             sha = r.json()['sha']
-        else:
-            sha = None
+        elif r.status_code not in (404,):
+            print(f"Warning: GitHub preflight returned {r.status_code}: {r.text}")
     except Exception as e:
         print(f"Warning: Could not check file existence: {e}")
-        sha = None
     
     # Prepare content
     data = {
@@ -71,17 +72,17 @@ def save_to_github(
         
         if response.status_code in [200, 201]:
             print(f"✅ Successfully saved to GitHub: {path}")
-            return True
+            return True, None
         else:
-            print(f"❌ GitHub API error: {response.status_code}")
-            print(f"Response: {response.text}")
-            return False
+            error_message = f"GitHub API error {response.status_code}: {response.text.strip()}"
+            print(f"❌ {error_message}")
+            return False, error_message
     except requests.exceptions.Timeout:
         print("❌ GitHub API timeout")
-        return False
+        return False, "GitHub API timeout while saving session data."
     except Exception as e:
         print(f"❌ GitHub save failed: {e}")
-        return False
+        return False, f"GitHub save failed: {e}"
 
 
 def test_github_connection(github_token: str, repo: str) -> tuple[bool, str]:
