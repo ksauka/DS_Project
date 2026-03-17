@@ -187,9 +187,12 @@ class DataLogger:
                 study_folder = 'b77'
             else:
                 study_folder = 'mixed'
+            # QUERY_SLICE is 0-based (set per app); store as app_1..app_4
+            slice_idx = int(os.getenv('QUERY_SLICE', '0'))
+            app_folder = f"app_{slice_idx + 1}"
             date_str = datetime.now().strftime('%Y-%m-%d')
             timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-            filename = f"sessions/{study_folder}/{date_str}/{self.participant_id}_{self.condition}_{timestamp}.json"
+            filename = f"sessions/{study_folder}/{app_folder}/{date_str}/{self.participant_id}_{self.condition}_{timestamp}.json"
             
             # Build data
             data = self.build_final_data()
