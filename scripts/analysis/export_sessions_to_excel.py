@@ -209,6 +209,51 @@ def _is_test_like(value: Any) -> bool:
     return any(m in s for m in markers)
 
 
+def _get_final_clarification_resolution_mode(query_record: Dict[str, Any]) -> str:
+    match_log = query_record.get("clarification_match_log", []) or []
+    if match_log:
+        final_mode = match_log[-1].get("resolution_mode")
+        if final_mode:
+            return str(final_mode)
+
+    num_turns = query_record.get("num_clarification_turns")
+    if isinstance(num_turns, (int, float)) and num_turns > 0:
+        return "clarification_without_logged_mode"
+    return "no_clarification"
+
+
+def _get_clarification_intent_cluster(query_record: Dict[str, Any]) -> str:
+    option_sets = query_record.get("clarification_option_sets", []) or []
+    if option_sets:
+        final_option_set = option_sets[-1] or []
+        if final_option_set:
+            return " | ".join(str(option) for option in final_option_set)
+    return "no_clarification_cluster"
+
+
+def _build_clarification_summary(query_df: pd.DataFrame) -> pd.DataFrame:
+    if query_df.empty:
+        return pd.DataFrame(columns=[
+            "clarification_intent_cluster",
+            "final_clarification_resolution_mode",
+            "query_count",
+        ])
+
+    summary = (
+        query_df.groupby(
+            ["clarification_intent_cluster", "final_clarification_resolution_mode"],
+            dropna=False,
+        )
+        .size()
+        .reset_index(name="query_count")
+        .sort_values(
+            by=["query_count", "clarification_intent_cluster", "final_clarification_resolution_mode"],
+            ascending=[False, True, True],
+        )
+    )
+    return summary
+
+
 def _flatten_records(
     json_files: List[Path],
     include_empty_sessions: bool = False,
@@ -306,6 +351,8 @@ def _flatten_records(
         session_rows.append(session_base)
 
         for q in query_results:
+            final_clarification_resolution_mode = _get_final_clarification_resolution_mode(q)
+            clarification_intent_cluster = _get_clarification_intent_cluster(q)
             row = dict(session_base)
             row.update({
                 "query_index": q.get("query_index"),
@@ -338,6 +385,19 @@ def _flatten_records(
                     (q.get("predicted_intent") == q.get("studyset_predicted_intent"))
                     if q.get("studyset_predicted_intent") is not None else None,
                 ),
+                "clarification_option_sets": json.dumps(q.get("clarification_option_sets", []), ensure_ascii=False),
+                "clarification_match_log": json.dumps(q.get("clarification_match_log", []), ensure_ascii=False),
+                "clarification_matched_options": " | ".join(
+                    str(item.get("matched_option"))
+                    for item in (q.get("clarification_match_log", []) or [])
+                    if item.get("matched_option")
+                ),
+                "clarification_normalization_used": any(
+                    item.get("matched_option") is not None
+                    for item in (q.get("clarification_match_log", []) or [])
+                ),
+                "final_clarification_resolution_mode": final_clarification_resolution_mode,
+                "clarification_intent_cluster": clarification_intent_cluster,
                 "user_validated_intent": q.get("user_validated_intent"),
                 "user_ranking": _join_ranking(q.get("user_ranking")),
                 "user_agrees_with_system": q.get("user_agrees_with_system"),
@@ -432,9 +492,11 @@ def main() -> int:
     )
 
     excel_path = out_dir / args.excel_name
+    clarification_summary_df = _build_clarification_summary(query_df)
     with pd.ExcelWriter(excel_path, engine="openpyxl") as writer:
         query_df.to_excel(writer, sheet_name="query_level", index=False)
         session_df.to_excel(writer, sheet_name="session_level", index=False)
+        clarification_summary_df.to_excel(writer, sheet_name="clarification_summary", index=False)
 
     print(f"Downloaded {len(json_files)} JSON files")
     print(f"Query rows: {len(query_df)}")

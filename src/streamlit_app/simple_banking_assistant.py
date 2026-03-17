@@ -783,6 +783,8 @@ def process_query(query_text, ds_system, is_initial=True, previous_mass=None):
             if hasattr(ds_system, 'clear_belief_history'):
                 ds_system.clear_belief_history()
             st.session_state.pop('last_clarification_options', None)
+            st.session_state['clarification_option_sets'] = []
+            st.session_state['clarification_match_log'] = []
             # Reset explanation snapshots so stale data from the previous query is never shown
             st.session_state.pop('initial_leaf_candidates', None)
 
@@ -825,12 +827,16 @@ def process_query(query_text, ds_system, is_initial=True, previous_mass=None):
         clarification_q, options, pred_intent_direct, confidence_direct = ds_system.get_clarification_step(combined_mass)
 
         if clarification_q is not None:
+            st.session_state['last_clarification_options'] = options or []
+            st.session_state['clarification_option_sets'].append(list(options or []))
             clarification = clarification_q
             if not clarification.endswith("?"):
                 clarification += "?"
             clarification += " Or feel free to describe what you need in your own words."
             clarification = _humanize_response(clarification, response_type="clarification", context={}, options=options)
             return clarification, True, combined_mass
+
+        st.session_state.pop('last_clarification_options', None)
 
         # Confident prediction (Case 1a) — use values already returned by get_clarification_step
         pred_intent = pred_intent_direct if pred_intent_direct else "unknown"
@@ -856,6 +862,23 @@ def process_query(query_text, ds_system, is_initial=True, previous_mass=None):
         st.error(f"DS Error: {str(e)}")
         st.error(_tb.format_exc())
         return "I encountered an error. Could you rephrase?", True, None
+
+
+def _normalize_clarification_reply(user_input, canonical_options):
+    """Map an on-screen clarification reply back to one canonical intent."""
+    if not user_input or not canonical_options:
+        return None
+
+    display_to_canonical = {
+        " ".join(option.replace('_', ' ').strip().lower().split()): option
+        for option in canonical_options
+    }
+    raw = " ".join(user_input.strip().lower().split())
+    if raw in display_to_canonical:
+        return display_to_canonical[raw]
+
+    normalized_raw = " ".join(raw.replace('_', ' ').split())
+    return display_to_canonical.get(normalized_raw)
 
 
 def generate_confidence_explanation(ds_system):
@@ -919,6 +942,8 @@ def _init_session_defaults():
         'llm_warning_shown': False,
         'clarification_turns': 0,
         'feedback_stage': 'ranking',
+        'clarification_option_sets': [],
+        'clarification_match_log': [],
     }
     for key, value in defaults.items():
         if key not in st.session_state:
@@ -1247,9 +1272,26 @@ def main():
                 st.session_state.awaiting_clarification = False
                 st.session_state.query_resolved = True
             else:
+                clarification_input = user_input
+                resolution_mode = "free_text_fallback"
+                matched_option = _normalize_clarification_reply(
+                    user_input,
+                    st.session_state.get('last_clarification_options', [])
+                )
+                if matched_option is not None:
+                    clarification_input = matched_option
+                    resolution_mode = "exact_option_match"
+                st.session_state['clarification_match_log'].append({
+                    "user_input": user_input,
+                    "used_input": clarification_input,
+                    "matched_option": matched_option,
+                    "resolution_mode": resolution_mode,
+                    "available_options": list(st.session_state.get('last_clarification_options', [])),
+                })
+
                 # Synchronous per-turn: combine user answer with accumulated mass
                 response, needs_clarification, current_mass = process_query(
-                    user_input, ds_system,
+                    clarification_input, ds_system,
                     is_initial=False,
                     previous_mass=st.session_state.current_mass
                 )
@@ -1593,7 +1635,9 @@ def _create_result_dict(
         'feedback_clarity': None,
         'feedback_confidence': None,
         'feedback_comment': '',
-        'feedback_submitted': False
+        'feedback_submitted': False,
+        'clarification_option_sets': list(st.session_state.get('clarification_option_sets', [])),
+        'clarification_match_log': list(st.session_state.get('clarification_match_log', [])),
     }
 
 def get_ds_explanation(ds_system, explanation_type):
