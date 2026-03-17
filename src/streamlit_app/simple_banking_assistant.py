@@ -1231,18 +1231,15 @@ def main():
     if user_input:
         user_input_lower = user_input.lower().strip()
         
-        # Handle "why" questions (allowed during clarification AND after resolution)
+        # Handle "why" questions (only after prediction is shown in feedback stage)
         if 'why' in user_input_lower or 'how did you' in user_input_lower or 'explain' in user_input_lower:
-            # During active clarification: explain inline as before
+            # During active clarification: defer explanation until after prediction.
             if st.session_state.awaiting_clarification:
                 st.session_state.conversation_history.append(f"User: {user_input}")
-                if 'data_logger' in st.session_state and st.session_state.data_logger:
-                    st.session_state.data_logger.log_why_question()
-                explanation, belief_plot, _ = get_ds_explanation(ds_system, "clarification")
-                explanation = _humanize_response(explanation, response_type="explanation",
-                                                  context={"explanation_type": "clarification"})
-                st.session_state.conversation_history.append(f"Assistant: {explanation}")
-                st.session_state.last_belief_plot = belief_plot
+                st.session_state.conversation_history.append(
+                    "Assistant: I can explain the prediction after I finish this query. "
+                    "Please answer the clarification first."
+                )
                 st.rerun()
             else:
                 # Query resolved — explanation is handled in feedback stage 3
