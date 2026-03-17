@@ -1229,25 +1229,9 @@ def main():
         user_input = st.chat_input("Type your response here...", key=f"chat_{st.session_state.current_query_index}")
     
     if user_input:
-        user_input_lower = user_input.lower().strip()
-        
-        # Handle "why" questions (only after prediction is shown in feedback stage)
-        if 'why' in user_input_lower or 'how did you' in user_input_lower or 'explain' in user_input_lower:
-            # During active clarification: defer explanation until after prediction.
-            if st.session_state.awaiting_clarification:
-                st.session_state.conversation_history.append(f"User: {user_input}")
-                st.session_state.conversation_history.append(
-                    "Assistant: I can explain the prediction after I finish this query. "
-                    "Please answer the clarification first."
-                )
-                st.rerun()
-            else:
-                # Query resolved — explanation is handled in feedback stage 3
-                st.info("Use the 'Why was this predicted?' button in the feedback section below.")
-                st.rerun()
-
-        # Handle clarification response (during active clarification)
-        elif st.session_state.awaiting_clarification:
+        # During active clarification, treat all user text as clarification input.
+        # This avoids misclassifying normal replies that contain words like "why".
+        if st.session_state.awaiting_clarification:
             st.session_state.conversation_history.append(f"User: {user_input}")
             st.session_state.clarification_turns += 1
 
