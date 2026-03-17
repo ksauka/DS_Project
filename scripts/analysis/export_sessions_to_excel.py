@@ -193,6 +193,14 @@ def _join_ranking(v: Any) -> str:
     return "" if v is None else str(v)
 
 
+def _extract_app_number_from_path(path: Path) -> str:
+    """Extract app folder token (e.g., app_4) from a session file path."""
+    for part in path.parts:
+        if part.startswith("app_"):
+            return part
+    return ""
+
+
 def _is_test_like(value: Any) -> bool:
     if value is None:
         return False
@@ -256,6 +264,7 @@ def _flatten_records(
             or final_feedback.get("participant_id")
             or ""
         )
+        app_number = metadata.get("app_number") or _extract_app_number_from_path(jf)
         session_id = metadata.get("session_id") or final_feedback.get("session_id") or ""
 
         if not include_empty_sessions and not query_results:
@@ -274,6 +283,7 @@ def _flatten_records(
             "condition": metadata.get("condition") or final_feedback.get("condition") or "",
             "dataset": metadata.get("dataset", ""),
             "system": metadata.get("system", ""),
+            "app_number": app_number,
             "session_start": metadata.get("session_start", ""),
             "session_end": metadata.get("session_end", ""),
             "duration_seconds": metadata.get("duration_seconds", None),

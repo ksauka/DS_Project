@@ -140,6 +140,12 @@ class DataLogger:
         
         # Derive dataset & system from STUDY_SET_DIR env var
         study_dir = os.getenv('STUDY_SET_DIR', 'study_b77only')
+        try:
+            slice_idx = int(os.getenv('QUERY_SLICE', '0'))
+            app_number = f'app_{slice_idx + 1}'
+        except (TypeError, ValueError):
+            app_number = 'app_1'
+
         if 'clinc150' in study_dir:
             dataset_name = 'clinc150'
             system_name = 'HicXAI'
@@ -169,7 +175,8 @@ class DataLogger:
                 "session_end": session_end,
                 "duration_seconds": duration_seconds,
                 "dataset": dataset_name,
-                "system": system_name
+                "system": system_name,
+                "app_number": app_number
             },
             "summary_statistics": {
                 "total_queries": n,
