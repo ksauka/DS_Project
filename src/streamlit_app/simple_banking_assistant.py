@@ -1602,6 +1602,9 @@ def _create_result_dict(
         'studyset_num_interactions': query_row.get('num_interactions', 0),
         'studyset_confidence': query_row.get('confidence', 0.0),
         'studyset_was_correct': query_row.get('is_correct', False),
+        # Agreement signals between DS live output and fixed references.
+        'ds_agent_agrees_with_oracle': (predicted_intent == query_row['true_intent']),
+        'ds_agent_agrees_with_studyset': (predicted_intent == query_row.get('predicted_intent', '')),
         'user_validated_intent': None,
         'user_ranking': None,
         'user_agrees_with_system': None,

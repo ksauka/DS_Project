@@ -322,6 +322,12 @@ def _flatten_records(
                 "studyset_num_interactions": q.get("studyset_num_interactions", q.get("benchmark_num_interactions", q.get("llm_num_interactions"))),
                 "studyset_confidence": q.get("studyset_confidence", q.get("benchmark_confidence", q.get("llm_confidence"))),
                 "studyset_was_correct": q.get("studyset_was_correct", q.get("benchmark_was_correct", q.get("llm_was_correct"))),
+                "ds_agent_agrees_with_oracle": q.get("ds_agent_agrees_with_oracle", q.get("is_correct")),
+                "ds_agent_agrees_with_studyset": q.get(
+                    "ds_agent_agrees_with_studyset",
+                    (q.get("predicted_intent") == q.get("studyset_predicted_intent"))
+                    if q.get("studyset_predicted_intent") is not None else None,
+                ),
                 "user_validated_intent": q.get("user_validated_intent"),
                 "user_ranking": _join_ranking(q.get("user_ranking")),
                 "user_agrees_with_system": q.get("user_agrees_with_system"),
