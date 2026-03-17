@@ -1009,7 +1009,9 @@ def main():
                         "accuracy": correct / completed if completed > 0 else 0,
                         "avg_clarifications": avg_interactions,
                         "avg_time_per_query_seconds": avg_time,
+                        "avg_time_per_query_minutes": (avg_time / 60.0) if avg_time is not None else None,
                         "total_session_time_seconds": total_session_time,
+                        "total_session_time_minutes": (total_session_time / 60.0) if total_session_time is not None else None,
                         "query_results": st.session_state.session_results
                     }
                     logger.set_final_feedback(session_data)
@@ -1587,12 +1589,19 @@ def _create_result_dict(
         'num_clarification_turns': clarification_turns,
         'is_correct': is_correct,
         'interaction_time_seconds': interaction_time,
+        'interaction_time_minutes': interaction_time / 60.0,
         'conversation_transcript': '\n'.join(st.session_state.conversation_history)[-3000:],  # cap to save memory
         'timestamp': end_time.isoformat(),
-        'benchmark_predicted_intent': query_row.get('predicted_intent', ''),
-        'benchmark_num_interactions': query_row.get('num_interactions', 0),
-        'benchmark_confidence': query_row.get('confidence', 0.0),
-        'benchmark_was_correct': query_row.get('is_correct', False),
+        # Live DS outputs for this participant interaction.
+        'ds_agent_predicted_intent': predicted_intent,
+        'ds_agent_num_interactions': clarification_turns,
+        'ds_agent_confidence': confidence,
+        'ds_agent_was_correct': is_correct,
+        # Static reference values from the preloaded study row.
+        'studyset_predicted_intent': query_row.get('predicted_intent', ''),
+        'studyset_num_interactions': query_row.get('num_interactions', 0),
+        'studyset_confidence': query_row.get('confidence', 0.0),
+        'studyset_was_correct': query_row.get('is_correct', False),
         'user_validated_intent': None,
         'user_ranking': None,
         'user_agrees_with_system': None,

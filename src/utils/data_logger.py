@@ -150,6 +150,16 @@ class DataLogger:
             dataset_name = 'mixed'
             system_name = 'DS_hierarchical_intent_classification'
 
+        behavior_metrics = {
+            "total_queries": n,
+            "total_clarifications": total_clarifications,
+            "total_why_questions": self.behavior_metrics.get("total_why_questions", 0),
+            "total_interaction_time": total_time,
+            "total_interaction_time_minutes": total_time / 60.0,
+            "queries_correct": queries_correct,
+            "queries_incorrect": queries_incorrect,
+        }
+
         return {
             "metadata": {
                 "participant_id": self.participant_id,
@@ -170,13 +180,15 @@ class DataLogger:
                 "avg_clarifications_per_query": avg_clarifications,
                 "total_why_questions": self.behavior_metrics["total_why_questions"],
                 "total_interaction_time_seconds": total_time,
+                "total_interaction_time_minutes": total_time / 60.0,
                 "avg_time_per_query_seconds": avg_time,
+                "avg_time_per_query_minutes": avg_time / 60.0,
                 "avg_feedback_clarity": avg_clarity,
                 "avg_feedback_confidence": avg_confidence
             },
             "query_results": qr,
             "final_feedback": self.final_feedback,
-            "behavior_metrics": self.behavior_metrics
+            "behavior_metrics": behavior_metrics
         }
     
     def save_to_github(self, repo: str, github_token: str) -> bool:
@@ -191,7 +203,7 @@ class DataLogger:
             True if successful, False otherwise
         """
         try:
-            # Build file path: sessions/{study_type}/{date}/{participant_id}_{condition}_{timestamp}.json
+            # Build file path: sessions/{study_type}/{app}/{date}/{participant_id}.json
             study_dir = os.getenv('STUDY_SET_DIR', 'study_b77only')
             if 'clinc150' in study_dir:
                 study_folder = 'clinc150'
@@ -203,8 +215,7 @@ class DataLogger:
             slice_idx = int(os.getenv('QUERY_SLICE', '0'))
             app_folder = f"app_{slice_idx + 1}"
             date_str = datetime.now().strftime('%Y-%m-%d')
-            timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-            filename = f"sessions/{study_folder}/{app_folder}/{date_str}/{self.participant_id}_{self.condition}_{timestamp}.json"
+            filename = f"sessions/{study_folder}/{app_folder}/{date_str}/{self.participant_id}.json"
             
             # Build data
             data = self.build_final_data()
@@ -250,9 +261,8 @@ class DataLogger:
             session_dir = data_dir / date_str
             session_dir.mkdir(parents=True, exist_ok=True)
             
-            # Build filename
-            timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-            filename = session_dir / f"{self.participant_id}_{self.condition}_{timestamp}.json"
+            # Build filename (PID only)
+            filename = session_dir / f"{self.participant_id}.json"
             
             # Build and save data
             data = self.build_final_data()
