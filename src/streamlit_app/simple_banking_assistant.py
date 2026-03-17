@@ -42,7 +42,6 @@ from urllib.parse import (
 import numpy as np
 import pandas as pd
 import streamlit as st
-import streamlit.components.v1 as components
 from dotenv import load_dotenv
 
 # Load environment variables from .env (for local development)
@@ -137,38 +136,12 @@ def back_to_survey(done_flag=True):
                 unsafe_allow_html=True)
     st.stop()
 
-
-def notify_qualtrics_saved():
-    """Notify a parent Qualtrics page that session save completed inside an iframe."""
-    if st.session_state.get("_qualtrics_notified", False):
-        return
-
-    payload = {
-        "type": "ds_project_session_saved",
-        "done": True,
-        "pid": st.session_state.get("pid", ""),
-        "prolific_pid": st.session_state.get("prolific_pid", ""),
-        "session_id": st.session_state.get("session_id", ""),
-        "condition": st.session_state.get("cond", ""),
-    }
-    payload_json = json.dumps(payload)
-    components.html(
-        f"""
-        <script>
-        window.parent.postMessage({payload_json}, "*");
-        </script>
-        """,
-        height=0,
-    )
-    st.session_state._qualtrics_notified = True
-
 # -------------- read & persist params once --------------
 _qs = _get_query_params()
 _pid_in = _as_str(_qs.get("pid", ""))
 _cond_in = _as_str(_qs.get("cond", ""))
 _ret_in = _as_str(_qs.get("return", ""))
 _prolific_pid = _as_str(_qs.get("PROLIFIC_PID", ""))
-_embed_in = _as_str(_qs.get("embed", ""))
 
 if "pid" not in st.session_state and _pid_in:
     st.session_state.pid = _pid_in
@@ -187,8 +160,6 @@ if "prolific_pid" not in st.session_state:
 # One-shot redirect latch
 if "_returned" not in st.session_state:
     st.session_state._returned = False
-if "_qualtrics_notified" not in st.session_state:
-    st.session_state._qualtrics_notified = False
 
 # Re-apply redirect if already latched (survives Streamlit re-renders)
 if st.session_state.get("_returned"):
@@ -220,7 +191,6 @@ if not st.session_state.get("prolific_pid"):
     st.stop()
 
 st.session_state.has_return_url = bool(st.session_state.get("return_raw", ""))
-st.session_state.is_embedded = _embed_in.lower() in {"1", "true", "yes"}
 st.session_state.back_to_survey = back_to_survey
 # ===== END QUALTRICS/PROLIFIC INTEGRATION =====
 
@@ -1048,12 +1018,6 @@ def main():
                     save_ok = save_session_to_github()
                     if save_ok:
                         st.session_state.session_saved = True
-                        if st.session_state.get("is_embedded"):
-                            notify_qualtrics_saved()
-                            st.rerun()
-                        if st.session_state.get("has_return_url"):
-                            back_to_survey(done_flag=True)
-                            st.stop()
                         st.rerun()
                     else:
                         error_detail = st.session_state.get(
@@ -1069,14 +1033,6 @@ def main():
             return
 
         # Already saved — show completion message
-        if st.session_state.get("is_embedded"):
-            notify_qualtrics_saved()
-            st.success("Your responses have been saved. The Qualtrics Next button is now available below.")
-            return
-        if st.session_state.get("has_return_url"):
-            st.success("Your responses have been saved. Redirecting you back to Qualtrics now.")
-            back_to_survey(done_flag=True)
-            st.stop()
         st.success("Your responses have been saved. Please press the **red Next arrow ▶** in Qualtrics to return to the survey and continue.")
 
         return
