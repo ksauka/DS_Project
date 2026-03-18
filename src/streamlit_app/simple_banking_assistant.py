@@ -719,6 +719,36 @@ def _get_tracker(ds_system):
             return tracker
     return BeliefTracker()
 
+
+def _round_mass_dict(mass_dict, ndigits=6):
+    """Convert a mass/belief dict to JSON-safe rounded floats."""
+    if not mass_dict:
+        return {}
+    return {k: round(float(v), ndigits) for k, v in mass_dict.items()}
+
+
+def _compute_conflict_k(ds_system, mass1, mass2):
+    """Compute conflict coefficient K for two mass functions at runtime."""
+    if not mass1 or not mass2:
+        return 0.0
+
+    conflict = 0.0
+    for a, ma in mass1.items():
+        for b, mb in mass2.items():
+            hcd = ds_system.find_highest_common_descendant(a, b)
+            if hcd is None:
+                conflict += float(ma) * float(mb)
+    return float(conflict)
+
+
+def _top_leaf_beliefs(ds_system, belief_dict, k=5):
+    """Return top-k leaf belief scores for compact runtime telemetry."""
+    if not belief_dict:
+        return []
+    leaf_items = [(intent, belief_dict.get(intent, 0.0)) for intent in ds_system.hierarchy if ds_system.is_leaf(intent)]
+    leaf_items.sort(key=lambda x: x[1], reverse=True)
+    return [{"intent": i, "belief": round(float(b), 6)} for i, b in leaf_items[:k]]
+
 def generate_belief_visualization(ds_system, title="Belief Progression"):
     """Generate real-time belief visualization for leaf intents only."""
     try:
@@ -790,6 +820,7 @@ def process_query(query_text, ds_system, is_initial=True, previous_mass=None):
             st.session_state['clarification_match_log'] = []
             # Reset explanation snapshots so stale data from the previous query is never shown
             st.session_state.pop('initial_leaf_candidates', None)
+            st.session_state['turn_telemetry'] = []
 
         current_mass = ds_system.compute_mass_function(query_text)
 
@@ -797,6 +828,8 @@ def process_query(query_text, ds_system, is_initial=True, previous_mass=None):
             combined_mass = ds_system.combine_mass_functions(previous_mass, current_mass)
         else:
             combined_mass = current_mass
+
+        conflict_k = _compute_conflict_k(ds_system, previous_mass, current_mass) if (previous_mass is not None and not is_initial) else 0.0
 
         # Record belief state for explainability charts.
         # Mirror evaluate_from_leaves(depth): depth==0 → "Initial", depth==N → "Turn N".
@@ -828,6 +861,22 @@ def process_query(query_text, ds_system, is_initial=True, previous_mass=None):
         # Case 1b (multiple confident)     → (question, None, 0.0)      → ask
         # Case 3  (no confident nodes)     → (question, None, 0.0)      → rephrase
         clarification_q, options, pred_intent_direct, confidence_direct = ds_system.get_clarification_step(combined_mass)
+
+        telemetry_entry = {
+            "turn_index": len(st.session_state.get('turn_telemetry', [])) + 1,
+            "is_initial": bool(is_initial),
+            "user_input": query_text,
+            "conflict_k": round(float(conflict_k), 6),
+            "mass_current": _round_mass_dict(current_mass),
+            "mass_before": _round_mass_dict(previous_mass) if previous_mass is not None else {},
+            "mass_after": _round_mass_dict(combined_mass),
+            "top_leaf_beliefs": _top_leaf_beliefs(ds_system, belief, k=5),
+            "asked_clarification": clarification_q is not None,
+            "clarification_options": list(options or []),
+            "predicted_intent": pred_intent_direct if pred_intent_direct else "",
+            "predicted_confidence": round(float(confidence_direct), 6) if confidence_direct else 0.0,
+        }
+        st.session_state.setdefault('turn_telemetry', []).append(telemetry_entry)
 
         if clarification_q is not None:
             st.session_state['last_clarification_options'] = options or []
@@ -882,6 +931,7 @@ def _normalize_clarification_reply(user_input, canonical_options):
 
     normalized_raw = " ".join(raw.replace('_', ' ').split())
     return display_to_canonical.get(normalized_raw)
+
 
 
 def generate_confidence_explanation(ds_system):
@@ -947,6 +997,7 @@ def _init_session_defaults():
         'feedback_stage': 'ranking',
         'clarification_option_sets': [],
         'clarification_match_log': [],
+        'turn_telemetry': [],
     }
     for key, value in defaults.items():
         if key not in st.session_state:
@@ -1292,7 +1343,8 @@ def main():
                     "available_options": list(st.session_state.get('last_clarification_options', [])),
                 })
 
-                # Synchronous per-turn: combine user answer with accumulated mass
+                # Synchronous per-turn: combine clarification evidence with accumulated mass.
+                # Even exact option matches remain evidence only; DS decides via belief/thresholds.
                 response, needs_clarification, current_mass = process_query(
                     clarification_input, ds_system,
                     is_initial=False,
@@ -1641,6 +1693,7 @@ def _create_result_dict(
         'feedback_submitted': False,
         'clarification_option_sets': list(st.session_state.get('clarification_option_sets', [])),
         'clarification_match_log': list(st.session_state.get('clarification_match_log', [])),
+        'turn_telemetry': list(st.session_state.get('turn_telemetry', [])),
     }
 
 def get_ds_explanation(ds_system, explanation_type):

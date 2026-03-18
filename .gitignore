@@ -82,6 +82,7 @@ data/*.csv
 data/*.json
 data/*.txt
 !data/README.md
+streamlit_app/simple_banking_assistant_backup_20260312_231147.py
 
 # Notebook outputs
 notebooks/*.csv
@@ -189,3 +190,10 @@ dmypy.json
 
 # Ignore this gitignore file itself (if you want additional privacy)
 # .gitignore
+
+# Explicit local-only files to keep out of commits
+HANDBOOK.md
+STEP4_UPGRADE_SUMMARY.md
+docs/CLARIFICATION_NORMALIZATION_RESOLUTION.md
+docs/CLINC_SIBLING_AMBIGUITY_AND_CONFLICT_ANALYSIS.md
+src/streamlit_app/simple_banking_assistant_backup_20260312_231147.py
