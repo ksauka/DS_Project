@@ -638,9 +638,10 @@ def load_study_queries():
                 )
             # Apply slice if requested (splits full CSV into 4 non-overlapping chunks)
             if 0 <= _query_slice <= 3:
-                import numpy as np
-                _slices = np.array_split(df, 4)
-                df = _slices[_query_slice].reset_index(drop=True)
+                _n = len(df)
+                _starts = [_n * i // 4 for i in range(4)]
+                _ends   = [_n * (i + 1) // 4 for i in range(4)]
+                df = df.iloc[_starts[_query_slice]:_ends[_query_slice]].reset_index(drop=True)
                 print(f"[load_study_queries] Using set='{_key}' slice {_query_slice} ({len(df)} queries)")
             else:
                 print(f"[load_study_queries] Using set='{_key}' ({len(df)} queries)")
