@@ -431,12 +431,51 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-# Hide in-app fullscreen button (embed=true handles Cloud chrome; this covers the per-element button)
+# Hide Streamlit branding, toolbar, deploy button, creator links
 st.markdown("""
 <style>
+/* Header / toolbar */
+#MainMenu {visibility: hidden !important;}
+header {visibility: hidden !important;}
+[data-testid="stHeader"] {display: none !important;}
+[data-testid="stToolbar"] {display: none !important;}
+[data-testid="stDecoration"] {display: none !important;}
+[data-testid="stStatusWidget"] {display: none !important;}
+button[kind="header"] {display: none !important;}
+
+/* Footer */
+footer {visibility: hidden !important; display: none !important;}
+[data-testid="stFooter"] {display: none !important;}
+div[role="contentinfo"] {display: none !important;}
+
+/* Deploy / manage buttons */
+[data-testid="manage-app-button"] {display: none !important;}
+.stAppDeployButton {display: none !important;}
+.stDeployButton {display: none !important;}
+
+/* Creator / viewer badge links (GitHub profile tab) */
+a[href*="streamlit.io"] {display: none !important;}
+a[href*="share.streamlit.io/user"] {display: none !important;}
+a[href*="/user/ksauka"] {display: none !important;}
+a[target="_blank"][href^="https://share.streamlit.io"] {display: none !important;}
+.viewerBadge_link__qRIco {display: none !important;}
+.viewerBadge_link__Ua7HT {display: none !important;}
+.viewerBadge_container__r5tak {display: none !important;}
+.viewerBadge_container__2QSob {display: none !important;}
+[class*="viewerBadge"] {display: none !important;}
+[class*="ViewerBadge"] {display: none !important;}
+[class*="avatar"] {display: none !important;}
+[class*="Avatar"] {display: none !important;}
+div:has(a[href*="streamlit.io"]) {display: none !important;}
+
+/* Fullscreen button */
 [data-testid="StyledFullScreenButton"] {display: none !important;}
 button[title="View fullscreen"] {display: none !important;}
 button[aria-label="View fullscreen"] {display: none !important;}
+
+/* Legacy */
+.css-1v0mbdj {display: none !important;}
+section.main > div {padding-bottom: 0 !important;}
 </style>
 """, unsafe_allow_html=True)
 
@@ -1032,7 +1071,43 @@ def main():
         st.markdown("---")
         st.markdown("### ✅ You're all done!")
 
-        # --- Prolific ID confirmation gate ---
+        # --- Auto-save on completion if PID is available from URL (fires before confirmation screen) ---
+        if not st.session_state.get('session_saved', False) and not st.session_state.get('auto_save_attempted', False):
+            st.session_state.auto_save_attempted = True
+            _url_pid = st.session_state.get("prolific_pid") or st.session_state.get("pid")
+            if _url_pid:
+                if st.session_state.session_results:
+                    _completed = len(st.session_state.session_results)
+                    _correct = sum(1 for r in st.session_state.session_results if r.get('is_correct', False))
+                    _avg_int = float(np.mean([r.get('num_clarification_turns', 0) for r in st.session_state.session_results]))
+                    _avg_t = float(np.mean([r.get('interaction_time_seconds', 0) for r in st.session_state.session_results]))
+                else:
+                    _completed = _correct = 0
+                    _avg_int = _avg_t = 0.0
+                _total_t = (datetime.datetime.now() - st.session_state.get('session_start_time', datetime.datetime.now())).total_seconds()
+                _logger = st.session_state.get("data_logger") or init_logger()
+                if _logger:
+                    _logger.participant_id = _url_pid
+                    _logger.session_id = _url_pid
+                    _logger.condition = st.session_state.get("cond", "default")
+                    _logger.set_final_feedback({
+                        "session_id": _url_pid, "participant_id": _url_pid,
+                        "condition": st.session_state.get("cond", ""),
+                        "prolific_pid": _url_pid,
+                        "timestamp": datetime.datetime.now().isoformat(),
+                        "num_queries_completed": _completed,
+                        "accuracy": _correct / _completed if _completed > 0 else 0,
+                        "avg_clarifications": _avg_int,
+                        "avg_time_per_query_seconds": _avg_t,
+                        "avg_time_per_query_minutes": _avg_t / 60.0,
+                        "total_session_time_seconds": _total_t,
+                        "total_session_time_minutes": _total_t / 60.0,
+                        "query_results": st.session_state.session_results
+                    })
+                    if save_session_to_github():
+                        st.session_state.session_saved = True
+
+        # --- Prolific ID confirmation gate (shown only when auto-save couldn't fire due to missing PID) ---
         if not st.session_state.get('session_saved', False):
             st.markdown("**Please confirm your Prolific ID before we save your responses:**")
             existing_pid = st.session_state.get("prolific_pid", "") or st.session_state.get("pid", "")
@@ -1112,8 +1187,14 @@ def main():
                     st.error("Please enter your Prolific ID before saving.")
             return
 
-        # Already saved — show completion message
-        st.success("Your responses have been saved. Please press the **red Next arrow ▶** in Qualtrics to return to the survey and continue.")
+        # Already saved — show completion message + return button
+        st.success("✅ Your responses have been saved successfully. Thank you!")
+        st.markdown("Please click the button below to return to the survey and continue.")
+        if st.button("Continue to Survey ▶", type="primary", key="return_to_qualtrics_btn"):
+            back_to_survey(done_flag=True)
+        # Fallback: if no return URL configured, tell them to use Qualtrics Next
+        if not st.session_state.get("return_raw"):
+            st.info("If the button above does nothing, press the **Next ▶** button in Qualtrics to continue.")
 
         return
     
