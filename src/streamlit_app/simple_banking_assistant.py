@@ -1188,13 +1188,24 @@ def main():
             return
 
         # Already saved — show completion message + return button
+        _FALLBACK_SURVEY_URL = "https://uva.fra1.qualtrics.com/jfe/form/SV_9Tbmg2uUuRiSKeG?stage=post"
         st.success("✅ Your responses have been saved successfully. Thank you!")
         st.markdown("Please click the button below to return to the survey and continue.")
         if st.button("Continue to Survey ▶", type="primary", key="return_to_qualtrics_btn"):
-            back_to_survey(done_flag=True)
-        # Fallback: if no return URL configured, tell them to use Qualtrics Next
-        if not st.session_state.get("return_raw"):
-            st.info("If the button above does nothing, press the **Next ▶** button in Qualtrics to continue.")
+            # Try return_raw first; fall back to hardcoded survey URL
+            if st.session_state.get("return_raw"):
+                back_to_survey(done_flag=True)
+            else:
+                _pid = st.session_state.get("prolific_pid") or st.session_state.get("pid", "")
+                _cond = st.session_state.get("cond", "")
+                _fallback = _FALLBACK_SURVEY_URL
+                if _pid:
+                    _fallback += f"&pid={_pid}"
+                if _cond:
+                    _fallback += f"&cond={_cond}"
+                st.markdown(f'<meta http-equiv="refresh" content="0;url={_fallback}">',
+                            unsafe_allow_html=True)
+                st.stop()
 
         return
     
